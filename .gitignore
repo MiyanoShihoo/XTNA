@@ -88,3 +88,7 @@ website/.i18n-*/
 # Local verification artifacts
 /.verify/
 
+
+# Local symbol overlays
+/.xtna/
+

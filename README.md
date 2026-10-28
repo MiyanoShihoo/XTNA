@@ -111,6 +111,14 @@ Presence-only DEX scanning across ~38 ad/analytics/tracking SDK families. Set
 
 Reference: [English](docs/XTNA-APK-AUDIT.md) · [中文](docs/XTNA-APK-AUDIT.zh-CN.md)
 
+## Symbol overlay
+
+`npm run overlay -- add --binary ./target.exe --address 0x401000 --name WinMain_candidate --confidence inferred`
+keeps analyst-proposed names, types and comments outside the evidence ledger, keyed by the
+binary digest, and exports rename-only scripts for Ghidra or IDA.
+
+[English](docs/XTNA-SYMBOL-OVERLAY.md) · [中文](docs/XTNA-SYMBOL-OVERLAY.zh-CN.md)
+
 ## Verification
 
 | Check | Command | Status |

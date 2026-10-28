@@ -105,6 +105,14 @@ npm run audit:apk -- sample.apk --json --markdown report.md
 
 文档:[英文](docs/XTNA-APK-AUDIT.md) · [中文](docs/XTNA-APK-AUDIT.zh-CN.md)
 
+## 符号覆盖层
+
+`npm run overlay -- add --binary ./target.exe --address 0x401000 --name WinMain_candidate --confidence inferred`
+把分析者推断的名字、类型与注释保存在证据账本之外,以二进制摘要为键,可导出只改名的
+Ghidra / IDA 脚本。
+
+[英文](docs/XTNA-SYMBOL-OVERLAY.md) · [中文](docs/XTNA-SYMBOL-OVERLAY.zh-CN.md)
+
 ## 验证状态
 
 | 检查 | 命令 | 状态 |
