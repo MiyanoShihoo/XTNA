@@ -113,6 +113,14 @@ Ghidra / IDA 脚本。
 
 [英文](docs/XTNA-SYMBOL-OVERLAY.md) · [中文](docs/XTNA-SYMBOL-OVERLAY.zh-CN.md)
 
+## 档案导出与路线图
+
+`npm run dossier -- --evidence evidence.json --out report.md` 把已存储的 Evidence 包投影成
+可评审的 Markdown,不新增任何观察。每个路线图模块的交付状态见
+[docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md)。
+
+[中文](docs/XTNA-DOSSIER.md)
+
 ## 验证状态
 
 | 检查 | 命令 | 状态 |

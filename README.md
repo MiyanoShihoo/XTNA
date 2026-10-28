@@ -119,6 +119,14 @@ binary digest, and exports rename-only scripts for Ghidra or IDA.
 
 [English](docs/XTNA-SYMBOL-OVERLAY.md) · [中文](docs/XTNA-SYMBOL-OVERLAY.zh-CN.md)
 
+## Dossier and roadmap
+
+`npm run dossier -- --evidence evidence.json --out report.md` projects a stored Evidence
+bundle into a reviewable Markdown document without adding observations. The delivery status of
+every roadmap module is tracked in [docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md).
+
+[English](docs/XTNA-DOSSIER.md)
+
 ## Verification
 
 | Check | Command | Status |
