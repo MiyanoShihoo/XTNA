@@ -19,21 +19,13 @@ JavaScript/Electron 应用、浏览器页面、Android 包、固件与流量抓�
 
 ---
 
-## 为什么有 XTNA
+## 设计原则
 
-XTNA 基于 [REA](https://github.com/morluto/rea) 分析引擎(MIT)分发。引擎本身很好,
-但周边的工程毛刺很贵。本分支保留全部证据契约,修掉的都是实际吃掉分析时间的故障:
-
-| REA 6.8.0 中的问题 | XTNA 的处理 |
-|---|---|
-| 大型 JS 应用在堆还很空时,约十个源文件就把名义预算耗尽,后续每个文件只拿到 0 字节语义配额 | 按**实测堆增长**记账;固定 8× 估算只保留为单文件准入门槛 |
-| 任一文件的 application projection 失败,后续**所有**文件预算被置零 | 每个文件按实时预算独立准入 |
-| 响应状态码超出 `100..599` 触发未捕获 `ZodError`,**整个 MCP 服务器退出** | 接受 provider 实际能观察到的状态;最终校验改为单场景类型化失败 |
-| `direction: "both"` 的特征追踪会走完整张图 | 新增 `max_hops`,并显式报告截断 |
-| Vite `base` 产生的绝对模块路径(`import("/assets/x.js")`)被判为主机路径拒绝 | 命中已盘点路径时映射到逻辑根,并记录部署假设 |
-| 改名分发后 **Windows 原生调用全部失效**(manifest 锁死 6.8.0) | `npm run compile` 自动同步原生 manifest 的版本与摘要 |
-
-这些改动没有让引擎变深,只是让它**可预测**。
+- **证据优先**:每个结果都区分观察、推导、推断与未知,并携带对应的覆盖度与限制。
+- **资源可预测**:预算跟随实测内存,截断必须上报,大目标降级为具名缺口而不是静默的半截答案。
+- **默认有界**:分页、跳数上限、可保留证据,让一次查询落在你真实的上下文预算内。
+- **本地优先**:无遥测、不上传;分析针对本地产物,调用你已装好的工具。
+- **与 provider 无关**:Ghidra、IDA、Hopper、Rizin、objdump、apktool、JADX、浏览器运行时,统一进一套证据模型。
 
 ## 有什么
 
@@ -125,7 +117,7 @@ npm run audit:apk -- sample.apk --json --markdown report.md
 | 真实 APK 审计 | `npm run audit:apk -- sample.apk` | 已在 38MB 签名包上验证 |
 | 真实 PE 探针 | 5MB 32 位游戏 exe 上的 `inspect-pe-*` | 导入表/资源/证书/objdump 均通过 |
 
-上游完整测试套件 `npm run check:pr` **尚未**针对本分发运行。已验/未验的精确边界见
+完整测试套件 `npm run check:pr` **尚未**针对本分发运行。已验/未验的精确边界见
 [XTNA_CHANGELOG.md](XTNA_CHANGELOG.md)。
 
 ## 状态
@@ -139,7 +131,7 @@ npm run audit:apk -- sample.apk --json --markdown report.md
 - [APK 审计](docs/XTNA-APK-AUDIT.zh-CN.md)
 - [安全策略](SECURITY.md)
 - [贡献指南](CONTRIBUTING.md)
-- 上游引擎文档:`docs/`
+- 引擎参考文档:`docs/`
 
 ## 许可与归属
 

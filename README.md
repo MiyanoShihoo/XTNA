@@ -21,22 +21,13 @@ browser pages, Android packages, firmware, and captured traffic.
 
 ---
 
-## Why XTNA exists
+## Design principles
 
-XTNA is a distribution of the [REA](https://github.com/morluto/rea) analysis engine (MIT).
-The engine is good; the paper cuts around it are not. This distribution keeps the evidence
-contracts and fixes the failure modes that cost real analysis time.
-
-| Problem in REA 6.8.0 | What XTNA does |
-|---|---|
-| Large JavaScript applications exhausted the nominal result budget after ~10 sources while the heap was mostly free, then every remaining source got a 0-byte semantic allowance | Charges retained budget from **measured heap growth**; the fixed 8× estimate stays only as a per-file admission ceiling |
-| One failed application projection zeroed the budget for **every** later source | Each remaining source is admitted against the live budget |
-| A response status outside `100..599` raised an uncaught `ZodError` and **terminated the MCP server** | Provider-observed statuses are accepted; final capture validation fails one scenario with a typed error |
-| `trace_application_feature` with `direction: "both"` walked the entire graph | Optional `max_hops` with explicit truncation reporting |
-| Vite `base` absolute module specifiers (`import("/assets/x.js")`) were rejected as host paths | Mapped onto the logical artifact root when the path is inventoried, with the deployment assumption recorded |
-| Renaming the distribution broke **every Windows native call** (manifest pinned to 6.8.0) | `npm run compile` syncs the native manifest version and digest |
-
-None of this makes the engine deeper. It makes it **predictable**.
+- **Evidence over assertion.** Every result separates observation, derivation, inference and unknown, and carries the coverage and limitations that produced it.
+- **Predictable resources.** Budgets follow measured memory, truncation is reported, and a large target degrades into named gaps instead of a silent partial answer.
+- **Bounded by default.** Paging, hop ceilings and retained Evidence keep a query inside the context you actually have.
+- **Local first.** No telemetry, no upload; analysis runs against local artifacts with the tools you already installed.
+- **Provider-agnostic.** XTNA drives Ghidra, IDA, Hopper, Rizin, objdump, apktool, JADX and browser runtimes through one evidence model.
 
 ## What you get
 
@@ -147,7 +138,7 @@ restricted process sandbox.
 - [APK audit](docs/XTNA-APK-AUDIT.md)
 - [Security policy](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)
-- Upstream engine docs: `docs/`
+- Engine reference: `docs/`
 
 ## License and attribution
 
