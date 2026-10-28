@@ -53,6 +53,14 @@ npm run overlay -- overlays
 
 两者都只改名,不改字节,可重复执行。
 
+## 渲染已存储的分析文本
+
+`npm run overlay:render -- --binary ./target.exe --evidence bundle.json --out rendered.md`
+
+把伪代码/反汇编文本里由地址派生的标识符(`sub_401000`、`FUN_401000`、`nullsub_*`、`loc_*`)
+替换成覆盖层里的名字,输出 Markdown,并写明替换了多少处。磁盘上的证据包保持字节不变,
+不回写 Evidence。
+
 ## 限制
 
 - 覆盖层目前**不会回流**到 `xtna` 的分析输出;它是存储 + 导出

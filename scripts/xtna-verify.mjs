@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * XTNA distribution checks that do not need the Vite test pipeline.
  * Run after `npm run compile`: node scripts/xtna-verify.mjs
@@ -92,6 +92,29 @@ check("both directions honour the ceiling", () => {
   assert.equal(traversal.truncated, true);
 });
 
+const overlayModule = await import(
+  pathToFileURL(join(root, "dist/application/overlays/SymbolOverlayRendering.js")).href
+);
+
+check("overlay rendering replaces address-derived identifiers", () => {
+  const rendered = overlayModule.applySymbolOverlay(
+    "undefined4 sub_401000(int param_1) { return sub_40a1b0(param_1); }",
+    [
+      { address_hex: "0x401000", name: "WinMain_candidate" },
+      { address_hex: "0x40a1b0", name: "g_pak_loader" },
+    ],
+  );
+  assert.equal(rendered.replacements.length, 2);
+  assert.match(rendered.text, /WinMain_candidate/u);
+  assert.match(rendered.text, /g_pak_loader/u);
+  assert.doesNotMatch(rendered.text, /sub_401000/u);
+});
+
+check("overlay rendering leaves unknown placeholders untouched", () => {
+  const rendered = overlayModule.applySymbolOverlay("sub_500000();", []);
+  assert.equal(rendered.text, "sub_500000();");
+  assert.equal(rendered.replacements.length, 0);
+});
 const { PRODUCT_IDENTITY } = await import(pathToFileURL(join(root, "dist/identity.js")).href);
 check("product identity is XTNA", () => {
   assert.equal(PRODUCT_IDENTITY.displayName, "XTNA");

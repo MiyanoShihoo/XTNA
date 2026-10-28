@@ -72,6 +72,14 @@ symbol updates it instead of duplicating.
 
 Both are rename-only. Neither modifies bytes, and both can be re-run safely.
 
+## Rendering stored analysis text
+
+`npm run overlay:render -- --binary ./target.exe --evidence bundle.json --out rendered.md`
+
+It rewrites address-derived identifiers (`sub_401000`, `FUN_401000`, `nullsub_*`, `loc_*`) in a
+copy of pseudocode or disassembly text, writes Markdown, and states how many replacements it made.
+The bundle on disk stays byte-identical; nothing is written back to Evidence.
+
 ## Limits
 
 - The overlay does not feed back into `xtna` analysis output yet; it is a store plus exports.

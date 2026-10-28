@@ -128,6 +128,8 @@ Ghidra / IDA 脚本。
 
 [参考](docs/XTNA-TAINT-PATH.md)
 
+`npm run overlay:render` 把已存储的伪代码按覆盖层重渲染用于评审,证据包保持字节不变。
+
 ## 验证状态
 
 | 检查 | 命令 | 状态 |

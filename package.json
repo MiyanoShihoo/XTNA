@@ -338,7 +338,8 @@
     "overlay": "node scripts/symbol-overlay.mjs",
     "dossier": "node scripts/dossier.mjs",
     "taint": "node scripts/taint-path.mjs",
-    "graph:export": "node scripts/graph-export.mjs"
+    "graph:export": "node scripts/graph-export.mjs",
+    "overlay:render": "node scripts/overlay-render.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [

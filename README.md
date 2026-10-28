@@ -135,6 +135,9 @@ reports truncation instead of returning a short list.
 
 [Reference](docs/XTNA-TAINT-PATH.md)
 
+
+`npm run overlay:render` rewrites a copy of stored pseudocode with overlay names for review; the evidence bundle stays byte-identical.
+
 ## Verification
 
 | Check | Command | Status |
