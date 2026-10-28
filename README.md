@@ -1,206 +1,157 @@
-<img src="assets/icon.svg" width="104" height="104" alt="XTNA">
+<div align="center">
+
+<img src="assets/icon.svg" width="120" height="120" alt="XTNA">
 
 # XTNA
 
 **Reverse engineer anything — from your terminal or your agent.**
 
-XTNA is a local-first reverse-engineering toolkit: one CLI, one MCP server, and a shared
-evidence model across binaries, managed code, JavaScript/Electron applications, browser
-pages, mobile packages, firmware, and captured traffic.
+An evidence-first reverse-engineering toolkit: one CLI, one MCP server, and a shared
+evidence model across native binaries, managed code, JavaScript and Electron applications,
+browser pages, Android packages, firmware, and captured traffic.
 
-XTNA is built on the REA analysis engine (MIT). The engine keeps its evidence contracts;
-this distribution carries its own identity, its own release cadence, and the fixes listed
-below.
+[![License: MIT](https://img.shields.io/badge/license-MIT-f4c430?style=flat-square)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](package.json)
+[![Status](https://img.shields.io/badge/status-0.1.0--beta-orange?style=flat-square)](#status)
+[![MCP](https://img.shields.io/badge/MCP-stdio-5c4ee5?style=flat-square)](https://modelcontextprotocol.io)
 
----
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-## What XTNA changes
-
-### 1. Result-budget accounting no longer starves later sources
-
-`analyze_javascript_application` admits each source against a parent result budget. The
-engine previously charged **every** retained file with a fixed 8x expansion estimate of
-its JSON transfer size and accumulated those estimates. Large bundles exhausted the
-nominal budget after roughly ten sources while the V8 heap was still mostly free; every
-remaining source was then offered a **0-byte** semantic allowance and dropped.
-
-XTNA charges what the decode actually retained:
-
-- the per-file 8x estimate remains the **admission ceiling** for one file (OOM safety);
-- cumulative accounting uses the observed `used_heap_size` growth of the decode, with the
-  raw byte count as a floor;
-- the same correction applies to static checkpoints, which were charged at 6x.
-
-A related cascade is gone: a projection failure on one source used to force
-`offeredResultBudget = 0` for *all* later sources. Each remaining source is now admitted
-against the live budget, so a small file can still complete after a large one overflowed.
-Only genuine heap exhaustion closes a run.
-
-### 2. A provider status value can no longer kill the MCP server
-
-`capture_browser_scenario` modelled HTTP response status as `100..599`. CDP reports the
-status the server actually sent — non-standard servers answer outside that range, and
-Playwright reports `0` for a response it observed without a usable status line. The
-`ZodError` from that mismatch escaped the tool handler and terminated the MCP server.
-
-- the captured status schema now accepts the values a provider can actually observe;
-- the final capture is validated with `safeParse`, so a future contract mismatch fails
-  **one scenario** with a typed `BrowserObservationError` that names the offending field
-  instead of taking the process down.
-
-### 4. Bounded bidirectional tracing
-
-`trace_application_feature` had no ceiling: `direction: "both"` walked the entire reachable
-graph. It now accepts `max_hops` (1–64). Expansion stops at the ceiling, the response
-reports `hop_limit` / `hop_truncated`, and any reachability past the boundary is stated as
-unknown instead of being silently absent. Omitting the field preserves the old behaviour.
-
-### 5. Product identity
-
-`PRODUCT_IDENTITY` now carries `XTNA`, `xtna` as the CLI binary, `xtna` as the MCP server
-key, and `xtna.json` as the config file. `tools/list` negotiation reports
-`serverInfo.name = "xtna"`.
+</div>
 
 ---
+
+## Why XTNA exists
+
+XTNA is a distribution of the [REA](https://github.com/morluto/rea) analysis engine (MIT).
+The engine is good; the paper cuts around it are not. This distribution keeps the evidence
+contracts and fixes the failure modes that cost real analysis time.
+
+| Problem in REA 6.8.0 | What XTNA does |
+|---|---|
+| Large JavaScript applications exhausted the nominal result budget after ~10 sources while the heap was mostly free, then every remaining source got a 0-byte semantic allowance | Charges retained budget from **measured heap growth**; the fixed 8× estimate stays only as a per-file admission ceiling |
+| One failed application projection zeroed the budget for **every** later source | Each remaining source is admitted against the live budget |
+| A response status outside `100..599` raised an uncaught `ZodError` and **terminated the MCP server** | Provider-observed statuses are accepted; final capture validation fails one scenario with a typed error |
+| `trace_application_feature` with `direction: "both"` walked the entire graph | Optional `max_hops` with explicit truncation reporting |
+| Vite `base` absolute module specifiers (`import("/assets/x.js")`) were rejected as host paths | Mapped onto the logical artifact root when the path is inventoried, with the deployment assumption recorded |
+| Renaming the distribution broke **every Windows native call** (manifest pinned to 6.8.0) | `npm run compile` syncs the native manifest version and digest |
+
+None of this makes the engine deeper. It makes it **predictable**.
+
+## What you get
+
+- **231 MCP tools** over one CLI and one MCP server: native binaries (Ghidra / IDA / Hopper /
+  Rizin / objdump), managed PE/CLI, JavaScript and Electron application graphs, browser
+  capture, Android, Apple bundles, firmware, WASM, EVM, packet captures, and more.
+- **Evidence ledger**: every result carries authority, coverage, limitations and unknowns.
+  Observations stay separate from inferences.
+- **Bounded queries**: paging, `max_hops`, retained Evidence, and summaries that fit a
+  context window.
+- **Optional gateway (`xtna-vault`)**: bidirectional secret redaction and a content-addressed
+  cache for read-only tool results, outside the evidence path so digests stay verifiable.
+- **APK audit**: DEX inventory plus ad, analytics and tracking SDK fingerprinting.
 
 ## Quick start
 
 ```bash
-npm ci
+git clone <this-repo> xtna
+cd xtna
+npm ci --ignore-scripts
 npm run compile
+npm run verify:xtna
 node scripts/rea.mjs --help
 ```
 
-Run the MCP server:
+Requirements: Node ≥ 22.5 (24.x recommended). Deep analysis drives tools you already have —
+XTNA never installs or upgrades Ghidra, IDA, Hopper, apktool or JADX.
+
+### Run the MCP server
 
 ```bash
 node scripts/rea.mjs mcp
 ```
 
-Register it with an MCP client:
-
-```json
-{
-  "mcpServers": {
-    "xtna": {
-      "command": "npx",
-      "args": ["-y", "xtna@0.1.0", "mcp"]
-    }
-  }
-}
-```
-
-## Choosing a deep-analysis provider
-
-XTNA does not ship a decompiler. It drives the tools you already have — Ghidra, IDA,
-Hopper, Rizin, GNU objdump — and normalizes their output into one evidence model. See
-`docs/` for per-provider setup. Providers remain bring-your-own; the installer never
-installs or upgrades them.
-
-## Optional gateway: xtna-vault
-
-`gateway/` is a separate stdio MCP server that sits in front of XTNA (or any MCP
-server) and does two things the engine deliberately does not:
-
-1. **Bidirectional secret redaction.** Values that look like credentials are replaced
-   in tool output with session placeholders such as `<vault:1:ab12cd>`. Pass a
-   placeholder back in any tool argument and the gateway restores the real value before
-   the call reaches the upstream server — the model never holds the plaintext but can
-   still use it.
-2. **Content-addressed caching.** Tool results annotated `readOnlyHint: true`, resource
-   reads and prompt fetches are stored by canonical request hash and replayed within
-   their TTL. Anything without a read-only annotation is never cached.
-
-It lives outside the evidence path on purpose: redacting inside the engine would break
-the digests that make Evidence verifiable.
-
-```bash
-npm --prefix gateway install
-npm run vault:build
-npm run vault:test          # 11 protocol-level checks, in-memory transport
-npm run vault:test:e2e      # 6 process-level checks: real HTTP upstream, real stdio pipes
-
-node gateway/dist/index.js --config gateway/xtna-vault.example.json
-```
-
-Register it instead of the server directly:
+Register it with any MCP client:
 
 ```json
 {
   "mcpServers": {
     "xtna": {
       "command": "node",
-      "args": ["gateway/dist/index.js", "--config", "gateway/xtna-vault.json"]
+      "args": ["/absolute/path/to/xtna/scripts/rea.mjs", "mcp"]
     }
   }
 }
 ```
 
-Two internal tools are exposed to the model: `vault_stats` (placeholder count, cache
-hits/misses) and `vault_cache_clear` (drop one upstream or everything).
+### Windows: wire the optional providers
+
+```bat
+scripts\xtna-env.cmd --version
+scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format json
+```
+
+## The optional gateway
+
+`gateway/` is a standalone stdio MCP server that sits in front of XTNA (or any MCP server):
+
+- **Bidirectional redaction** — credentials in tool output become session placeholders such
+  as `<vault:1:ab12cd>`; pass one back as an argument and the real value is restored before
+  the call reaches the provider. The model never holds the plaintext.
+- **Content-addressed cache** — only results annotated `readOnlyHint: true` (plus resource
+  and prompt reads) are replayed, keyed by canonical request hash.
+
+```bash
+npm --prefix gateway install
+npm run vault:build
+npm run vault:test        # 11 protocol checks, in-memory transport
+npm run vault:test:e2e    # 6 process-level checks, real HTTP upstream + real stdio
+```
 
 ## APK audit
-
-`npm run audit:apk -- <path.apk>` inventories an APK and fingerprints the advertising,
-analytics and tracking SDKs compiled into its DEX payload. Presence only — it never claims
-runtime activation.
 
 ```bash
 npm run audit:apk -- sample.apk
 npm run audit:apk -- sample.apk --json --markdown report.md
 ```
 
-Full reference: [English](docs/XTNA-APK-AUDIT.md) · [中文](docs/XTNA-APK-AUDIT.zh-CN.md)
+Presence-only DEX scanning across ~38 ad/analytics/tracking SDK families. Set
+`REA_AAPT2_COMMAND` to add package identity, SDK range and declared permissions.
 
-## Windows environment
+Reference: [English](docs/XTNA-APK-AUDIT.md) · [中文](docs/XTNA-APK-AUDIT.zh-CN.md)
 
-`scripts\xtna-env.cmd` wires the optional providers for one console session — JDK, Ghidra,
-apktool, jadx-headless-mcp and aapt2 — and can pass a command straight through:
+## Verification
 
-```bat
-scripts\xtna-env.cmd --version
-scripts\xtna-env.cmd analyze "C:\path\to\target.exe" --provider ghidra --format json
-```
+| Check | Command | Status |
+|---|---|---|
+| Types | `npm run typecheck` | passing |
+| Build | `npm run compile` | passing |
+| Distribution self-check | `npm run verify:xtna` | 6/6 |
+| Gateway protocol | `npm run vault:test` | 11/11 |
+| Gateway process-level | `npm run vault:test:e2e` | 6/6 |
+| Real APK audit | `npm run audit:apk -- sample.apk` | verified on a 38 MB signed APK |
+| Real PE probes | `inspect-pe-*` on a 5 MB 32-bit game executable | imports, resources, certificates, objdump |
 
-Every value can be pre-set to override the default; nothing is downloaded or installed.
+`npm run check:pr` (the full upstream suite) has **not** been run against this distribution.
+See [XTNA_CHANGELOG.md](XTNA_CHANGELOG.md) for the exact verified / unverified split.
 
-## Build and verification
+## Status
 
-```bash
-npm ci --ignore-scripts     # husky hooks are optional in a fork
-npm run typecheck
-npm run compile
-```
+`0.1.0-beta`. Source is ready; the npm package is **not published yet**. Public release is
+gated on the full test suite and one end-to-end analysis on a real target outside a
+restricted process sandbox.
 
-`npm run check:pr` is the full upstream gate and is expensive; run it before a release.
+## Documentation
 
-## Compatibility with REA
+- [Changelog](XTNA_CHANGELOG.md) — every fix, and every unverified claim
+- [APK audit](docs/XTNA-APK-AUDIT.md)
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- Upstream engine docs: `docs/`
 
-- Evidence schemas, tool names, and CLI subcommands are unchanged.
-- `REA_*` environment variables keep working.
-- Configuration written for REA is read as-is; XTNA writes `xtna.json` for new setups.
+## License and attribution
 
-## Roadmap
-
-- Optional secret-redaction gateway in front of the MCP server (placeholder tokens that
-  expand only on the way back to the provider) — kept **outside** the evidence path so
-  digests stay verifiable.
-- Content-addressed reuse of completed analysis results across sessions.
-- Bundler-aware chunk resolution for Vite/Webpack layouts that inline `assets/*.js`.
-
-## License
-
-MIT. XTNA retains the upstream REA copyright and third-party notices in `LICENSE`,
-`THIRD_PARTY_NOTICES.md`, and `licenses/`.
-
-## Attribution
-
-XTNA is a distribution of the REA analysis engine (MIT, Copyright (c) 2026 morluto),
-modified as described in `XTNA_CHANGELOG.md`. The upstream project is not affiliated with
-this distribution; report upstream engine defects upstream and distribution defects here.
-
-## Icon
-
-`assets/icon.svg` is the master; `assets/icon-{32,64,128,256,512}.png` are generated by
-`python assets/render-icon.py assets`. The mark is a blueprint X inside a die outline —
-a cross-section of a target, drawn like a probe on a schematic.
+MIT. XTNA is a distribution of the REA analysis engine,
+Copyright (c) 2026 morluto, with modifications Copyright (c) 2026 XTNA contributors.
+The upstream project is not affiliated with this distribution. Third-party notices are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and `licenses/`.
