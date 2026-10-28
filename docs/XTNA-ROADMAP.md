@@ -35,12 +35,12 @@ not implemented here.
 | 6 | Heap snapshot query | planned | — |
 | 7 | AST normalization pipeline | partial | attribute/alias recovery exists; no constant folding / unflattening |
 | 8 | Symbol overlay | **shipped** | `scripts/symbol-overlay.mjs` + Ghidra/IDA export; not yet projected into analysis output |
-| 9 | Algorithm/protocol fingerprinting | planned | — |
-| 10 | Schema synthesis (OpenAPI/proto/TS) | planned | — |
+| 9 | Algorithm/protocol fingerprinting | **shipped** (constant signatures) | scripts/crypto-radar.mjs: AES/SHA/CRC tables, compression magics, Base64 alphabets, PEM headers with offsets |
+| 10 | Schema synthesis (OpenAPI/proto/TS) | **partial** | scripts/schema-synth.mjs: JSON samples to TypeScript, Pydantic or OpenAPI 3.1; no wire-format inference |
 | 11 | Standalone client SDK generation | planned | — |
 | 12 | Stateful mock server | partial | `export_environment_bundle` replays recorded reads; no state machine |
 | 13 | Property-graph / taint queries | **shipped** (graph-level) | scripts/taint-path.mjs for path search and scripts/graph-export.mjs to project an application graph into that format |
-| 14 | Hypothesis board | planned | — |
+| 14 | Hypothesis board | **shipped** (file-level) | scripts/hypothesis.mjs: claims with confidence, status, supporting and contradicting evidence |
 | 15 | Sub-agent orchestration | planned | MCP already allows concurrent clients; shared-ledger concurrency is the gap |
 | 16 | Live web investigation UI | planned | — |
 | 17 | Investigation checkpoints | **shipped** (file-level) | scripts/checkpoint.mjs: hash-verified snapshots of Evidence bundles and overlay files; no process state, no branching |

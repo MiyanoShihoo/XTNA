@@ -340,7 +340,10 @@
     "taint": "node scripts/taint-path.mjs",
     "graph:export": "node scripts/graph-export.mjs",
     "overlay:render": "node scripts/overlay-render.mjs",
-    "checkpoint": "node scripts/checkpoint.mjs"
+    "checkpoint": "node scripts/checkpoint.mjs",
+    "crypto:radar": "node scripts/crypto-radar.mjs",
+    "schema:synth": "node scripts/schema-synth.mjs",
+    "hypothesis": "node scripts/hypothesis.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [

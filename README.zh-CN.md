@@ -137,6 +137,13 @@ Ghidra / IDA 脚本。
 
 [参考](docs/XTNA-CHECKPOINTS.md)
 
+## 分析工具集
+
+三条自包含命令:crypto:radar(常量特征 + 偏移)、schema:synth(JSON 样本 → TypeScript /
+Pydantic / OpenAPI)、hypothesis(带置信度、状态与反证的假设板)。
+
+[参考](docs/XTNA-ANALYSIS-UTILITIES.md)
+
 ## 验证状态
 
 | 检查 | 命令 | 状态 |

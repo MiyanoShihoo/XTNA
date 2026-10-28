@@ -146,6 +146,14 @@ before writing.
 
 [Reference](docs/XTNA-CHECKPOINTS.md)
 
+## Analysis utilities
+
+Three self-contained commands: crypto:radar (constant signatures with offsets),
+schema:synth (JSON samples to TypeScript, Pydantic or OpenAPI) and hypothesis
+(claims with confidence, status and contradicting evidence).
+
+[Reference](docs/XTNA-ANALYSIS-UTILITIES.md)
+
 ## Verification
 
 | Check | Command | Status |
