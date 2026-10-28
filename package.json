@@ -330,7 +330,8 @@
     "vault:build": "npm --prefix gateway run build",
     "vault:test": "npm --prefix gateway test",
     "vault": "node gateway/dist/index.js",
-    "vault:test:e2e": "npm --prefix gateway run test:e2e"
+    "vault:test:e2e": "npm --prefix gateway run test:e2e",
+    "audit:apk": "node scripts/audit-apk.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [

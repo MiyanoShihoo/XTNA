@@ -84,3 +84,7 @@ website/.i18n-*/
 /gateway/.test-cache/
 /.fixtures/vite-app/node_modules/
 /.fixtures/tmp/
+
+# Local verification artifacts
+/.verify/
+

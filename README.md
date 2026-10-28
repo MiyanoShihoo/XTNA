@@ -139,6 +139,31 @@ Register it instead of the server directly:
 Two internal tools are exposed to the model: `vault_stats` (placeholder count, cache
 hits/misses) and `vault_cache_clear` (drop one upstream or everything).
 
+## APK audit
+
+`npm run audit:apk -- <path.apk>` inventories an APK and fingerprints the advertising,
+analytics and tracking SDKs compiled into its DEX payload. Presence only — it never claims
+runtime activation.
+
+```bash
+npm run audit:apk -- sample.apk
+npm run audit:apk -- sample.apk --json --markdown report.md
+```
+
+Full reference: [English](docs/XTNA-APK-AUDIT.md) · [中文](docs/XTNA-APK-AUDIT.zh-CN.md)
+
+## Windows environment
+
+`scripts\xtna-env.cmd` wires the optional providers for one console session — JDK, Ghidra,
+apktool, jadx-headless-mcp and aapt2 — and can pass a command straight through:
+
+```bat
+scripts\xtna-env.cmd --version
+scripts\xtna-env.cmd analyze "C:\path\to\target.exe" --provider ghidra --format json
+```
+
+Every value can be pre-set to override the default; nothing is downloaded or installed.
+
 ## Build and verification
 
 ```bash
