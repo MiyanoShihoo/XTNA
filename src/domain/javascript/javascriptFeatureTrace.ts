@@ -33,6 +33,8 @@ export interface ApplicationFeatureTraceProjectionInput {
   readonly nativeEvidence: readonly Evidence[];
   readonly seed: ApplicationFeatureSeed;
   readonly direction: TraceApplicationFeatureInput["direction"];
+  /** Omitted keeps the complete reachable projection. */
+  readonly maxHops?: number | undefined;
 }
 
 /** Trace a literal feature through its complete reachable, authority-preserving JAG. */
@@ -48,6 +50,7 @@ export const traceApplicationFeature = (
     input.graph,
     seedMatches.map(({ node_id: id }) => id),
     input.direction,
+    input.maxHops,
   );
   const graph = traceGraph(input, seedMatches, traversal);
   const paths = terminalPaths(traversal, seedMatches);
@@ -80,6 +83,8 @@ export const traceApplicationFeature = (
       terminal_paths: paths.length,
       native_handoffs: nativeHandoffs.length,
       ...factSummary(traversal.nodes, traversal.edges),
+      hop_limit: input.maxHops ?? null,
+      hop_truncated: traversal.truncated,
     },
     coverage: {
       status: traceCoverageStatus(input.graph),
@@ -87,7 +92,14 @@ export const traceApplicationFeature = (
       total_seed_matches: seedMatches.length,
     },
     evidence_links: evidenceLinks,
-    limitations: traceLimitations(input.graph),
+    limitations: [
+      ...traceLimitations(input.graph),
+      ...(traversal.truncated
+        ? [
+            `Traversal stopped at max_hops=${String(input.maxHops)} with ${String(traversal.truncatedNodeIds.length)} boundary node(s) unexpanded. Reachability beyond that boundary is unknown; raise max_hops or trace a narrower seed.`,
+          ]
+        : []),
+    ],
   };
   return applicationFeatureTraceResultSchema.parse({
     ...semantic,

@@ -1,4 +1,4 @@
-﻿import { registerNativeFunctionMatchingTool } from "./registerNativeFunctionMatchingTool.js";
+import { registerNativeFunctionMatchingTool } from "./registerNativeFunctionMatchingTool.js";
 import type { EvidenceMcpServer } from "./EvidenceMcpServer.js";
 import type { ArtifactResourceScope } from "../artifacts/ArtifactResourceScope.js";
 import { workflowUnknownInput } from "../application/investigation/WorkflowUnknown.js";

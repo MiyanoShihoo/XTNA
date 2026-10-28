@@ -1,4 +1,4 @@
-﻿import type { ToolContract } from "../contracts/toolContractTypes.js";
+import type { ToolContract } from "../contracts/toolContractTypes.js";
 import type { StandardSchemaWithJSON } from "@modelcontextprotocol/server";
 import {
   toolInputSchemaWithMetadata,

@@ -1,4 +1,4 @@
-﻿import type { AnalysisSettings } from "../application/AnalysisSettings.js";
+import type { AnalysisSettings } from "../application/AnalysisSettings.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 import {

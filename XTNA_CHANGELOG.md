@@ -27,7 +27,6 @@ variables are unchanged.
   application. Each remaining source is now admitted against the live budget.
 
 **Browser scenario capture — provider status values**
-
 - `browserScenarioCaptureSchema` modelled a response status as `100..599`. CDP reports
   the status the origin actually sent, and Playwright reports `0` when it observed a
   response without a usable status line. The resulting `ZodError` escaped the tool handler
@@ -35,6 +34,25 @@ variables are unchanged.
   - The captured status schema now accepts the values a provider can observe.
   - Final capture validation uses `safeParse`; a future contract mismatch fails that one
     scenario with a typed `BrowserObservationError` naming the offending field.
+
+### Added
+
+- `trace_application_feature` accepts `max_hops` (1–64). Expansion stops that many edges
+  from the seed; a boundary edge reaching an already-visible node is retained, and the
+  result reports `summary.hop_limit`, `summary.hop_truncated`, plus a limitation naming the
+  number of unexpanded boundary nodes. Omitting the field keeps the previous complete
+  projection, so existing callers are unchanged.
+- `npm run verify:xtna`: distribution checks that do not need the Vite pipeline
+  (traversal ceiling behaviour, product identity, MCP identity probe).
+
+### Fixed (packaging)
+
+- `native/windows/build/manifest.json` pinned `packageVersion` to 6.8.0. A distribution
+  with a different version failed every Windows native call with *"Windows native artifact
+  belongs to another REA version"* before the addon was loaded. The addon itself reports
+  only its ABI and Node-API versions, so `npm run compile` now syncs the manifest version
+  and artifact digest from `package.json` and the shipped binary
+  (`scripts/sync-windows-native-manifest.mjs`).
 
 ### Changed
 
@@ -46,15 +64,19 @@ variables are unchanged.
 ### Not yet verified in a clean environment
 
 - The full upstream test suite (`npm run check:pr`) has not been executed for this
-  distribution. `npm run typecheck` and `npm run compile` pass, and a live
-  `initialize` handshake returns `serverInfo.name = "xtna"`.
+  distribution; its Vitest pipeline could not start under the authoring host's process
+  sandbox (`spawn EPERM` in Vite's config bundler). `npm run typecheck`, `npm run compile`,
+  and `npm run verify:xtna` pass.
+- End-to-end `analyze-javascript-application` reaches the analyzer worker on Windows and
+  then stops at `EPERM` while writing its owned `.source` handoff file, which the same host
+  sandbox denies to spawned processes. The failure is reported as a per-source
+  `execution_failure` with the exact path; it is not a code path this distribution changed.
+  Re-run that command outside a restricted process sandbox to confirm the analysis result.
 - No real-provider verification (Ghidra/IDA/Hopper) was performed for the budget change;
   the change is confined to retained-budget accounting and keeps the admission ceiling.
 
 ### Known gaps carried over
 
-- Bidirectional feature tracing has no hop ceiling of its own; large graphs can still
-  return more than a context window holds.
 - Modern bundler (Vite/Webpack) chunk resolution still needs explicit asset mapping in some
   layouts.
 - Windows x64 remains narrower than macOS for provider coverage.

@@ -161,6 +161,7 @@ export const traceApplicationFeatureEvidence = (
     nativeEvidence,
     seed: input.seed,
     direction: input.direction,
+    maxHops: input.max_hops,
   });
   const evidence = createApplicationFeatureTraceEvidence(
     {

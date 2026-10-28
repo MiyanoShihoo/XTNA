@@ -1,4 +1,4 @@
-﻿import { err, ok, type Result } from "../../domain/result.js";
+import { err, ok, type Result } from "../../domain/result.js";
 
 /** Parsed listener failure facts for recovery guidance. */
 export type StreamableHttpListenFailure =

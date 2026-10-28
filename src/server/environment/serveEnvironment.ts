@@ -1,4 +1,4 @@
-﻿import type { HttpHostname } from "../../domain/httpHostname.js";
+import type { HttpHostname } from "../../domain/httpHostname.js";
 import { STATE_INTAKE_LIMIT_BYTES } from "../../application/environment/environmentStateDocument.js";
 import {
   DEFAULT_MAX_REQUEST_BODY_SIZE,

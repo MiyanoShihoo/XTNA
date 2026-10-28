@@ -1,4 +1,4 @@
-﻿import { constants as bufferConstants } from "node:buffer";
+import { constants as bufferConstants } from "node:buffer";
 
 import type { JsonValue } from "../domain/jsonValue.js";
 import { bufferedJsonParts, jsonParts } from "../domain/jsonSerialization.js";

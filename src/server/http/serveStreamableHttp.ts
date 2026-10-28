@@ -1,4 +1,4 @@
-﻿import {
+import {
   hostHeaderValidationResponse,
   isInitializeRequest,
   isJsonContentType,

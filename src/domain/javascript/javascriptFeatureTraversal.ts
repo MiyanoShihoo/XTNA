@@ -20,6 +20,10 @@ export interface ApplicationFeatureTraversal {
   readonly nodes: ApplicationNode[];
   readonly edges: ApplicationEdge[];
   readonly predecessors: ReadonlyMap<string, Predecessor>;
+  /** True when a hop ceiling stopped expansion while reachable edges remained. */
+  readonly truncated: boolean;
+  /** Nodes whose outgoing edges were not followed because of the hop ceiling. */
+  readonly truncatedNodeIds: readonly string[];
 }
 
 /** Traverse a JAG without treating edge inference as observed reachability. */
@@ -27,26 +31,44 @@ export const traverseApplicationFeature = (
   graph: JavaScriptApplicationGraph,
   seedNodeIds: readonly string[],
   direction: "outgoing" | "incoming" | "both",
+  maxHops?: number,
 ): ApplicationFeatureTraversal => {
   const nodeById = new Map(graph.nodes.map((node) => [node.node_id, node]));
   const adjacency = buildAdjacency(graph.edges, direction);
   const visited = new Set(seedNodeIds);
   const retainedEdges = new Map<string, ApplicationEdge>();
   const predecessors = new Map<string, Predecessor>();
-  const queue = [...seedNodeIds];
+  const truncatedNodeIds: string[] = [];
+  const queue: Array<{ readonly id: string; readonly depth: number }> =
+    seedNodeIds.map((id) => ({ id, depth: 0 }));
   for (let offset = 0; offset < queue.length; offset += 1) {
     const current = queue[offset];
     if (current === undefined) continue;
-    for (const entry of adjacency.get(current) ?? []) {
+    const entries = adjacency.get(current.id) ?? [];
+    if (maxHops !== undefined && current.depth >= maxHops) {
+      // Stop at the ceiling. Boundary edges that only reach already-visible
+      // nodes stay, because dropping them would hide a known relationship.
+      let truncated = false;
+      for (const entry of entries) {
+        if (visited.has(entry.nextNodeId)) {
+          retainedEdges.set(entry.edge.edge_id, entry.edge);
+        } else {
+          truncated = true;
+        }
+      }
+      if (truncated) truncatedNodeIds.push(current.id);
+      continue;
+    }
+    for (const entry of entries) {
       retainedEdges.set(entry.edge.edge_id, entry.edge);
       if (visited.has(entry.nextNodeId)) continue;
       if (!nodeById.has(entry.nextNodeId)) continue;
       visited.add(entry.nextNodeId);
       predecessors.set(entry.nextNodeId, {
-        previousNodeId: current,
+        previousNodeId: current.id,
         edgeId: entry.edge.edge_id,
       });
-      queue.push(entry.nextNodeId);
+      queue.push({ id: entry.nextNodeId, depth: current.depth + 1 });
     }
   }
   return {
@@ -60,6 +82,8 @@ export const traverseApplicationFeature = (
       compareUnicodeCodePoints(left.edge_id, right.edge_id),
     ),
     predecessors,
+    truncated: truncatedNodeIds.length > 0,
+    truncatedNodeIds: [...truncatedNodeIds].sort(compareUnicodeCodePoints),
   };
 };
 

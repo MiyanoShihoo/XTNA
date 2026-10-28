@@ -1,4 +1,4 @@
-﻿import { resolvePairedEvidenceRequest } from "../application/EvidenceInputResolver.js";
+import { resolvePairedEvidenceRequest } from "../application/EvidenceInputResolver.js";
 import type { EvidenceMcpServer } from "./EvidenceMcpServer.js";
 
 import type { BinarySessionPort } from "../application/binary/BinarySessionPort.js";

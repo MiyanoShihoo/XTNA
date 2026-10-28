@@ -1,4 +1,4 @@
-﻿import type { McpServer, ServerContext } from "@modelcontextprotocol/server";
+import type { McpServer, ServerContext } from "@modelcontextprotocol/server";
 import type { Logger } from "pino";
 
 import type { EvidenceWriter } from "../application/investigation/InvestigationRecordPort.js";

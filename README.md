@@ -46,7 +46,14 @@ Playwright reports `0` for a response it observed without a usable status line. 
   **one scenario** with a typed `BrowserObservationError` that names the offending field
   instead of taking the process down.
 
-### 3. Product identity
+### 4. Bounded bidirectional tracing
+
+`trace_application_feature` had no ceiling: `direction: "both"` walked the entire reachable
+graph. It now accepts `max_hops` (1–64). Expansion stops at the ceiling, the response
+reports `hop_limit` / `hop_truncated`, and any reachability past the boundary is stated as
+unknown instead of being silently absent. Omitting the field preserves the old behaviour.
+
+### 5. Product identity
 
 `PRODUCT_IDENTITY` now carries `XTNA`, `xtna` as the CLI binary, `xtna` as the MCP server
 key, and `xtna.json` as the config file. `tools/list` negotiation reports
@@ -110,7 +117,7 @@ npm run compile
   expand only on the way back to the provider) — kept **outside** the evidence path so
   digests stay verifiable.
 - Content-addressed reuse of completed analysis results across sessions.
-- Bounded bidirectional feature tracing with hop limits and dominator pruning.
+- Bundler-aware chunk resolution for Vite/Webpack layouts that inline `assets/*.js`.
 
 ## License
 

@@ -1,4 +1,4 @@
-﻿import { AnalysisSettings } from "../application/AnalysisSettings.js";
+import { AnalysisSettings } from "../application/AnalysisSettings.js";
 import { registerAnalysisSettingsTools } from "./registerAnalysisSettingsTools.js";
 import type { DevicetreeService } from "../application/binaryDiagnostics/DevicetreeService.js";
 import { registerDevicetreeTool } from "./registerDevicetreeTool.js";

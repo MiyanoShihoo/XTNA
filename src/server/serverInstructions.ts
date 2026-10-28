@@ -1,4 +1,4 @@
-﻿import { toolFamilyId } from "../contracts/toolFamilies.js";
+import { toolFamilyId } from "../contracts/toolFamilies.js";
 import { UNTRUSTED_CONTENT_INSTRUCTIONS } from "./toolResultEncoding.js";
 import { recoveryInstructions } from "./recoveryInstructions.js";
 

@@ -1,4 +1,4 @@
-﻿import { getHeapStatistics } from "node:v8";
+import { getHeapStatistics } from "node:v8";
 import { MAX_JSON_DEPTH } from "../domain/jsonValue.js";
 import type { ToolResultDelivery } from "./ToolResultDelivery.js";
 

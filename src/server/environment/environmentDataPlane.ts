@@ -1,4 +1,4 @@
-﻿import type { EnvironmentStateStore } from "../../application/environment/environmentStateStore.js";
+import type { EnvironmentStateStore } from "../../application/environment/environmentStateStore.js";
 import { ArtifactResourceScope } from "../../artifacts/ArtifactResourceScope.js";
 import type { AnalysisInputError } from "../../domain/analysisErrorCore.js";
 import {

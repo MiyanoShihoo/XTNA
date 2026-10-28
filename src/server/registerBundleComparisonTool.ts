@@ -1,4 +1,4 @@
-﻿import type { EvidenceMcpServer } from "./EvidenceMcpServer.js";
+import type { EvidenceMcpServer } from "./EvidenceMcpServer.js";
 
 import type { BinarySessionPort } from "../application/binary/BinarySessionPort.js";
 import { readComparisonEvidenceBundles } from "../application/EvidenceBundleFiles.js";

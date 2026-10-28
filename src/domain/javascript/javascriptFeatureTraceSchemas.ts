@@ -107,6 +107,11 @@ export const traceApplicationFeatureInputSchema = z
     native_observations: z.array(evidenceSchema).default([]),
     seed: applicationFeatureSeedSchema,
     direction: z.enum(["outgoing", "incoming", "both"]).default("both"),
+    /**
+     * Maximum edges to follow from a seed. Omitted means the whole reachable
+     * graph, which is what `both` used to return for large applications.
+     */
+    max_hops: z.int().min(1).max(64).optional(),
   })
   .superRefine(validateApplicationTraceIdentities);
 
@@ -169,6 +174,8 @@ export const applicationFeatureTraceResultSchema = z.strictObject({
     inferred_facts: z.int().min(0),
     unknown_facts: z.int().min(0),
     unavailable_facts: z.int().min(0),
+    hop_limit: z.int().min(1).max(64).nullable().default(null),
+    hop_truncated: z.boolean().default(false),
   }),
   coverage: z.strictObject({
     status: z.enum(["complete-within-source", "partial", "no-match"]),

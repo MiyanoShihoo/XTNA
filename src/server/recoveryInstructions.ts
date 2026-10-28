@@ -1,4 +1,4 @@
-﻿// A host deadline can discard the response before error remediation reaches the
+// A host deadline can discard the response before error remediation reaches the
 // agent. Teach that distinction at initialization, not just in returned errors.
 const RECOVERY_START =
   "Recovery: For invalid arguments, read the connected tool's input schema (refresh tools/list if stale), fix the reported fields and do not repeat the unchanged call. If the MCP connection drops, retry that call once only when it is safe to repeat or known not to have started. If it may already have changed the target, or it fails again, tell the user and ask them to restart the MCP client. If XTNA could not start its connection, retry once, then tell the user and ask them to restart the MCP client. Do not retry a startup failure that returns the same unchanged result. Run `XTNA doctor` when XTNA could not start or tools stay missing after that restart. A returned XTNA provider_timeout is a server/provider deadline: follow its remediation and reuse accessible partial Evidence. ";

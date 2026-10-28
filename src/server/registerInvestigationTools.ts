@@ -1,4 +1,4 @@
-﻿import { resolveInvestigationEvidenceClosure } from "../application/investigation/InvestigationEvidence.js";
+import { resolveInvestigationEvidenceClosure } from "../application/investigation/InvestigationEvidence.js";
 import type { EvidenceMcpServer } from "./EvidenceMcpServer.js";
 
 import type { BinarySessionPort } from "../application/binary/BinarySessionPort.js";
