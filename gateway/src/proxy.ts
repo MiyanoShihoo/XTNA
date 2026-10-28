@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+﻿import { createHash } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
@@ -76,6 +76,8 @@ export function mergedCapabilities(upstreams: readonly Upstream[]): ServerCapabi
 export class VaultProxy {
   private readonly server: Server;
   private readonly toolRoutes = new Map<string, RoutedTool>();
+  /** Identical read-only calls that are already in flight share one request. */
+  private readonly inflight = new Map<string, Promise<CallToolResult>>();
   private readonly prefixByUpstream = new Map<string, boolean>();
 
   constructor(private readonly deps: ProxyDeps) {
@@ -161,15 +163,7 @@ export class VaultProxy {
           }
         }
 
-        const result = await route.upstream.callTool(route.upstreamName, rehydrated);
-        if (key !== null && result.isError !== true)
-          this.deps.cache.put(
-            key,
-            route.upstream.name,
-            "tools/call",
-            JSON.stringify(result),
-            this.deps.config.cache.defaultTtlMs,
-          );
+        const result = await this.invoke(route, key, rehydrated);
         return this.redactCallToolResult(result).value;
       } catch (error) {
         log.warn("tools/call failed", { tool: name, message: (error as Error).message });
@@ -272,6 +266,32 @@ export class VaultProxy {
    * A client may call a tool before it ever lists them. Resolve on demand and
    * fill the route table so later calls stay O(1).
    */
+  private async invoke(
+    route: RoutedTool,
+    key: string | null,
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
+    if (key === null) return route.upstream.callTool(route.upstreamName, args);
+    const existing = this.inflight.get(key);
+    if (existing !== undefined) return existing;
+    const pending = route.upstream
+      .callTool(route.upstreamName, args)
+      .then((result) => {
+        if (result.isError !== true)
+          this.deps.cache.put(
+            key,
+            route.upstream.name,
+            "tools/call",
+            JSON.stringify(result),
+            this.deps.config.cache.defaultTtlMs,
+          );
+        return result;
+      })
+      .finally(() => this.inflight.delete(key));
+    this.inflight.set(key, pending);
+    return pending;
+  }
+
   private async resolveRoute(name: string): Promise<RoutedTool | undefined> {
     for (const upstream of this.deps.upstreams) {
       if (!upstream.serverCapabilities.tools) continue;

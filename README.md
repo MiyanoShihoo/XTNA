@@ -95,7 +95,7 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 ```bash
 npm --prefix gateway install
 npm run vault:build
-npm run vault:test        # 11 protocol checks, in-memory transport
+npm run vault:test        # 12 protocol checks, in-memory transport
 npm run vault:test:e2e    # 6 process-level checks, real HTTP upstream + real stdio
 ```
 

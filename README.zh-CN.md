@@ -89,7 +89,7 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 ```bash
 npm --prefix gateway install
 npm run vault:build
-npm run vault:test        # 11 项协议层检查(内存传输)
+npm run vault:test        # 12 项协议层检查(内存传输)
 npm run vault:test:e2e    # 6 项进程级检查(真 HTTP 上游 + 真 stdio)
 ```
 

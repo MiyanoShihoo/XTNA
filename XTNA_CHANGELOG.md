@@ -62,6 +62,11 @@ variables are unchanged.
 - `scripts/probe-vite-resolution.mjs`: resolves the specifiers of a real Vite build
   against the production resolver without running the analyzer.
 
+### Added (gateway)
+
+- Concurrent identical read-only calls now coalesce into one upstream request and one cache
+  write; the second caller waits on the in-flight promise instead of issuing a duplicate.
+
 ### Fixed (packaging)
 
 - `native/windows/build/manifest.json` pinned `packageVersion` to 6.8.0. A distribution

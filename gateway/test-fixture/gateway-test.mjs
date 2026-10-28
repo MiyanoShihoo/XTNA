@@ -40,6 +40,7 @@ const stub = {
   },
   async callTool(name, args) {
     calls += 1;
+    if (name === "leak") await new Promise((resolve) => setTimeout(resolve, 30));
     seen.push({ name, args });
     if (name === "leak")
       return {
@@ -144,6 +145,20 @@ const nonReadOnlySecond = await client.callTool({ name: "echo", arguments: { val
 void nonReadOnlyFirst;
 void nonReadOnlySecond;
 check("unannotated tool is not cached", calls === 4, `calls=${String(calls)}`);
+
+cache.clear();
+const callsBeforeConcurrent = calls;
+const [concurrentA, concurrentB] = await Promise.all([
+  client.callTool({ name: "leak", arguments: {} }),
+  client.callTool({ name: "leak", arguments: {} }),
+]);
+void concurrentA;
+void concurrentB;
+check(
+  "concurrent identical calls coalesce into one upstream request",
+  calls === callsBeforeConcurrent + 1,
+  `calls=${String(calls)}`,
+);
 
 await client.close();
 await proxy.mcpServer.close();
