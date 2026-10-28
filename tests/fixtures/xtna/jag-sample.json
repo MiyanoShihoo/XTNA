@@ -1,0 +1,16 @@
+{
+  "schema": "JavaScriptApplicationGraph",
+  "graph_id": "jag_fixture0001",
+  "nodes": [
+    { "node_id": "jag_node_a", "kind": "ipc-main-handler", "identity": { "role_key": "ipcMain.handle(load-config)" } },
+    { "node_id": "jag_node_b", "kind": "function", "identity": { "role_key": "readConfig()" } },
+    { "node_id": "jag_node_c", "kind": "sender-validation", "identity": { "role_key": "assertTrustedSender" } },
+    { "node_id": "jag_node_d", "kind": "native-addon", "identity": { "role_key": "native.readFileSync" } }
+  ],
+  "edges": [
+    { "edge_id": "e1", "source_node_id": "jag_node_a", "target_node_id": "jag_node_b", "relation": "calls" },
+    { "edge_id": "e2", "source_node_id": "jag_node_b", "target_node_id": "jag_node_d", "relation": "flows" },
+    { "edge_id": "e3", "source_node_id": "jag_node_a", "target_node_id": "jag_node_c", "relation": "calls" },
+    { "edge_id": "e4", "source_node_id": "jag_node_c", "target_node_id": "jag_node_d", "relation": "flows" }
+  ]
+}

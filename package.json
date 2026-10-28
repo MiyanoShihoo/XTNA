@@ -337,7 +337,8 @@
     "audit:apk": "node scripts/audit-apk.mjs",
     "overlay": "node scripts/symbol-overlay.mjs",
     "dossier": "node scripts/dossier.mjs",
-    "taint": "node scripts/taint-path.mjs"
+    "taint": "node scripts/taint-path.mjs",
+    "graph:export": "node scripts/graph-export.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [

@@ -63,6 +63,13 @@ The path through `validateSchema` is absent because sanitizer nodes stop expansi
 | `no-path` | no path exists within the hop ceiling |
 | `no-match` | a selector matched no node |
 
+## Producing a graph from an XTNA application graph
+
+`npm run graph:export -- --input jag.json --out taint.json --map-source ipc-main-handler --map-sink native-addon --map-sanitizer sender-validation`
+
+The exporter accepts a raw application graph or an Evidence bundle containing one, keeps
+node ids and edge relations, and relabels the kinds you name so `taint` can select them.
+
 ## Limits
 
 - Sanitizers are treated as hard barriers. A sanitizer that only conditionally neutralises a

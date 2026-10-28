@@ -39,7 +39,7 @@ not implemented here.
 | 10 | Schema synthesis (OpenAPI/proto/TS) | planned | — |
 | 11 | Standalone client SDK generation | planned | — |
 | 12 | Stateful mock server | partial | `export_environment_bundle` replays recorded reads; no state machine |
-| 13 | Property-graph / taint queries | **shipped** (graph-level) | scripts/taint-path.mjs: simple-path search with sanitizer barriers and hop/path ceilings; no built-in graph exporter yet |
+| 13 | Property-graph / taint queries | **shipped** (graph-level) | scripts/taint-path.mjs for path search and scripts/graph-export.mjs to project an application graph into that format |
 | 14 | Hypothesis board | planned | — |
 | 15 | Sub-agent orchestration | planned | MCP already allows concurrent clients; shared-ledger concurrency is the gap |
 | 16 | Live web investigation UI | planned | — |

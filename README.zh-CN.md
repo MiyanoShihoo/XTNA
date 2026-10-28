@@ -124,7 +124,7 @@ Ghidra / IDA 脚本。
 ## 污点路径查询
 
 `npm run taint -- --graph g.json --source source --sink sink --sanitizer sanitizer`
-在显式属性图上枚举简单路径,把 sanitizer 当作屏障,并如实报告截断。
+在显式属性图上枚举简单路径,把 sanitizer 当作屏障,并如实报告截断。查询前可先用`npm run graph:export` 把现有应用图投影成该格式。
 
 [参考](docs/XTNA-TAINT-PATH.md)
 
