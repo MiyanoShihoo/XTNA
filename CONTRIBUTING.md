@@ -1,4 +1,8 @@
-# Contributing to REA
+﻿# XTNA fork notes
+
+This repository is a distribution of the REA engine. The rules below describe the upstream engine's integration bar and still apply to engine changes here. Distribution-only changes (packaging, gateway, docs) follow the same review bar but do not need upstream scope approval.
+
+## Contributing to the REA engine (upstream rules)
 
 REA welcomes focused bug fixes, documentation improvements, tests, and reverse-engineering workflows. For large contract or architecture changes, explain the intended scope and link the relevant issue or design discussion.
 
@@ -299,7 +303,7 @@ manual deployments.
 
 The separate GitHub Pages host uses only the manual
 `.github/workflows/website-pages.yml` workflow on `main`. The repository's
-**Settings → Pages → Build and deployment → Source** must be set to
+**Settings 鈫?Pages 鈫?Build and deployment 鈫?Source** must be set to
 **GitHub Actions** before deploying there.
 
 ### Translation corrections

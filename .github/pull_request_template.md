@@ -22,7 +22,7 @@ unlikely race or security edge case, record the concrete failure mode, likelihoo
 complexity cost, and the user's buy-in obtained before implementation. Do not
 silently expand scope for theoretical robustness. -->
 
-Follow the [contribution scope](https://github.com/morluto/rea/blob/main/CONTRIBUTING.md#contribution-scope).
+Follow the [contribution scope](CONTRIBUTING.md#contribution-scope).
 Unresolved scope, authority, side effects, or required verification block
 integration. Link the required maintainer scope decision for new providers or
 capabilities involving target execution, injection, mutation, or protection
@@ -71,8 +71,8 @@ source, link, or rendered-document checks. -->
 - User-visible CLI/MCP output (if applicable):
 - Remaining proof gaps:
 
-For boundary fixes, identify the applicable [boundary regressions](https://github.com/morluto/rea/blob/main/docs/testing.md#boundary-regressions)
-and [lifecycle regressions](https://github.com/morluto/rea/blob/main/docs/testing.md#lifecycle-regressions)
+For boundary fixes, identify the applicable [boundary regressions](docs/testing.md#boundary-regressions)
+and [lifecycle regressions](docs/testing.md#lifecycle-regressions)
 covered by the evidence above, and explain relevant gaps.
 
 For evidence-bearing changes:

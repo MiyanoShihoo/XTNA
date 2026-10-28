@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">XTNA</title>
+  <defs>
+    <linearGradient id="trace" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFC24A"/>
+      <stop offset="1" stop-color="#FF7A18"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FF9A2E" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#FF9A2E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="#0B0E14"/>
+
+  <g stroke="#1A2331" stroke-width="2" opacity="0.22">
+    <path d="M128 64V448M256 40V472M384 64V448M64 128H448M40 256H472M64 384H448"/>
+  </g>
+
+  <circle cx="256" cy="256" r="190" fill="url(#glow)"/>
+
+  <path d="M256 64 418 158V346L256 440 94 346V158Z"
+        fill="none" stroke="#2E3B57" stroke-width="7" stroke-linejoin="round"/>
+
+  <g stroke="url(#trace)" stroke-width="56" stroke-linecap="round">
+    <path d="M172 172 340 340"/>
+    <path d="M340 172 172 340"/>
+  </g>
+
+  <g fill="#FFD37A">
+    <circle cx="172" cy="172" r="14"/>
+    <circle cx="340" cy="172" r="14"/>
+    <circle cx="172" cy="340" r="14"/>
+    <circle cx="340" cy="340" r="14"/>
+  </g>
+</svg>
