@@ -42,7 +42,7 @@ not implemented here.
 | 13 | Property-graph / taint queries | **shipped** (graph-level) | scripts/taint-path.mjs for path search and scripts/graph-export.mjs to project an application graph into that format |
 | 14 | Hypothesis board | **shipped** (file-level) | scripts/hypothesis.mjs: claims with confidence, status, supporting and contradicting evidence |
 | 15 | Sub-agent orchestration | planned | MCP already allows concurrent clients; shared-ledger concurrency is the gap |
-| 16 | Live web investigation UI | planned | — |
+| 16 | Live web investigation UI | **partial** | scripts/panel.mjs: single-file offline panel (evidence, limitations, unknowns, symbols, hypotheses, checkpoints); no live server or topology graph |
 | 17 | Investigation checkpoints | **shipped** (file-level) | scripts/checkpoint.mjs: hash-verified snapshots of Evidence bundles and overlay files; no process state, no branching |
 | 18 | Dossier exporter | **shipped** | `scripts/dossier.mjs`, Markdown from an Evidence bundle |
 

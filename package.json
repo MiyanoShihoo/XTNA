@@ -343,7 +343,8 @@
     "checkpoint": "node scripts/checkpoint.mjs",
     "crypto:radar": "node scripts/crypto-radar.mjs",
     "schema:synth": "node scripts/schema-synth.mjs",
-    "hypothesis": "node scripts/hypothesis.mjs"
+    "hypothesis": "node scripts/hypothesis.mjs",
+    "panel": "node scripts/panel.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [

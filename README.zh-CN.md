@@ -144,6 +144,13 @@ Pydantic / OpenAPI)、hypothesis(带置信度、状态与反证的假设板)。
 
 [参考](docs/XTNA-ANALYSIS-UTILITIES.md)
 
+## 离线面板
+
+`npm run panel -- --evidence bundle.json --out panel.html` 生成单文件 HTML 视图,完全不联网:
+证据、限制、未知、符号、假设、检查点。
+
+[参考](docs/XTNA-PANEL.md)
+
 ## 验证状态
 
 | 检查 | 命令 | 状态 |

@@ -154,6 +154,14 @@ schema:synth (JSON samples to TypeScript, Pydantic or OpenAPI) and hypothesis
 
 [Reference](docs/XTNA-ANALYSIS-UTILITIES.md)
 
+## Offline panel
+
+`npm run panel -- --evidence bundle.json --out panel.html` builds a single-file HTML view of
+the investigation with no network access: evidence, limitations, unknowns, symbols, hypotheses
+and checkpoints.
+
+[Reference](docs/XTNA-PANEL.md)
+
 ## Verification
 
 | Check | Command | Status |
