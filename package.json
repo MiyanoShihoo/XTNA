@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xtna/xtna.git"
+    "url": "git+https://github.com/MiyanoShihoo/xtna.git"
   },
-  "homepage": "https://github.com/xtna/xtna#readme",
+  "homepage": "https://github.com/MiyanoShihoo/xtna#readme",
   "bugs": {
-    "url": "https://github.com/xtna/xtna/issues"
+    "url": "https://github.com/MiyanoShihoo/xtna/issues"
   },
   "keywords": [
     "reverse-engineering",

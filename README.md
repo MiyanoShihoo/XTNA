@@ -54,7 +54,7 @@ None of this makes the engine deeper. It makes it **predictable**.
 ## Quick start
 
 ```bash
-git clone <this-repo> xtna
+git clone https://github.com/MiyanoShihoo/xtna.git
 cd xtna
 npm ci --ignore-scripts
 npm run compile

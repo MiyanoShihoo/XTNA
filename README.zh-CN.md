@@ -49,7 +49,7 @@ XTNA 基于 [REA](https://github.com/morluto/rea) 分析引擎(MIT)分发。引�
 ## 快速开始
 
 ```bash
-git clone <本仓库地址> xtna
+git clone https://github.com/MiyanoShihoo/xtna.git
 cd xtna
 npm ci --ignore-scripts
 npm run compile
