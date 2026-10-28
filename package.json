@@ -339,7 +339,8 @@
     "dossier": "node scripts/dossier.mjs",
     "taint": "node scripts/taint-path.mjs",
     "graph:export": "node scripts/graph-export.mjs",
-    "overlay:render": "node scripts/overlay-render.mjs"
+    "overlay:render": "node scripts/overlay-render.mjs",
+    "checkpoint": "node scripts/checkpoint.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [

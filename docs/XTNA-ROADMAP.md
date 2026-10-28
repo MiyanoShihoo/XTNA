@@ -43,7 +43,7 @@ not implemented here.
 | 14 | Hypothesis board | planned | — |
 | 15 | Sub-agent orchestration | planned | MCP already allows concurrent clients; shared-ledger concurrency is the gap |
 | 16 | Live web investigation UI | planned | — |
-| 17 | Investigation checkpoints | planned | — |
+| 17 | Investigation checkpoints | **shipped** (file-level) | scripts/checkpoint.mjs: hash-verified snapshots of Evidence bundles and overlay files; no process state, no branching |
 | 18 | Dossier exporter | **shipped** | `scripts/dossier.mjs`, Markdown from an Evidence bundle |
 
 ## Agent architecture (Plan-and-Execute, sandbox tiers)

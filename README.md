@@ -138,6 +138,14 @@ reports truncation instead of returning a short list.
 
 `npm run overlay:render` rewrites a copy of stored pseudocode with overlay names for review; the evidence bundle stays byte-identical.
 
+## Checkpoints
+
+`npm run checkpoint -- create --name session --evidence evidence.json --overlay-dir ~/.xtna/overlays`
+freezes Evidence bundles and overlay files with a hash manifest; restore verifies every hash
+before writing.
+
+[Reference](docs/XTNA-CHECKPOINTS.md)
+
 ## Verification
 
 | Check | Command | Status |

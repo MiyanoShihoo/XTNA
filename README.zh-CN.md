@@ -130,6 +130,13 @@ Ghidra / IDA 脚本。
 
 `npm run overlay:render` 把已存储的伪代码按覆盖层重渲染用于评审,证据包保持字节不变。
 
+## 检查点
+
+`npm run checkpoint -- create --name session --evidence evidence.json --overlay-dir ~/.xtna/overlays`
+把 Evidence 包与覆盖层连同哈希清单一起冻结;恢复前逐文件校验哈希。
+
+[参考](docs/XTNA-CHECKPOINTS.md)
+
 ## 验证状态
 
 | 检查 | 命令 | 状态 |
