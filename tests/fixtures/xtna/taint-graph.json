@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    { "id": "n_src", "kind": "source", "label": "request.body" },
+    { "id": "n_parse", "kind": "transform", "label": "parseJSON" },
+    { "id": "n_check", "kind": "sanitizer", "label": "validateSchema" },
+    { "id": "n_query", "kind": "transform", "label": "buildQuery" },
+    { "id": "n_sink", "kind": "sink", "label": "db.execute" },
+    { "id": "n_dead", "kind": "transform", "label": "unreachable" }
+  ],
+  "edges": [
+    { "from": "n_src", "to": "n_parse", "label": "flows" },
+    { "from": "n_parse", "to": "n_sink", "label": "flows" },
+    { "from": "n_src", "to": "n_check", "label": "flows" },
+    { "from": "n_check", "to": "n_sink", "label": "flows" },
+    { "from": "n_src", "to": "n_query", "label": "flows" },
+    { "from": "n_query", "to": "n_parse", "label": "flows" },
+    { "from": "n_dead", "to": "n_sink", "label": "flows" }
+  ]
+}

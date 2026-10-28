@@ -127,6 +127,14 @@ every roadmap module is tracked in [docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md).
 
 [English](docs/XTNA-DOSSIER.md)
 
+## Taint path search
+
+`npm run taint -- --graph g.json --source source --sink sink --sanitizer sanitizer`
+enumerates simple paths over an explicit property graph, treats sanitizers as barriers, and
+reports truncation instead of returning a short list.
+
+[Reference](docs/XTNA-TAINT-PATH.md)
+
 ## Verification
 
 | Check | Command | Status |
