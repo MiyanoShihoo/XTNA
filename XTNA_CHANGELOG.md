@@ -44,6 +44,18 @@ variables are unchanged.
   projection, so existing callers are unchanged.
 - `npm run verify:xtna`: distribution checks that do not need the Vite pipeline
   (traversal ceiling behaviour, product identity, MCP identity probe).
+- **Vite-rooted module resolution.** A module specifier that starts at the deployment
+  base (`import("/assets/chunk-abc.js")`, produced by Vite when `base` is set) used to be
+  rejected as an unmapped host path. The resolver now maps it onto the logical artifact
+  root when that exact path is inventoried, and records the deployment assumption as a
+  limitation instead of presenting the mapping as proven.
+- **Optional `gateway/` (`xtna-vault`)** — a stdio MCP gateway with bidirectional secret
+  redaction (session placeholders that expand only on the way back to the provider),
+  content-addressed caching of read-only results, and two internal maintenance tools.
+  It is a separate package so the engine's Evidence digests stay untouched.
+- `npm run vault:build`, `npm run vault:test`, `npm run vault`.
+- `scripts/probe-vite-resolution.mjs`: resolves the specifiers of a real Vite build
+  against the production resolver without running the analyzer.
 
 ### Fixed (packaging)
 

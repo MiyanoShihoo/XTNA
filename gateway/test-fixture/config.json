@@ -1,0 +1,23 @@
+{
+  "upstreams": [
+    {
+      "name": "fake",
+      "command": "node",
+      "args": ["test-fixture/fake-upstream.mjs"],
+      "prefix": "never"
+    }
+  ],
+  "redaction": {
+    "enabled": true,
+    "marker": "vault",
+    "entropy": { "enabled": false }
+  },
+  "cache": {
+    "enabled": true,
+    "path": ".test-cache/cache.db",
+    "defaultTtlMs": 600000,
+    "defaultPolicy": "annotations"
+  },
+  "logging": { "level": "warn" },
+  "internalTools": { "enabled": true }
+}

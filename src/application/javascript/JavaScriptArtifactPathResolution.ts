@@ -319,7 +319,43 @@ const resolveRuntimeHostPath = (
   return null;
 };
 
+/**
+ * Bundlers emit module specifiers rooted at the deployment base, not at the
+ * module. Vite with `base: "/"` writes `import("/assets/chunk-abc.js")`, and the
+ * file exists at `assets/chunk-abc.js` inside the distribution. Map that shape
+ * onto the artifact root only when the exact logical path is inventoried, and
+ * state the deployment assumption instead of presenting it as proven.
+ */
+const resolveArtifactRootAbsoluteSpecifier = (
+  input: ResolveArtifactPathInput,
+): CandidateResolution | null => {
+  if (input.context !== "module-specifier") return null;
+  if (!input.declaredPath.startsWith("/")) return null;
+  if (input.declaredPath.startsWith("//")) return null;
+  // Only Windows drive and UNC identities are host paths here; a single leading
+  // slash is the bundler base syntax this branch exists to resolve.
+  if (/^[A-Za-z]:[\\/]/u.test(input.declaredPath)) return null;
+  if (/^file:/iu.test(input.declaredPath)) return null;
+
+  const logical = posix.normalize(input.declaredPath.slice(1));
+  if (logical === "" || logical === "." || logical.startsWith("../")) return null;
+
+  const exact = input.files.get(logical);
+  if (exact === undefined) return null;
+  return {
+    resolvedPath: exact.path,
+    status: "resolved",
+    limitations: [
+      "An absolute module specifier was mapped onto the logical artifact root. That mapping assumes the host serves this distribution at its root; the same bundle deployed under a sub-path would resolve elsewhere.",
+    ],
+  };
+};
+
 const resolvePath = (input: ResolveArtifactPathInput): CandidateResolution => {
+  // A bundler-rooted specifier is checked before host-path admission: it is an
+  // artifact path that merely looks absolute, not a host filesystem path.
+  const rootAbsolute = resolveArtifactRootAbsoluteSpecifier(input);
+  if (rootAbsolute !== null) return rootAbsolute;
   const hostPath = resolveRuntimeHostPath(input);
   if (hostPath !== null) return hostPath;
   if (input.runtimePathKind === "node-entrypoint")

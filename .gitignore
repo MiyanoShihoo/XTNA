@@ -77,3 +77,10 @@ Thumbs.db
 website/_site/
 # Temporary translation output prepared before replacing the complete site.
 website/.i18n-*/
+
+# XTNA local additions
+/gateway/node_modules/
+/gateway/dist/
+/gateway/.test-cache/
+/.fixtures/vite-app/node_modules/
+/.fixtures/tmp/

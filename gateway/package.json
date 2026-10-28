@@ -1,0 +1,31 @@
+{
+  "name": "xtna-vault",
+  "version": "0.1.0",
+  "description": "XTNA optional gateway: bidirectional secret redaction and content-addressed cache for MCP servers",
+  "type": "module",
+  "bin": {
+    "xtna-vault": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node test-fixture/gateway-test.mjs",
+    "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.6.3"
+  },
+  "license": "MIT"
+}

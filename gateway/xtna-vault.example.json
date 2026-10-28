@@ -1,0 +1,37 @@
+{
+  "upstreams": [
+    {
+      "name": "xtna",
+      "command": "node",
+      "args": ["scripts/rea.mjs", "mcp"],
+      "prefix": "never"
+    }
+  ],
+  "redaction": {
+    "enabled": true,
+    "marker": "vault",
+    "minLength": 8,
+    "extraPatterns": [],
+    "disabled": [],
+    "entropy": {
+      "enabled": true,
+      "minLength": 32,
+      "threshold": 4.2,
+      "skipPureHexLengths": [32, 40, 64, 128]
+    }
+  },
+  "cache": {
+    "enabled": true,
+    "path": "~/.xtna-vault/cache.db",
+    "defaultTtlMs": 3600000,
+    "discoveryTtlMs": 60000,
+    "maxEntries": 50000,
+    "defaultPolicy": "annotations",
+    "allow": [],
+    "deny": [],
+    "maxEntryBytes": 4194304
+  },
+  "logging": { "level": "warn" },
+  "internalTools": { "enabled": true },
+  "annotatePlaceholders": true
+}

@@ -95,6 +95,47 @@ Hopper, Rizin, GNU objdump — and normalizes their output into one evidence mod
 `docs/` for per-provider setup. Providers remain bring-your-own; the installer never
 installs or upgrades them.
 
+## Optional gateway: xtna-vault
+
+`gateway/` is a separate stdio MCP server that sits in front of XTNA (or any MCP
+server) and does two things the engine deliberately does not:
+
+1. **Bidirectional secret redaction.** Values that look like credentials are replaced
+   in tool output with session placeholders such as `<vault:1:ab12cd>`. Pass a
+   placeholder back in any tool argument and the gateway restores the real value before
+   the call reaches the upstream server — the model never holds the plaintext but can
+   still use it.
+2. **Content-addressed caching.** Tool results annotated `readOnlyHint: true`, resource
+   reads and prompt fetches are stored by canonical request hash and replayed within
+   their TTL. Anything without a read-only annotation is never cached.
+
+It lives outside the evidence path on purpose: redacting inside the engine would break
+the digests that make Evidence verifiable.
+
+```bash
+npm --prefix gateway install
+npm run vault:build
+npm run vault:test          # 11 protocol-level checks, in-memory transport
+
+node gateway/dist/index.js --config gateway/xtna-vault.example.json
+```
+
+Register it instead of the server directly:
+
+```json
+{
+  "mcpServers": {
+    "xtna": {
+      "command": "node",
+      "args": ["gateway/dist/index.js", "--config", "gateway/xtna-vault.json"]
+    }
+  }
+}
+```
+
+Two internal tools are exposed to the model: `vault_stats` (placeholder count, cache
+hits/misses) and `vault_cache_clear` (drop one upstream or everything).
+
 ## Build and verification
 
 ```bash
