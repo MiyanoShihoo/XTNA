@@ -116,6 +116,7 @@ the digests that make Evidence verifiable.
 npm --prefix gateway install
 npm run vault:build
 npm run vault:test          # 11 protocol-level checks, in-memory transport
+npm run vault:test:e2e      # 6 process-level checks: real HTTP upstream, real stdio pipes
 
 node gateway/dist/index.js --config gateway/xtna-vault.example.json
 ```

@@ -1,0 +1,32 @@
+{
+  "upstreams": [
+    {
+      "name": "httpfake",
+      "transport": "http",
+      "url": "http://127.0.0.1:43191/mcp",
+      "prefix": "never"
+    }
+  ],
+  "redaction": {
+    "enabled": true,
+    "marker": "vault",
+    "minLength": 8,
+    "extraPatterns": [],
+    "disabled": [],
+    "entropy": { "enabled": false, "minLength": 32, "threshold": 4.2, "skipPureHexLengths": [] }
+  },
+  "cache": {
+    "enabled": true,
+    "path": ".test-cache/http-e2e.db",
+    "defaultTtlMs": 600000,
+    "discoveryTtlMs": 60000,
+    "maxEntries": 100,
+    "defaultPolicy": "annotations",
+    "allow": [],
+    "deny": [],
+    "maxEntryBytes": 1048576
+  },
+  "logging": { "level": "warn" },
+  "internalTools": { "enabled": true },
+  "annotatePlaceholders": true
+}

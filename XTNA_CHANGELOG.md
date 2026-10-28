@@ -53,6 +53,11 @@ variables are unchanged.
   redaction (session placeholders that expand only on the way back to the provider),
   content-addressed caching of read-only results, and two internal maintenance tools.
   It is a separate package so the engine's Evidence digests stay untouched.
+- Upstreams may now be `transport: "http"` (Streamable HTTP) as well as `stdio`, which is
+  what makes a process-level end-to-end run possible on hosts that forbid pipe spawning.
+- Tool routes resolve lazily, so a client may call a tool before it has listed tools.
+- `npm run vault:test:e2e` — 6 process-level checks: a real HTTP upstream process, a real
+  gateway process, real stdio pipes, asserting redaction, cache replay and rehydration.
 - `npm run vault:build`, `npm run vault:test`, `npm run vault`.
 - `scripts/probe-vite-resolution.mjs`: resolves the specifiers of a real Vite build
   against the production resolver without running the analyzer.
@@ -89,6 +94,9 @@ variables are unchanged.
 
 ### Known gaps carried over
 
+- The gateway has no single-flight coalescing: two identical read-only calls issued
+  concurrently both miss and both reach the upstream. Sequential clients (the normal MCP
+  pattern) are unaffected.
 - Modern bundler (Vite/Webpack) chunk resolution still needs explicit asset mapping in some
   layouts.
 - Windows x64 remains narrower than macOS for provider coverage.

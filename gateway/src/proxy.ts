@@ -1,4 +1,4 @@
-﻿import { createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
@@ -142,7 +142,8 @@ export class VaultProxy {
           if (internal !== null) return internal;
         }
 
-        const route = this.toolRoutes.get(name);
+        const route =
+          this.toolRoutes.get(name) ?? (await this.resolveRoute(name));
         if (route === undefined)
           return errorResult(`Unknown tool "${name}". Call tools/list and retry.`);
 
@@ -265,6 +266,28 @@ export class VaultProxy {
       const result = await upstream.getPrompt(rest, this.deps.vault.expandDeep(args));
       return this.redactPromptResult(result).value;
     });
+  }
+
+  /**
+   * A client may call a tool before it ever lists them. Resolve on demand and
+   * fill the route table so later calls stay O(1).
+   */
+  private async resolveRoute(name: string): Promise<RoutedTool | undefined> {
+    for (const upstream of this.deps.upstreams) {
+      if (!upstream.serverCapabilities.tools) continue;
+      const prefix = this.prefixByUpstream.get(upstream.name) === true;
+      const listed = await upstream.listTools();
+      for (const tool of listed.tools) {
+        const exposed = prefix ? `${upstream.name}__${tool.name}` : tool.name;
+        this.toolRoutes.set(exposed, {
+          upstream,
+          upstreamName: tool.name,
+          readOnly: tool.annotations?.readOnlyHint === true,
+        });
+        if (exposed === name) return this.toolRoutes.get(exposed);
+      }
+    }
+    return undefined;
   }
 
   private callInternalTool(

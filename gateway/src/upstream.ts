@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type {
   CallToolResult,
   GetPromptResult,
@@ -33,7 +34,10 @@ export class UpstreamError extends Error {
  */
 export class Upstream {
   private client: Client | null = null;
-  private transport: StdioClientTransport | null = null;
+  private transport:
+    | StdioClientTransport
+    | StreamableHTTPClientTransport
+    | null = null;
   private capabilities: ServerCapabilities = {};
   private toolCache: Tool[] | null = null;
   private closing = false;
@@ -55,17 +59,27 @@ export class Upstream {
     }
     Object.assign(env, this.config.env);
 
-    this.transport = new StdioClientTransport({
-      command: this.config.command,
-      args: this.config.args,
-      env,
-      cwd: this.config.cwd,
-      stderr: 'inherit',
-    });
-
-    this.transport.onerror = (err) => {
-      log.error('transport error', { upstream: this.name, message: err.message });
-    };
+    if (this.config.transport === 'http') {
+      if (this.config.url === undefined)
+        throw new UpstreamError(`Upstream "${this.name}" has no url`);
+      const http = new StreamableHTTPClientTransport(new URL(this.config.url));
+      http.onerror = (err: Error) => {
+        log.error('transport error', { upstream: this.name, message: err.message });
+      };
+      this.transport = http;
+    } else {
+      const stdio = new StdioClientTransport({
+        command: this.config.command,
+        args: this.config.args,
+        env,
+        cwd: this.config.cwd,
+        stderr: 'inherit',
+      });
+      stdio.onerror = (err) => {
+        log.error('transport error', { upstream: this.name, message: err.message });
+      };
+      this.transport = stdio;
+    }
 
     this.client = new Client(
       { name: `mcp-vault:${this.name}`, version: '0.1.0' },

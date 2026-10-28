@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+﻿import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve, isAbsolute } from 'node:path';
 import { z } from 'zod';
@@ -6,7 +6,11 @@ import { z } from 'zod';
 const UpstreamConfig = z.object({
   /** Stable identifier used in cache keys and, when namespacing, tool prefixes. */
   name: z.string().min(1).regex(/^[A-Za-z0-9_.-]+$/),
-  command: z.string().min(1),
+  /** stdio spawns the command; http connects to an already-running MCP endpoint. */
+  transport: z.enum(["stdio", "http"]).default("stdio"),
+  command: z.string().default(""),
+  /** Streamable HTTP endpoint for transport=http. */
+  url: z.string().url().optional(),
   args: z.array(z.string()).default([]),
   env: z.record(z.string()).default({}),
   cwd: z.string().optional(),
@@ -132,6 +136,10 @@ export function loadConfig(path: string): Config {
 
   const cfg = parsed.data;
   for (const up of cfg.upstreams) {
+    if (up.transport === "stdio" && up.command === "")
+      throw new ConfigError(`Upstream "${up.name}" has transport stdio but no command`);
+    if (up.transport === "http" && up.url === undefined)
+      throw new ConfigError(`Upstream "${up.name}" has transport http but no url`);
     if (up.env) up.env = expandEnvMap(up.env);
     if (up.cwd) up.cwd = expandPath(up.cwd);
   }
