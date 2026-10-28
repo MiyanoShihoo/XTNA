@@ -91,11 +91,32 @@ def render(size: int, out: Path) -> None:
     print(f"{out.name}: {size}x{size}")
 
 
+def hex_rgb(value: str) -> tuple[int, int, int, int]:
+    value = value.lstrip("#")
+    return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16), 255)
+
+
 def main() -> int:
-    root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("assets")
+    args = sys.argv[1:]
+    root = Path(args[0]) if args else Path("assets")
+    prefix = "icon"
+    global AMBER_TOP, AMBER_BOTTOM, PAD, BG
+    rest = args[1:]
+    for i in range(0, len(rest) - 1, 2):
+        flag, value = rest[i], rest[i + 1]
+        if flag == "--prefix":
+            prefix = value
+        elif flag == "--top":
+            AMBER_TOP = hex_rgb(value)
+        elif flag == "--bottom":
+            AMBER_BOTTOM = hex_rgb(value)
+        elif flag == "--pad":
+            PAD = hex_rgb(value)
+        elif flag == "--bg":
+            BG = hex_rgb(value)
     root.mkdir(parents=True, exist_ok=True)
     for size in (512, 256, 128, 64, 32):
-        render(size, root / f"icon-{size}.png")
+        render(size, root / f"{prefix}-{size}.png")
     return 0
 
 
