@@ -5,48 +5,57 @@ rem Usage:
 rem   scripts\xtna-env.cmd                 -> configure this console only
 rem   scripts\xtna-env.cmd analyze <path>  -> configure, then run the CLI
 rem
-rem Every value can be overridden by setting the variable before calling this
-rem script. Nothing here downloads or installs anything.
+rem Nothing here downloads or installs anything. Every value can be overridden
+rem by setting the variable before calling this script; see the table in
+rem README.md ("Windows environment").
 
 setlocal EnableExtensions
 set "XTNA_ROOT=%~dp0.."
+if not defined XTNA_TOOLS_DIR set "XTNA_TOOLS_DIR=%XTNA_ROOT%\..\tools"
 
-rem --- Java for Ghidra 12.2 (JDK 25+) -----------------------------------------
-if not defined XTNA_JDK set "XTNA_JDK=E:\AI tools\jdk25\jdk-25.0.5+8"
-if exist "%XTNA_JDK%\bin\java.exe" (
-  set "JAVA_HOME=%XTNA_JDK%"
-  set "PATH=%XTNA_JDK%\bin;%PATH%"
-  echo [xtna-env] JDK           %XTNA_JDK%
+rem --- Java ---------------------------------------------------------------------
+rem Ghidra 12.2 needs a 64-bit JDK 25+. Point XTNA_JDK at one, or pre-set JAVA_HOME.
+if not defined JAVA_HOME if defined XTNA_JDK set "JAVA_HOME=%XTNA_JDK%"
+if defined JAVA_HOME (
+  if exist "%JAVA_HOME%\bin\java.exe" (
+    set "PATH=%JAVA_HOME%\bin;%PATH%"
+    echo [xtna-env] JDK           %JAVA_HOME%
+  ) else (
+    echo [xtna-env] JAVA_HOME is set but has no bin\java.exe: "%JAVA_HOME%"
+  )
 ) else (
-  echo [xtna-env] JDK not found at "%XTNA_JDK%" - set XTNA_JDK to a 64-bit JDK 25+
+  echo [xtna-env] JAVA_HOME not set - set XTNA_JDK or JAVA_HOME to a 64-bit JDK 25+
 )
 
-rem --- Ghidra ------------------------------------------------------------------
-if not defined GHIDRA_INSTALL_DIR set "GHIDRA_INSTALL_DIR=E:\AI tools\ghidra\ghidra_12.2_PUBLIC_20261016\ghidra_12.2_PUBLIC"
-if exist "%GHIDRA_INSTALL_DIR%\Ghidra\application.properties" (
-  echo [xtna-env] Ghidra        %GHIDRA_INSTALL_DIR%
+rem --- Ghidra -------------------------------------------------------------------
+if defined GHIDRA_INSTALL_DIR (
+  if exist "%GHIDRA_INSTALL_DIR%\Ghidra\application.properties" (
+    echo [xtna-env] Ghidra        %GHIDRA_INSTALL_DIR%
+  ) else (
+    echo [xtna-env] GHIDRA_INSTALL_DIR has no Ghidra\application.properties: "%GHIDRA_INSTALL_DIR%"
+  )
 ) else (
-  echo [xtna-env] Ghidra missing at "%GHIDRA_INSTALL_DIR%" - set GHIDRA_INSTALL_DIR
+  echo [xtna-env] Ghidra not configured - set GHIDRA_INSTALL_DIR to an extracted 12.x release
 )
 
-rem --- apktool ----------------------------------------------------------------
-if not defined REA_APKTOOL_COMMAND set "REA_APKTOOL_COMMAND=%XTNA_ROOT%\..\tools\bin\apktool212.bat"
+rem --- apktool ------------------------------------------------------------------
+if not defined REA_APKTOOL_COMMAND set "REA_APKTOOL_COMMAND=%XTNA_TOOLS_DIR%\bin\apktool.bat"
 if exist "%REA_APKTOOL_COMMAND%" (
   echo [xtna-env] apktool       %REA_APKTOOL_COMMAND%
 ) else (
-  echo [xtna-env] apktool missing - set REA_APKTOOL_COMMAND
+  echo [xtna-env] apktool not found - set REA_APKTOOL_COMMAND to a launcher
 )
 
-rem --- jadx-headless-mcp ------------------------------------------------------
-if not defined REA_JADX_MCP_JAR set "REA_JADX_MCP_JAR=%XTNA_ROOT%\..\tools\bin\jadx-headless-mcp-0.7.1-all.jar"
+rem --- jadx-headless-mcp --------------------------------------------------------
+if not defined REA_JADX_MCP_JAR set "REA_JADX_MCP_JAR=%XTNA_TOOLS_DIR%\bin\jadx-headless-mcp-0.7.1-all.jar"
 if exist "%REA_JADX_MCP_JAR%" (
   echo [xtna-env] jadx-mcp      %REA_JADX_MCP_JAR%
 ) else (
-  echo [xtna-env] jadx-mcp missing - set REA_JADX_MCP_JAR
+  echo [xtna-env] jadx-mcp not found - set REA_JADX_MCP_JAR to the released jar
 )
 
-rem --- aapt2 (optional manifest facts for audit-apk) --------------------------
-if not defined REA_AAPT2_COMMAND set "REA_AAPT2_COMMAND=%XTNA_ROOT%\..\tools\_stage\aapt2\aapt2.exe"
+rem --- aapt2 (optional manifest facts for audit-apk) -----------------------------
+if not defined REA_AAPT2_COMMAND set "REA_AAPT2_COMMAND=%XTNA_TOOLS_DIR%\_stage\aapt2\aapt2.exe"
 if exist "%REA_AAPT2_COMMAND%" (
   echo [xtna-env] aapt2         %REA_AAPT2_COMMAND%
 ) else (
