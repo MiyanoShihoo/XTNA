@@ -3,7 +3,7 @@
   "mcpName": "io.github.xtna/xtna",
   "version": "0.1.0",
   "description": "XTNA: reverse engineer anything from your terminal or agent with one CLI and MCP server.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MiyanoShihoo/XTNA.git"
@@ -99,7 +99,9 @@
     "third_party/pwndbg/README.md",
     "third_party/pwndbg/LICENSE.md",
     "licenses",
-    "README.zh-CN.md"
+    "README.zh-CN.md",
+    "LICENSE-REA-MIT",
+    "NOTICE"
   ],
   "scripts": {
     "release:notes": "node scripts/release-notes.mjs",

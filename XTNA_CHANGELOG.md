@@ -2,7 +2,7 @@
 
 ## 0.1.0 — first XTNA distribution
 
-Baseline: REA 6.8.0 (MIT). Engine evidence contracts, tool names, and `REA_*` environment
+Baseline: REA 6.8.0 (MIT-licensed upstream; this distribution is Apache-2.0). Engine evidence contracts, tool names, and `REA_*` environment
 variables are unchanged.
 
 ### Fixed
@@ -77,6 +77,9 @@ variables are unchanged.
   (`scripts/sync-windows-native-manifest.mjs`).
 
 ### Changed
+
+- Distribution license is now Apache-2.0; the upstream MIT text is retained in LICENSE-REA-MIT and
+  attribution is in NOTICE.
 
 - `PRODUCT_IDENTITY`: `displayName` **XTNA**, CLI binary `xtna`, MCP server key `xtna`,
   config file `xtna.json`, package `xtna`.

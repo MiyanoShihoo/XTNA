@@ -10,7 +10,7 @@ An evidence-first reverse-engineering toolkit: one CLI, one MCP server, and a sh
 evidence model across native binaries, managed code, JavaScript and Electron applications,
 browser pages, Android packages, firmware, and captured traffic.
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-f4c430?style=flat-square)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](package.json)
 [![Status](https://img.shields.io/badge/status-0.1.0--beta-orange?style=flat-square)](#status)
 [![MCP](https://img.shields.io/badge/MCP-stdio-5c4ee5?style=flat-square)](https://modelcontextprotocol.io)
@@ -166,7 +166,10 @@ restricted process sandbox.
 
 ## License and attribution
 
-MIT. XTNA is a distribution of the REA analysis engine,
-Copyright (c) 2026 morluto, with modifications Copyright (c) 2026 XTNA contributors.
-The upstream project is not affiliated with this distribution. Third-party notices are in
+XTNA is licensed under the **Apache License 2.0** (see [LICENSE](LICENSE)).
+
+It incorporates the REA analysis engine, Copyright (c) 2026 morluto, which is licensed under
+the MIT License. That upstream text is reproduced in [LICENSE-REA-MIT](LICENSE-REA-MIT) and the
+original notice is retained; see [NOTICE](NOTICE) for the combined attribution. The upstream
+project is not affiliated with this distribution. Third-party notices are in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and `licenses/`.

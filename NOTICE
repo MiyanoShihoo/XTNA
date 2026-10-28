@@ -1,0 +1,11 @@
+XTNA
+Copyright 2026 XTNA contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes software developed by morluto as part of the REA project,
+licensed under the MIT License. That upstream text is reproduced verbatim in
+LICENSE-REA-MIT, and the original copyright notice is retained there.
+
+Third-party components carry their own notices in THIRD_PARTY_NOTICES.md and
+the licenses/ directory.

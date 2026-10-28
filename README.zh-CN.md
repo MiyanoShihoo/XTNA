@@ -9,7 +9,7 @@
 以证据为核心的逆向工具箱:一个 CLI、一个 MCP 服务器、一套贯穿原生二进制、托管代码、
 JavaScript/Electron 应用、浏览器页面、Android 包、固件与流量抓包的证据模型。
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-f4c430?style=flat-square)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](package.json)
 [![Status](https://img.shields.io/badge/status-0.1.0--beta-orange?style=flat-square)](#状态)
 
@@ -158,6 +158,9 @@ Ghidra / IDA 脚本。
 
 ## 许可与归属
 
-MIT。XTNA 是 REA 分析引擎的分发版本,Copyright (c) 2026 morluto,
-修改部分 Copyright (c) 2026 XTNA contributors。上游项目与本分发无隶属关系。
-第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 `licenses/`。
+XTNA 采用 **Apache License 2.0**(见 [LICENSE](LICENSE))。
+
+其中包含 REA 分析引擎,Copyright (c) 2026 morluto,以 MIT 许可发布。该上游文本完整保留在
+[LICENSE-REA-MIT](LICENSE-REA-MIT),原始版权声明未做改动;合并归属见 [NOTICE](NOTICE)。
+上游项目与本分发无隶属关系。第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+与 `licenses/`。
