@@ -92,3 +92,7 @@ website/.i18n-*/
 # Local symbol overlays
 /.xtna/
 
+
+# Local turbo global config experiment
+/.turbo-global/
+
