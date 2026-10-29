@@ -337,6 +337,7 @@
     "ast:normalize": "node scripts/ast-normalize.mjs",
     "sdk:gen": "node scripts/sdk-gen.mjs",
     "mock:gen": "node scripts/mock-server.mjs",
+    "probe:gen": "node scripts/probe-gen.mjs",
     "overlay": "node scripts/symbol-overlay.mjs",
     "dossier": "node scripts/dossier.mjs",
     "taint": "node scripts/taint-path.mjs",

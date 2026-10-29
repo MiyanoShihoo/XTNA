@@ -78,6 +78,9 @@ variables are unchanged.
   server with list/read/create/update/delete over the collections the capture seeded, plus
   verbatim replay for other recorded requests and optional JSON persistence.
   See `docs/XTNA-MOCK-SERVER.md`.
+- `npm run probe:gen -- --address <0x…|symbol>` emits a Frida or LLDB probe skeleton for one
+  address: entry arguments from the ABI registers, the return value and a bounded backtrace,
+  as JSON lines. It never attaches to a target. See `docs/XTNA-RUNTIME-PROBES.md`.
 
 ### Added (gateway)
 
