@@ -92,7 +92,7 @@ variables are unchanged.
   distribution; its Vitest pipeline could not start under the authoring host's process
   sandbox (`spawn EPERM` in Vite's config bundler). `npm run typecheck`, `npm run compile`,
   and `npm run verify:xtna` pass.
-- End-to-end `analyze-javascript-application` is now verified on a real Vite build with the
+- End-to-end `analyze-javascript-application` is now verified on a real Vite build and on a self-authored Electron asar (2 IPC channels paired) with the
   host temp, HOME and APPDATA redirected to E:. Result: 2 parsed files, 4 findings, 555
   retained data-flow relations, application coverage complete.
 - Ghidra 12.2 verification: `analyze` opened a 5.3 MB PE in 197 s with 7,516 procedures;

@@ -21,6 +21,7 @@ not implemented here.
 | Local model pre-filtering (Ollama / vLLM) | planned | — |
 | Ghidra provider verification (analyze / search / decompile / instructions / procedure info / call graph) | **verified** | reports/ghidra-verification.md; CLI function stalls, MCP tool path works |
 | JavaScript analysis end-to-end on a real build | **verified** | Vite dist: 2 files, 4 findings, 555 data-flow relations |
+| Electron application analysis | **verified** | Self-authored asar: 1 window, 1 preload, 2 contextBridge members, 2 IPC channels paired; see reports/electron-verification.md |
 ## Feature modules
 | # | Module | Status | Notes |
 |---:|---|---|---|
