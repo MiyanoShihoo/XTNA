@@ -64,14 +64,20 @@ over 20 minutes with ~48 s of CPU. Running one command per process is what made 
 
 ## Still unverified
 
-`function 0x40100b` was retried alone and again made no progress for ~15 minutes (CPU grew from
-37 s to 80 s, no output); it was cancelled. No procedure-info evidence was produced.
+`function` was retried twice, each time alone in its own process:
 
-Call-graph traversal was not attempted: the CLI exposes no direct command for it, and the MCP path
-would need a live server session.
+- `0x40100b`: ~15 min, CPU 37 s → 80 s, no output, cancelled
+- `0x40102d`: ~15 min, CPU 16 s → 52 s, no output, cancelled
+
+The command never returns for this binary. Two different addresses rule out a single bad
+function; the pattern is a wait, not computation.
+
+A call-graph attempt over a persistent MCP session (`open_binary` then `get_call_graph`)
+returned a tool-level error during `open_binary` in 23 ms. The captured log was truncated by the
+host shell, so the error code is not recorded here; the attempt produced no call-graph evidence.
 
 ## Verdict
 
 Verified: analysis open, procedure inventory (7,516), real decompilation, instruction listing.
-Unverified: procedure-info payload, call-graph traversal. One command per process; do not batch
-Ghidra CLI calls.
+Unverified: procedure-info payload and call-graph traversal. Ghidra CLI calls must run one per
+process; `function` is unusable on this target.
