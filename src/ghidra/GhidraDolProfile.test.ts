@@ -19,7 +19,10 @@ import {
   ghidraDolSectionFile,
 } from "./GhidraDolProfile.js";
 import { GhidraProvider } from "./GhidraProvider.js";
-import { ghidraProfileInstallationHost as host } from "./GhidraInstallation.fixture.js";
+import {
+  ghidraProfileInstallationHost as host,
+  posixFixturePath,
+} from "./GhidraInstallation.fixture.js";
 
 // Abbreviated from Ghidra 12.1.4 ppc.ldefs and x86.ldefs: the stock PowerPC
 // default, the optional Broadway variant, and one little-endian language to refuse.
@@ -49,12 +52,15 @@ const configFor = (environment: NodeJS.ProcessEnv) => {
 const installedConfig = async (environment: NodeJS.ProcessEnv) => {
   const installDir = await createTestTempDirectory("rea-ghidra-dol-");
   const languages = join(
-    installDir,
+    posixFixturePath(installDir),
     "Ghidra/Processors/PowerPC/data/languages",
   );
   await mkdir(languages, { recursive: true });
   await writeFile(join(languages, "ppc.ldefs"), LANGUAGE_DEFINITIONS);
-  return configFor({ GHIDRA_INSTALL_DIR: installDir, ...environment });
+  return configFor({
+    GHIDRA_INSTALL_DIR: posixFixturePath(installDir),
+    ...environment,
+  });
 };
 
 const dolTarget = async (

@@ -17,7 +17,10 @@ import {
   ghidraMipsProfileParameters,
   ghidraPinnedMipsLanguage,
 } from "./GhidraMipsProfile.js";
-import { ghidraProfileInstallationHost as host } from "./GhidraInstallation.fixture.js";
+import {
+  ghidraProfileInstallationHost as host,
+  posixFixturePath,
+} from "./GhidraInstallation.fixture.js";
 import { GHIDRA_SESSION_CAPABILITIES } from "./GhidraSessionValues.js";
 import type { GhidraMipsSoftFloatReport } from "./GhidraMipsProfile.js";
 import {
@@ -44,11 +47,14 @@ const MIPS_LANGUAGE_DEFINITIONS = `<?xml version="1.0" encoding="UTF-8"?>
 
 const installedMipsConfig = async () => {
   const installDir = await createTestTempDirectory("rea-ghidra-mips-");
-  const languages = join(installDir, "Ghidra/Processors/MIPS/data/languages");
+  const languages = join(
+    posixFixturePath(installDir),
+    "Ghidra/Processors/MIPS/data/languages",
+  );
   await mkdir(languages, { recursive: true });
   await writeFile(join(languages, "mips.ldefs"), MIPS_LANGUAGE_DEFINITIONS);
   const installed = parseConfig({
-    GHIDRA_INSTALL_DIR: installDir,
+    GHIDRA_INSTALL_DIR: posixFixturePath(installDir),
     REA_GHIDRA_LANGUAGE_ID: "MIPS:LE:32:16e",
   });
   if (!installed.ok) throw installed.error;

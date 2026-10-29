@@ -178,6 +178,28 @@ describe("Windows Job Object memory limits", () => {
     expect(calls.at(-1)?.operation).toBe("process_close");
   });
 
+  it("retains late descendant output after a transient inherited-pipe EOF", async () => {
+    const { native, calls } = authority({
+      polls: [
+        {
+          ...settledPoll,
+          stdout: Buffer.alloc(0),
+          stderr: Buffer.alloc(0),
+          activeProcesses: 1,
+        },
+        { ...settledPoll, stderr: Buffer.from("late frame") },
+      ],
+    });
+    const child = launch(native);
+    const observed: string[] = [];
+    child.stderr.on("data", (chunk: Buffer) => observed.push(chunk.toString()));
+
+    await once(child, "close");
+
+    expect(observed).toEqual(["late frame"]);
+    expect(calls.at(-1)?.operation).toBe("process_close");
+  });
+
   it("refuses a requested limit before launch when the artifact lacks the control", () => {
     const { native, calls } = authority();
     expect(() => launch(native, LIMIT)).toThrow(
