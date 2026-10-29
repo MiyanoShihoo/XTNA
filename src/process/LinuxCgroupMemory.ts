@@ -125,7 +125,9 @@ export const linuxCgroupDirectory = (
       ? posix.resolve(selected.mount.mountPoint, `.${selected.rest}`)
       : join(
           selected.mount.mountPoint,
-          ...selected.rest.split("/").filter(Boolean),
+          ...selected.rest
+            .split("/")
+            .filter((segment) => segment.length > 0 && segment !== "."),
         );
 };
 
