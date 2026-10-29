@@ -8,12 +8,12 @@ E:\deepseek project\XTNA\.tmp-provider. Nothing was written to C:.
 
 ## Verified
 
-| Operation | Result | Wall time | Evidence |
-|---|---|---:|---|
-| analyze --provider ghidra | ok | 197 s | document, segments, procedure_count = 7516, string_count |
-| search --kind procedures | ok | ~3 min | 7516 entries, 7259 internal addresses |
-| decompile 0x40100b | ok | ~3 min | real pseudocode (below) |
-| overlay add + overlay:render | ok | <1 s | 1 replacement; evidence SHA-256 unchanged (be50fccfe374235c62b335ab7d54b1dd499b78ec64535fa7479826e94dc35b1a) |
+| Operation                    | Result | Wall time | Evidence                                                                                                     |
+| ---------------------------- | ------ | --------: | ------------------------------------------------------------------------------------------------------------ |
+| analyze --provider ghidra    | ok     |     197 s | document, segments, procedure_count = 7516, string_count                                                     |
+| search --kind procedures     | ok     |    ~3 min | 7516 entries, 7259 internal addresses                                                                        |
+| decompile 0x40100b           | ok     |    ~3 min | real pseudocode (below)                                                                                      |
+| overlay add + overlay:render | ok     |      <1 s | 1 replacement; evidence SHA-256 unchanged (be50fccfe374235c62b335ab7d54b1dd499b78ec64535fa7479826e94dc35b1a) |
 
 ### Real pseudocode (Ghidra 12.2)
 

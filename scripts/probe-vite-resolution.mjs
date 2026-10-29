@@ -8,12 +8,18 @@ if (!root) throw new Error("usage: node probe-vite-resolution.mjs <dist-dir>");
 
 const { resolveArtifactPathByContext } = await import(
   pathToFileURL(
-    join(process.cwd(), "dist/application/javascript/JavaScriptArtifactPathResolution.js"),
+    join(
+      process.cwd(),
+      "dist/application/javascript/JavaScriptArtifactPathResolution.js",
+    ),
   ).href
 );
 const { JavaScriptJsonDocuments } = await import(
   pathToFileURL(
-    join(process.cwd(), "dist/application/javascript/JavaScriptJsonDocuments.js"),
+    join(
+      process.cwd(),
+      "dist/application/javascript/JavaScriptJsonDocuments.js",
+    ),
   ).href
 );
 
@@ -73,8 +79,12 @@ const resolve = (declaredPath, sourcePath, context = "module-specifier") =>
     moduleKind: "import",
   });
 
-const entry = [...files.keys()].find((path) => /assets\/index-.*\.js$/u.test(path));
-const chunk = [...files.keys()].find((path) => /assets\/lazy-.*\.js$/u.test(path));
+const entry = [...files.keys()].find((path) =>
+  /assets\/index-.*\.js$/u.test(path),
+);
+const chunk = [...files.keys()].find((path) =>
+  /assets\/lazy-.*\.js$/u.test(path),
+);
 if (!entry || !chunk) throw new Error("fixture is missing Vite chunks");
 const chunkName = chunk.split("/").pop();
 

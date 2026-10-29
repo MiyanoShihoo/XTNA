@@ -27,6 +27,7 @@ variables are unchanged.
   application. Each remaining source is now admitted against the live budget.
 
 **Browser scenario capture — provider status values**
+
 - `browserScenarioCaptureSchema` modelled a response status as `100..599`. CDP reports
   the status the origin actually sent, and Playwright reports `0` when it observed a
   response without a usable status line. The resulting `ZodError` escaped the tool handler
@@ -73,8 +74,8 @@ variables are unchanged.
 ### Fixed (packaging)
 
 - `native/windows/build/manifest.json` pinned `packageVersion` to 6.8.0. A distribution
-  with a different version failed every Windows native call with *"Windows native artifact
-  belongs to another REA version"* before the addon was loaded. The addon itself reports
+  with a different version failed every Windows native call with _"Windows native artifact
+  belongs to another REA version"_ before the addon was loaded. The addon itself reports
   only its ABI and Node-API versions, so `npm run compile` now syncs the manifest version
   and artifact digest from `package.json` and the shipped binary
   (`scripts/sync-windows-native-manifest.mjs`).

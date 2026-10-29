@@ -8,7 +8,7 @@ export function canonicalJson(value: unknown): string {
 }
 
 function sortValue(value: unknown): unknown {
-  if (value === null || typeof value !== 'object') return value;
+  if (value === null || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map(sortValue);
   if (value instanceof Date) return value.toISOString();
 
@@ -26,8 +26,9 @@ function sortValue(value: unknown): unknown {
  * MCP payloads are JSON by contract, so this is the honest boundary.
  */
 export function cloneJson<T>(value: T): T {
-  if (value === null || typeof value !== 'object') return value;
-  if (Array.isArray(value)) return value.map((v) => cloneJson(v)) as unknown as T;
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value))
+    return value.map((v) => cloneJson(v)) as unknown as T;
   const proto = Object.getPrototypeOf(value);
   if (proto !== Object.prototype && proto !== null) return value;
   const out: Record<string, unknown> = {};

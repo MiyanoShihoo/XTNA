@@ -41,7 +41,8 @@ function parseArgs(argv: readonly string[]): CliOptions {
     if (arg !== undefined && arg.startsWith("-"))
       throw new Error(`Unknown option ${arg}`);
   }
-  if (configPath === "") throw new Error("No config path. Pass --config or set MCP_VAULT_CONFIG.");
+  if (configPath === "")
+    throw new Error("No config path. Pass --config or set MCP_VAULT_CONFIG.");
   return { configPath };
 }
 
@@ -70,7 +71,10 @@ const main = async (): Promise<void> => {
     });
   }
   process.on("uncaughtException", (error) => {
-    log.error("uncaught exception", { message: error.message, stack: error.stack });
+    log.error("uncaught exception", {
+      message: error.message,
+      stack: error.stack,
+    });
     void shutdown("uncaughtException").finally(() => process.exit(1));
   });
   process.on("unhandledRejection", (reason) => {

@@ -1,6 +1,6 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type {
   CallToolResult,
   GetPromptResult,
@@ -11,16 +11,19 @@ import type {
   ReadResourceResult,
   ServerCapabilities,
   Tool,
-} from '@modelcontextprotocol/sdk/types.js';
-import type { UpstreamConfig } from './config.js';
-import { createLogger } from './log.js';
+} from "@modelcontextprotocol/sdk/types.js";
+import type { UpstreamConfig } from "./config.js";
+import { createLogger } from "./log.js";
 
-const log = createLogger('upstream');
+const log = createLogger("upstream");
 
 export class UpstreamError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
-    this.name = 'UpstreamError';
+    this.name = "UpstreamError";
   }
 }
 
@@ -55,16 +58,19 @@ export class Upstream {
   async connect(): Promise<void> {
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(process.env)) {
-      if (typeof v === 'string') env[k] = v;
+      if (typeof v === "string") env[k] = v;
     }
     Object.assign(env, this.config.env);
 
-    if (this.config.transport === 'http') {
+    if (this.config.transport === "http") {
       if (this.config.url === undefined)
         throw new UpstreamError(`Upstream "${this.name}" has no url`);
       const http = new StreamableHTTPClientTransport(new URL(this.config.url));
       http.onerror = (err: Error) => {
-        log.error('transport error', { upstream: this.name, message: err.message });
+        log.error("transport error", {
+          upstream: this.name,
+          message: err.message,
+        });
       };
       this.transport = http;
     } else {
@@ -73,16 +79,19 @@ export class Upstream {
         args: this.config.args,
         env,
         cwd: this.config.cwd,
-        stderr: 'inherit',
+        stderr: "inherit",
       });
       stdio.onerror = (err) => {
-        log.error('transport error', { upstream: this.name, message: err.message });
+        log.error("transport error", {
+          upstream: this.name,
+          message: err.message,
+        });
       };
       this.transport = stdio;
     }
 
     this.client = new Client(
-      { name: `mcp-vault:${this.name}`, version: '0.1.0' },
+      { name: `mcp-vault:${this.name}`, version: "0.1.0" },
       { capabilities: {} },
     );
 
@@ -96,7 +105,7 @@ export class Upstream {
     }
 
     this.capabilities = this.client.getServerCapabilities() ?? {};
-    log.info('connected', {
+    log.info("connected", {
       upstream: this.name,
       capabilities: Object.keys(this.capabilities),
       version: this.client.getServerVersion()?.version,
@@ -108,7 +117,9 @@ export class Upstream {
     const all: Tool[] = [];
     let cursor: string | undefined;
     do {
-      const page = await this.client!.listTools(cursor ? { cursor } : undefined);
+      const page = await this.client!.listTools(
+        cursor ? { cursor } : undefined,
+      );
       all.push(...page.tools);
       cursor = page.nextCursor;
     } while (cursor);
@@ -126,7 +137,10 @@ export class Upstream {
     this.toolCache = null;
   }
 
-  async callTool(name: string, args: Record<string, unknown> | undefined): Promise<CallToolResult> {
+  async callTool(
+    name: string,
+    args: Record<string, unknown> | undefined,
+  ): Promise<CallToolResult> {
     return (await this.client!.callTool(
       { name, arguments: args ?? {} },
       undefined,
@@ -135,24 +149,36 @@ export class Upstream {
   }
 
   async listResources(cursor?: string): Promise<ListResourcesResult> {
-    return (await this.client!.listResources(cursor ? { cursor } : undefined)) as ListResourcesResult;
+    return (await this.client!.listResources(
+      cursor ? { cursor } : undefined,
+    )) as ListResourcesResult;
   }
 
-  async listResourceTemplates(cursor?: string): Promise<ListResourceTemplatesResult> {
+  async listResourceTemplates(
+    cursor?: string,
+  ): Promise<ListResourceTemplatesResult> {
     return (await this.client!.listResourceTemplates(
       cursor ? { cursor } : undefined,
     )) as ListResourceTemplatesResult;
   }
 
   async readResource(uri: string): Promise<ReadResourceResult> {
-    return (await this.client!.readResource({ uri }, { timeout: this.config.requestTimeoutMs })) as ReadResourceResult;
+    return (await this.client!.readResource(
+      { uri },
+      { timeout: this.config.requestTimeoutMs },
+    )) as ReadResourceResult;
   }
 
   async listPrompts(cursor?: string): Promise<ListPromptsResult> {
-    return (await this.client!.listPrompts(cursor ? { cursor } : undefined)) as ListPromptsResult;
+    return (await this.client!.listPrompts(
+      cursor ? { cursor } : undefined,
+    )) as ListPromptsResult;
   }
 
-  async getPrompt(name: string, args?: Record<string, string>): Promise<GetPromptResult> {
+  async getPrompt(
+    name: string,
+    args?: Record<string, string>,
+  ): Promise<GetPromptResult> {
     return (await this.client!.getPrompt(
       { name, arguments: args },
       { timeout: this.config.requestTimeoutMs },
@@ -165,12 +191,18 @@ export class Upstream {
     try {
       await this.client?.close();
     } catch (err) {
-      log.warn('client close failed', { upstream: this.name, message: (err as Error).message });
+      log.warn("client close failed", {
+        upstream: this.name,
+        message: (err as Error).message,
+      });
     }
     try {
       await this.transport?.close();
     } catch (err) {
-      log.warn('transport close failed', { upstream: this.name, message: (err as Error).message });
+      log.warn("transport close failed", {
+        upstream: this.name,
+        message: (err as Error).message,
+      });
     }
     this.client = null;
     this.transport = null;

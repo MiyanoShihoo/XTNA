@@ -19,15 +19,15 @@ confidence labels.
 
 ## Sections
 
-| Section | Source |
-|---|---|
-| Targets | `artifacts[]` — format, architecture, SHA-256 |
-| Records | `records[]` — operation, provider, authority, confidence, limitation count, evidence id |
-| Limitations | every `record.limitations[]`, de-duplicated |
-| Unknowns | `unknowns[]` — domain, severity, status, question |
-| Providers | `providers[]` — id and version |
-| Symbol overlay | optional overlay file, with `observed` / `inferred` / `guessed` intact |
-| Reproduction | the commands that produce the same bundle |
+| Section        | Source                                                                                  |
+| -------------- | --------------------------------------------------------------------------------------- |
+| Targets        | `artifacts[]` — format, architecture, SHA-256                                           |
+| Records        | `records[]` — operation, provider, authority, confidence, limitation count, evidence id |
+| Limitations    | every `record.limitations[]`, de-duplicated                                             |
+| Unknowns       | `unknowns[]` — domain, severity, status, question                                       |
+| Providers      | `providers[]` — id and version                                                          |
+| Symbol overlay | optional overlay file, with `observed` / `inferred` / `guessed` intact                  |
+| Reproduction   | the commands that produce the same bundle                                               |
 
 ## What it deliberately does not do
 

@@ -61,6 +61,6 @@ which is the point: a contradiction should be visible, not buried in prose.
 
 ## Environment
 
-| Variable | Default | Used by |
-|---|---|---|
+| Variable              | Default              | Used by          |
+| --------------------- | -------------------- | ---------------- |
 | `XTNA_HYPOTHESIS_DIR` | `~/.xtna/hypotheses` | hypothesis board |

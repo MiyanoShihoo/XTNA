@@ -18,24 +18,24 @@ No third-party code, no network, no native modules.
 
 `analyze-javascript-application electron-app.asar --detail summary --evidence_output …`
 
-| Field | Value |
-|---|---|
-| format | asar |
-| relevant files | 5 |
-| parsed JavaScript files | 3 |
-| parse failures | 0 |
-| visited AST nodes | 178 |
-| findings | 17 |
-| browser windows | 1 |
-| preload entrypoints | 1 |
-| contextBridge APIs | 1 |
-| exposed API members | **2** (`readConfig`, `sendTelemetry`) |
-| IPC operations | 4 |
-| literal channels | **2** (`config:read`, `telemetry:send`) |
-| renderer transmissions | 2 |
-| main handlers | 2 |
-| paired renderer transmissions | **2** |
-| unpaired literal transmissions | 0 |
+| Field                          | Value                                   |
+| ------------------------------ | --------------------------------------- |
+| format                         | asar                                    |
+| relevant files                 | 5                                       |
+| parsed JavaScript files        | 3                                       |
+| parse failures                 | 0                                       |
+| visited AST nodes              | 178                                     |
+| findings                       | 17                                      |
+| browser windows                | 1                                       |
+| preload entrypoints            | 1                                       |
+| contextBridge APIs             | 1                                       |
+| exposed API members            | **2** (`readConfig`, `sendTelemetry`)   |
+| IPC operations                 | 4                                       |
+| literal channels               | **2** (`config:read`, `telemetry:send`) |
+| renderer transmissions         | 2                                       |
+| main handlers                  | 2                                       |
+| paired renderer transmissions  | **2**                                   |
+| unpaired literal transmissions | 0                                       |
 
 The counts match the fixture exactly: two channels, each with one renderer side and one main
 side, paired.

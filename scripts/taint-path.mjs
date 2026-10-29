@@ -46,7 +46,8 @@ if (!Number.isInteger(maxPaths) || maxPaths < 1 || maxPaths > 1000) {
 
 const sanitizers = [];
 for (let index = 0; index < args.length; index += 1)
-  if (args[index] === "--sanitizer" && args[index + 1] !== undefined) sanitizers.push(args[index + 1]);
+  if (args[index] === "--sanitizer" && args[index + 1] !== undefined)
+    sanitizers.push(args[index + 1]);
 
 const rawGraph = await readFile(resolve(graphPath), "utf8");
 const graph = JSON.parse(rawGraph.replace(/^\uFEFF/u, ""));
@@ -58,12 +59,20 @@ for (const edge of graph.edges ?? []) {
   adjacency.set(edge.from, list);
 }
 for (const list of adjacency.values())
-  list.sort((a, b) => String(a.to).localeCompare(String(b.to)) || String(a.label ?? "").localeCompare(String(b.label ?? "")));
+  list.sort(
+    (a, b) =>
+      String(a.to).localeCompare(String(b.to)) ||
+      String(a.label ?? "").localeCompare(String(b.label ?? "")),
+  );
 
 const matches = (node, selector) =>
   node.id === selector || node.kind === selector || node.label === selector;
 
-const select = (selector) => [...nodes.values()].filter((node) => matches(node, selector)).map((node) => node.id).sort();
+const select = (selector) =>
+  [...nodes.values()]
+    .filter((node) => matches(node, selector))
+    .map((node) => node.id)
+    .sort();
 const sourceIds = select(flag("source", "source"));
 const sinkIds = new Set(select(flag("sink", "sink")));
 const sanitizerIds = new Set(sanitizers.flatMap(select));
@@ -72,11 +81,18 @@ if (sourceIds.length === 0 || sinkIds.size === 0) {
   const report = {
     graph: graphPath,
     status: "no-match",
-    reason: sourceIds.length === 0 ? "source selector matched no node" : "sink selector matched no node",
+    reason:
+      sourceIds.length === 0
+        ? "source selector matched no node"
+        : "sink selector matched no node",
     sources: sourceIds,
     sinks: [...sinkIds],
   };
-  process.stdout.write(flags.has("--json") ? `${JSON.stringify(report, null, 2)}\n` : `${report.reason}\n`);
+  process.stdout.write(
+    flags.has("--json")
+      ? `${JSON.stringify(report, null, 2)}\n`
+      : `${report.reason}\n`,
+  );
   process.exit(0);
 }
 
@@ -100,7 +116,12 @@ const walk = (nodeId, path, edges, depth) => {
     if (!nodes.has(next)) continue;
     if (sanitizerIds.has(next)) continue;
     if (path.includes(next)) continue;
-    walk(next, [...path, next], [...edges, { from: edge.from, to: edge.to, label: edge.label ?? null }], depth + 1);
+    walk(
+      next,
+      [...path, next],
+      [...edges, { from: edge.from, to: edge.to, label: edge.label ?? null }],
+      depth + 1,
+    );
   }
 };
 
@@ -144,8 +165,12 @@ if (flags.has("--json")) {
   console.log(`status   ${report.status}`);
   console.log(`sources  ${report.sources.join(", ")}`);
   console.log(`sinks    ${report.sinks.join(", ")}`);
-  console.log(`paths    ${String(report.path_count)} (explored ${String(explored)} nodes, max ${String(maxHops)} hops)`);
+  console.log(
+    `paths    ${String(report.path_count)} (explored ${String(explored)} nodes, max ${String(maxHops)} hops)`,
+  );
   for (const path of report.paths)
-    console.log(`  #${String(path.path_id)} ${String(path.hops)} hops: ${path.labels.join(" -> ")}`);
+    console.log(
+      `  #${String(path.path_id)} ${String(path.hops)} hops: ${path.labels.join(" -> ")}`,
+    );
   for (const limitation of report.limitations) console.log(`  ! ${limitation}`);
 }

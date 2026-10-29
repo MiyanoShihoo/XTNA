@@ -10,7 +10,15 @@
  * It does not snapshot a running process or a container; only files you pass.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 
@@ -25,15 +33,19 @@ const valueOf = (name) => {
 const valuesOf = (name) => {
   const out = [];
   for (let index = 0; index < args.length; index += 1)
-    if (args[index] === `--${name}` && args[index + 1] !== undefined) out.push(args[index + 1]);
+    if (args[index] === `--${name}` && args[index + 1] !== undefined)
+      out.push(args[index + 1]);
   return out;
 };
 const has = (name) => args.includes(`--${name}`);
 
-const root = resolve(process.env.XTNA_CHECKPOINT_DIR ?? join(homedir(), ".xtna", "checkpoints"));
+const root = resolve(
+  process.env.XTNA_CHECKPOINT_DIR ?? join(homedir(), ".xtna", "checkpoints"),
+);
 
 const sha256 = (buffer) => createHash("sha256").update(buffer).digest("hex");
-const id = () => `cp_${Date.now().toString(36)}_${randomBytes(3).toString("hex")}`;
+const id = () =>
+  `cp_${Date.now().toString(36)}_${randomBytes(3).toString("hex")}`;
 const checkpointDir = (checkpointId) => join(root, checkpointId);
 
 const fail = (message) => {
@@ -42,10 +54,14 @@ const fail = (message) => {
 };
 
 const readManifest = async (checkpointId) => {
-  const raw = await readFile(join(checkpointDir(checkpointId), "manifest.json"), "utf8").catch(() => null);
+  const raw = await readFile(
+    join(checkpointDir(checkpointId), "manifest.json"),
+    "utf8",
+  ).catch(() => null);
   if (raw === null) fail(`checkpoint not found: ${checkpointId}`);
   const manifest = JSON.parse(raw);
-  if (manifest.schema !== SCHEMA) fail(`unsupported checkpoint schema in ${checkpointId}`);
+  if (manifest.schema !== SCHEMA)
+    fail(`unsupported checkpoint schema in ${checkpointId}`);
   return manifest;
 };
 
@@ -68,7 +84,12 @@ const create = async () => {
     const bytes = await readFile(absolute);
     const stored = `${String(files.length)}-${basename(absolute)}`;
     await writeFile(join(target, stored), bytes);
-    files.push({ source: absolute, stored, sha256: sha256(bytes), bytes: bytes.length });
+    files.push({
+      source: absolute,
+      stored,
+      sha256: sha256(bytes),
+      bytes: bytes.length,
+    });
   }
 
   for (const dir of overlayDirs) {
@@ -78,7 +99,12 @@ const create = async () => {
       const bytes = await readFile(join(absolute, entry));
       const stored = `${String(overlays.length)}-${entry}`;
       await writeFile(join(target, stored), bytes);
-      overlays.push({ source: join(absolute, entry), stored, sha256: sha256(bytes), bytes: bytes.length });
+      overlays.push({
+        source: join(absolute, entry),
+        stored,
+        sha256: sha256(bytes),
+        bytes: bytes.length,
+      });
     }
   }
 
@@ -90,7 +116,11 @@ const create = async () => {
     files,
     overlays,
   };
-  await writeFile(join(target, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await writeFile(
+    join(target, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8",
+  );
   process.stdout.write(
     `created ${checkpointId} (${String(files.length)} evidence, ${String(overlays.length)} overlay files)\n`,
   );
@@ -100,7 +130,10 @@ const list = async () => {
   const entries = await readdir(root).catch(() => []);
   const rows = [];
   for (const entry of entries) {
-    const manifest = await readFile(join(root, entry, "manifest.json"), "utf8").catch(() => null);
+    const manifest = await readFile(
+      join(root, entry, "manifest.json"),
+      "utf8",
+    ).catch(() => null);
     if (manifest === null) continue;
     const parsed = JSON.parse(manifest);
     rows.push({
@@ -111,7 +144,9 @@ const list = async () => {
       overlays: parsed.overlays.length,
     });
   }
-  rows.sort((left, right) => String(left.created_at).localeCompare(String(right.created_at)));
+  rows.sort((left, right) =>
+    String(left.created_at).localeCompare(String(right.created_at)),
+  );
   if (has("json")) {
     process.stdout.write(`${JSON.stringify(rows, null, 2)}\n`);
     return;
@@ -128,7 +163,9 @@ const list = async () => {
 
 const verify = async (manifest, collection) => {
   for (const entry of manifest[collection]) {
-    const bytes = await readFile(join(checkpointDir(manifest.id), entry.stored));
+    const bytes = await readFile(
+      join(checkpointDir(manifest.id), entry.stored),
+    );
     if (sha256(bytes) !== entry.sha256)
       fail(`hash mismatch for ${entry.source} in ${manifest.id}`);
   }
@@ -145,7 +182,10 @@ const restore = async () => {
 
   await mkdir(destDir, { recursive: true });
   for (const entry of manifest.files)
-    await copyFile(join(checkpointDir(checkpointId), entry.stored), join(destDir, basename(entry.source)));
+    await copyFile(
+      join(checkpointDir(checkpointId), entry.stored),
+      join(destDir, basename(entry.source)),
+    );
 
   if (overlayDest !== undefined) {
     await mkdir(resolve(overlayDest), { recursive: true });
@@ -158,13 +198,17 @@ const restore = async () => {
 
   process.stdout.write(
     `restored ${String(manifest.files.length)} evidence files to ${destDir}` +
-      (overlayDest === undefined ? "\n" : `, ${String(manifest.overlays.length)} overlays to ${String(overlayDest)}\n`),
+      (overlayDest === undefined
+        ? "\n"
+        : `, ${String(manifest.overlays.length)} overlays to ${String(overlayDest)}\n`),
   );
 };
 
 const show = async () => {
   const checkpointId = valueOf("id") ?? fail("--id is required");
-  process.stdout.write(`${JSON.stringify(await readManifest(checkpointId), null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(await readManifest(checkpointId), null, 2)}\n`,
+  );
 };
 
 const remove = async () => {

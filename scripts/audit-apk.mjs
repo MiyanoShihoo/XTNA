@@ -19,7 +19,10 @@ const MARKERS = {
   "Firebase Analytics": ["Lcom/google/firebase/analytics/"],
   "Firebase Crashlytics": ["Lcom/google/firebase/crashlytics/"],
   "Facebook Audience Network": ["Lcom/facebook/ads/"],
-  "Facebook Login / Graph": ["Lcom/facebook/login/", "Lcom/facebook/GraphRequest"],
+  "Facebook Login / Graph": [
+    "Lcom/facebook/login/",
+    "Lcom/facebook/GraphRequest",
+  ],
   "Unity Ads": ["Lcom/unity3d/ads/"],
   AppLovin: ["Lcom/applovin/"],
   ironSource: ["Lcom/ironsource/"],
@@ -69,7 +72,9 @@ const sha256 = createHash("sha256").update(bytes).digest("hex");
 
 const zip = new ZipReader(new Uint8ArrayReader(bytes));
 const entries = await zip.getEntries();
-const dexEntries = entries.filter((entry) => /^classes\d*\.dex$/u.test(entry.filename));
+const dexEntries = entries.filter((entry) =>
+  /^classes\d*\.dex$/u.test(entry.filename),
+);
 const dex = [];
 for (const entry of dexEntries) {
   const data = Buffer.from(await entry.getData(new Uint8ArrayWriter()));
@@ -108,10 +113,11 @@ if (aapt2 !== undefined && aapt2 !== "") {
   });
   if (result.status === 0) {
     const text = result.stdout;
-    const field = (name) => text.match(new RegExp(`^${name}: ?(.*)$`, "mu"))?.[1] ?? null;
-    const permissions = [...text.matchAll(/^uses-permission: name='([^']+)'/gmu)].map(
-      (match) => match[1],
-    );
+    const field = (name) =>
+      text.match(new RegExp(`^${name}: ?(.*)$`, "mu"))?.[1] ?? null;
+    const permissions = [
+      ...text.matchAll(/^uses-permission: name='([^']+)'/gmu),
+    ].map((match) => match[1]);
     manifest = {
       package: field("package"),
       min_sdk: text.match(/^minSdkVersion:'(\d+)'/mu)?.[1] ?? null,
@@ -119,7 +125,9 @@ if (aapt2 !== undefined && aapt2 !== "") {
       permissions,
     };
   } else {
-    manifest = { unavailable: result.error?.message ?? "aapt2 exited non-zero" };
+    manifest = {
+      unavailable: result.error?.message ?? "aapt2 exited non-zero",
+    };
   }
 }
 
@@ -148,17 +156,25 @@ if (flags.has("--json")) {
   console.log(`SHA-256  ${sha256}`);
   console.log(`Size     ${mib(bytes.length)}`);
   if (manifest?.package) {
-    console.log(`Package  ${manifest.package}  min ${manifest.min_sdk}  target ${manifest.target_sdk}`);
+    console.log(
+      `Package  ${manifest.package}  min ${manifest.min_sdk}  target ${manifest.target_sdk}`,
+    );
     console.log(`Perms    ${String(manifest.permissions.length)} declared`);
   } else {
-    console.log(`Manifest unavailable (${manifest?.unavailable ?? "REA_AAPT2_COMMAND not set"})`);
+    console.log(
+      `Manifest unavailable (${manifest?.unavailable ?? "REA_AAPT2_COMMAND not set"})`,
+    );
   }
-  console.log(`DEX      ${String(dex.length)} file(s), ${mib(dex.reduce((sum, d) => sum + d.bytes, 0))}`);
+  console.log(
+    `DEX      ${String(dex.length)} file(s), ${mib(dex.reduce((sum, d) => sum + d.bytes, 0))}`,
+  );
   console.log("");
   if (sdks.length === 0) console.log("No known SDK markers found.");
   const width = Math.max(...sdks.map((sdk) => sdk.name.length), 4);
   for (const sdk of sdks)
-    console.log(`${sdk.name.padEnd(width)}  ${String(sdk.references).padStart(6)} refs  ${sdk.dex.join(",")}`);
+    console.log(
+      `${sdk.name.padEnd(width)}  ${String(sdk.references).padStart(6)} refs  ${sdk.dex.join(",")}`,
+    );
 }
 
 const markdownIndex = args.indexOf("--markdown");
@@ -170,14 +186,19 @@ if (markdownIndex >= 0) {
     "",
     `- SHA-256: \`${sha256}\``,
     `- Size: ${(bytes.length / 1048576).toFixed(1)} MiB`,
-    manifest?.package ? `- Package: \`${manifest.package}\`` : "- Package: unavailable",
+    manifest?.package
+      ? `- Package: \`${manifest.package}\``
+      : "- Package: unavailable",
     `- DEX files: ${String(dex.length)}`,
     "",
     "## Ad and tracking SDKs",
     "",
     "| SDK | References | DEX |",
     "| --- | ---: | --- |",
-    ...sdks.map((sdk) => `| ${sdk.name} | ${String(sdk.references)} | ${sdk.dex.join(", ")} |`),
+    ...sdks.map(
+      (sdk) =>
+        `| ${sdk.name} | ${String(sdk.references)} | ${sdk.dex.join(", ")} |`,
+    ),
     "",
     "> Presence only. Compiled-in markers do not prove runtime activation.",
     "",

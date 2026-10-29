@@ -21,7 +21,9 @@ const check = (name, fn) => {
 };
 
 const { traverseApplicationFeature } = await import(
-  pathToFileURL(join(root, "dist/domain/javascript/javascriptFeatureTraversal.js")).href
+  pathToFileURL(
+    join(root, "dist/domain/javascript/javascriptFeatureTraversal.js"),
+  ).href
 );
 
 const graphOf = (nodeIds, pairs) => ({
@@ -93,7 +95,9 @@ check("both directions honour the ceiling", () => {
 });
 
 const overlayModule = await import(
-  pathToFileURL(join(root, "dist/application/overlays/SymbolOverlayRendering.js")).href
+  pathToFileURL(
+    join(root, "dist/application/overlays/SymbolOverlayRendering.js"),
+  ).href
 );
 
 check("overlay rendering replaces address-derived identifiers", () => {
@@ -115,7 +119,9 @@ check("overlay rendering leaves unknown placeholders untouched", () => {
   assert.equal(rendered.text, "sub_500000();");
   assert.equal(rendered.replacements.length, 0);
 });
-const { PRODUCT_IDENTITY } = await import(pathToFileURL(join(root, "dist/identity.js")).href);
+const { PRODUCT_IDENTITY } = await import(
+  pathToFileURL(join(root, "dist/identity.js")).href
+);
 check("product identity is XTNA", () => {
   assert.equal(PRODUCT_IDENTITY.displayName, "XTNA");
   assert.equal(PRODUCT_IDENTITY.cliBinary, "xtna");
@@ -175,7 +181,10 @@ check("MCP initialize reports the XTNA server identity", () => {
     .find((l) => l.includes('"serverInfo"'));
   const parsed = JSON.parse(line);
   assert.equal(parsed.result.serverInfo.name, "xtna");
-  assert.equal(parsed.result.serverInfo.version, PRODUCT_IDENTITY.packageVersion);
+  assert.equal(
+    parsed.result.serverInfo.version,
+    PRODUCT_IDENTITY.packageVersion,
+  );
 });
 
 let failed = 0;
@@ -186,5 +195,7 @@ for (const { name, ok, skipped, error } of results) {
     console.log(String(error?.stack ?? error));
   }
 }
-console.log(`\n${String(results.length - failed)}/${String(results.length)} checks passed`);
+console.log(
+  `\n${String(results.length - failed)}/${String(results.length)} checks passed`,
+);
 process.exitCode = failed === 0 ? 0 : 1;

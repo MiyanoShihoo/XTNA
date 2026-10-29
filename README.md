@@ -11,7 +11,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](package.json)
-[![Release](https://img.shields.io/badge/release-1.0.0-brightgreen?style=flat-square)]()
+[![Release](https://img.shields.io/badge/release-1.0.0-brightgreen?style=flat-square)](<>)
 [![MCP](https://img.shields.io/badge/MCP-stdio-5c4ee5?style=flat-square)](https://modelcontextprotocol.io)
 [![MCP tool catalog](https://img.shields.io/badge/MCP-tool_catalog-5c4ee5?style=flat-square)](docs/mcp-contracts.md#generated-catalog)
 
@@ -85,17 +85,17 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 
 ### Toolbox
 
-| Command | What it does |
-|---|---|
-| `npm run audit:apk -- <apk>` | DEX inventory + ad/analytics/tracking SDK fingerprints |
-| `npm run overlay -- …` | Symbol overlay store, Ghidra/IDA export, text rendering |
-| `npm run dossier -- …` | Evidence bundle → reviewable Markdown |
-| `npm run checkpoint -- …` | Hash-verified snapshots of evidence and overlays |
-| `npm run graph:export` / `npm run taint` | Application graph → taint path search |
-| `npm run crypto:radar -- <file>` | Algorithm constant signatures with offsets |
-| `npm run schema:synth -- …` | JSON samples → TypeScript / Pydantic / OpenAPI |
-| `npm run hypothesis -- …` | Claims with confidence, status and contradictions |
-| `npm run panel -- …` | Single-file offline investigation panel |
+| Command                                  | What it does                                            |
+| ---------------------------------------- | ------------------------------------------------------- |
+| `npm run audit:apk -- <apk>`             | DEX inventory + ad/analytics/tracking SDK fingerprints  |
+| `npm run overlay -- …`                   | Symbol overlay store, Ghidra/IDA export, text rendering |
+| `npm run dossier -- …`                   | Evidence bundle → reviewable Markdown                   |
+| `npm run checkpoint -- …`                | Hash-verified snapshots of evidence and overlays        |
+| `npm run graph:export` / `npm run taint` | Application graph → taint path search                   |
+| `npm run crypto:radar -- <file>`         | Algorithm constant signatures with offsets              |
+| `npm run schema:synth -- …`              | JSON samples → TypeScript / Pydantic / OpenAPI          |
+| `npm run hypothesis -- …`                | Claims with confidence, status and contradictions       |
+| `npm run panel -- …`                     | Single-file offline investigation panel                 |
 
 ### Gateway
 
@@ -113,16 +113,16 @@ npm run vault:test:e2e    # 6 process-level checks
 
 ### Verification
 
-| Check | Result |
-|---|---|
-| `npm run typecheck` / `npm run compile` | pass |
-| `npm run verify:xtna` | 8/8 |
-| `npm run vault:test` | 12/12 |
-| `npm run vault:test:e2e` | 6/6 |
-| Ghidra: analyze / search / decompile / instructions / procedure info / call graph | verified on a 5.3 MB PE |
-| JavaScript analysis | Vite build + self-authored Electron asar, 2 IPC channels paired |
-| APK audit | 38 MB signed APK |
-| PE probes | 5.3 MB 32-bit executable |
+| Check                                                                             | Result                                                          |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `npm run typecheck` / `npm run compile`                                           | pass                                                            |
+| `npm run verify:xtna`                                                             | 8/8                                                             |
+| `npm run vault:test`                                                              | 12/12                                                           |
+| `npm run vault:test:e2e`                                                          | 6/6                                                             |
+| Ghidra: analyze / search / decompile / instructions / procedure info / call graph | verified on a 5.3 MB PE                                         |
+| JavaScript analysis                                                               | Vite build + self-authored Electron asar, 2 IPC channels paired |
+| APK audit                                                                         | 38 MB signed APK                                                |
+| PE probes                                                                         | 5.3 MB 32-bit executable                                        |
 
 `npm run check:pr` is not runnable on the authoring host: turbo cannot resolve a global
 configuration path without writing outside the allowed scope. See [RELEASE.md](RELEASE.md) and
@@ -209,17 +209,17 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 
 ### 工具箱
 
-| 命令 | 作用 |
-|---|---|
-| `npm run audit:apk -- <apk>` | DEX 盘点 + 广告/统计/追踪 SDK 指纹 |
-| `npm run overlay -- …` | 符号覆盖层存储、Ghidra/IDA 导出、文本渲染 |
-| `npm run dossier -- …` | 证据包 → 可评审 Markdown |
-| `npm run checkpoint -- …` | 证据与覆盖层的哈希校验快照 |
-| `npm run graph:export` / `npm run taint` | 应用图 → 污点路径查询 |
-| `npm run crypto:radar -- <file>` | 算法常量特征与偏移 |
-| `npm run schema:synth -- …` | JSON 样本 → TypeScript / Pydantic / OpenAPI |
-| `npm run hypothesis -- …` | 假设、置信度、状态与反证 |
-| `npm run panel -- …` | 单文件离线调查面板 |
+| 命令                                     | 作用                                        |
+| ---------------------------------------- | ------------------------------------------- |
+| `npm run audit:apk -- <apk>`             | DEX 盘点 + 广告/统计/追踪 SDK 指纹          |
+| `npm run overlay -- …`                   | 符号覆盖层存储、Ghidra/IDA 导出、文本渲染   |
+| `npm run dossier -- …`                   | 证据包 → 可评审 Markdown                    |
+| `npm run checkpoint -- …`                | 证据与覆盖层的哈希校验快照                  |
+| `npm run graph:export` / `npm run taint` | 应用图 → 污点路径查询                       |
+| `npm run crypto:radar -- <file>`         | 算法常量特征与偏移                          |
+| `npm run schema:synth -- …`              | JSON 样本 → TypeScript / Pydantic / OpenAPI |
+| `npm run hypothesis -- …`                | 假设、置信度、状态与反证                    |
+| `npm run panel -- …`                     | 单文件离线调查面板                          |
 
 ### 网关
 
@@ -236,16 +236,16 @@ npm run vault:test:e2e    # 6 项进程级检查
 
 ### 验证
 
-| 检查 | 结果 |
-|---|---|
-| `npm run typecheck` / `npm run compile` | 通过 |
-| `npm run verify:xtna` | 8/8 |
-| `npm run vault:test` | 12/12 |
-| `npm run vault:test:e2e` | 6/6 |
-| Ghidra：analyze / search / decompile / instructions / procedure info / call graph | 已在 5.3MB PE 上验证 |
-| JavaScript 分析 | Vite 构建 + 自造 Electron asar，2 条 IPC 通道配对 |
-| APK 审计 | 38MB 签名包 |
-| PE 探针 | 5.3MB 32 位可执行文件 |
+| 检查                                                                              | 结果                                              |
+| --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `npm run typecheck` / `npm run compile`                                           | 通过                                              |
+| `npm run verify:xtna`                                                             | 8/8                                               |
+| `npm run vault:test`                                                              | 12/12                                             |
+| `npm run vault:test:e2e`                                                          | 6/6                                               |
+| Ghidra：analyze / search / decompile / instructions / procedure info / call graph | 已在 5.3MB PE 上验证                              |
+| JavaScript 分析                                                                   | Vite 构建 + 自造 Electron asar，2 条 IPC 通道配对 |
+| APK 审计                                                                          | 38MB 签名包                                       |
+| PE 探针                                                                           | 5.3MB 32 位可执行文件                             |
 
 `npm run check:pr` 在作者机器上无法运行：turbo 需要在允许范围之外写全局配置才能解析路径。
 完整"未验证"清单见 [RELEASE.md](RELEASE.md) 与 [XTNA_CHANGELOG.md](XTNA_CHANGELOG.md)。

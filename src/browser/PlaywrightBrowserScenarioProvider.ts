@@ -390,7 +390,9 @@ const runScenario = async (
       "protocol_error",
       {
         detail: `The collected capture did not match the capture contract: ${parsedCapture.error.issues
-          .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+          .map(
+            (issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`,
+          )
           .join("; ")}`,
         cause: parsedCapture.error,
       },

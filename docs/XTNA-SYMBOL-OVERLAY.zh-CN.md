@@ -33,16 +33,16 @@ npm run overlay -- overlays
 
 ## 字段
 
-| 字段 | 含义 |
-|---|---|
-| `address_hex` / `address` | 精确虚拟地址,十六进制与十进制各一份 |
-| `name` | 建议符号名 |
-| `kind` | `function` / `data` / `struct` / `field` / `label` / `import` |
-| `type` | 可选的类 C 类型或签名 |
-| `comment` | 可选的整段注释 |
-| `confidence` | `observed` / `inferred` / `guessed`,从不合并 |
-| `evidence_ids` | 支撑该推断的证据记录 |
-| `created_at` | 首次创建时间 |
+| 字段                      | 含义                                                          |
+| ------------------------- | ------------------------------------------------------------- |
+| `address_hex` / `address` | 精确虚拟地址,十六进制与十进制各一份                           |
+| `name`                    | 建议符号名                                                    |
+| `kind`                    | `function` / `data` / `struct` / `field` / `label` / `import` |
+| `type`                    | 可选的类 C 类型或签名                                         |
+| `comment`                 | 可选的整段注释                                                |
+| `confidence`              | `observed` / `inferred` / `guessed`,从不合并                  |
+| `evidence_ids`            | 支撑该推断的证据记录                                          |
+| `created_at`              | 首次创建时间                                                  |
 
 条目 ID 为 `(二进制摘要, 地址, 名称)` 的 `sym_<hash>`,重复添加是更新而不是新增。
 
@@ -69,6 +69,6 @@ npm run overlay -- overlays
 
 ## 环境变量
 
-| 变量 | 默认 | 作用 |
-|---|---|---|
+| 变量               | 默认               | 作用                       |
+| ------------------ | ------------------ | -------------------------- |
 | `XTNA_OVERLAY_DIR` | `~/.xtna/overlays` | 每个二进制的覆盖层文件位置 |

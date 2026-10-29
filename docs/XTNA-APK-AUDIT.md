@@ -37,13 +37,13 @@ Google UMP (consent)       45 refs  classes.dex,classes2.dex,classes3.dex,classe
 
 ## What is reported
 
-| Field | Meaning |
-|---|---|
-| `artifact` | path, byte size and SHA-256 of the exact APK bytes scanned |
-| `dex` | every `classes*.dex` entry with its size |
-| `manifest` | package, min/target SDK and declared permissions, when aapt2 is configured |
-| `sdks` | matched marker families with reference counts and the DEX files they appear in |
-| `coverage` | states that the scan is presence-only and runtime activation is unknown |
+| Field      | Meaning                                                                        |
+| ---------- | ------------------------------------------------------------------------------ |
+| `artifact` | path, byte size and SHA-256 of the exact APK bytes scanned                     |
+| `dex`      | every `classes*.dex` entry with its size                                       |
+| `manifest` | package, min/target SDK and declared permissions, when aapt2 is configured     |
+| `sdks`     | matched marker families with reference counts and the DEX files they appear in |
+| `coverage` | states that the scan is presence-only and runtime activation is unknown        |
 
 ## Marker families
 
@@ -65,14 +65,14 @@ Edit `MARKERS` in `scripts/audit-apk.mjs` to extend it.
 
 ## Environment
 
-| Variable | Effect |
-|---|---|
+| Variable            | Effect                                                                   |
+| ------------------- | ------------------------------------------------------------------------ |
 | `REA_AAPT2_COMMAND` | absolute path to `aapt2.exe`; enables manifest, SDK and permission facts |
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| 0 | audit completed (including "no SDK markers found") |
-| 2 | wrong arguments |
-| non-zero | unreadable APK or I/O failure |
+| Code     | Meaning                                            |
+| -------- | -------------------------------------------------- |
+| 0        | audit completed (including "no SDK markers found") |
+| 2        | wrong arguments                                    |
+| non-zero | unreadable APK or I/O failure                      |

@@ -1,5 +1,5 @@
-import type { RedactionConfig } from './config.js';
-import type { Vault } from './vault.js';
+import type { RedactionConfig } from "./config.js";
+import type { Vault } from "./vault.js";
 
 /**
  * Detector contract. When `group` is set only that capture group is replaced,
@@ -15,57 +15,77 @@ interface Detector {
 /** Built-in detectors, ordered so specific formats win over generic ones. */
 const DETECTORS: Detector[] = [
   {
-    name: 'pem-private-key',
+    name: "pem-private-key",
     regex:
       /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----[\s\S]{32,}?-----END (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----/g,
   },
-  { name: 'aws-access-key-id', regex: /\b(?:AKIA|ASIA|ABIA|ACCA|AGPA|AIDA|AROA|APKA)[0-9A-Z]{16}\b/g },
   {
-    name: 'aws-secret-access-key',
-    regex: /(?:aws_secret_access_key|AWS_SECRET_ACCESS_KEY)["'\s]*[:=]["'\s]*([A-Za-z0-9/+=]{40})/g,
+    name: "aws-access-key-id",
+    regex: /\b(?:AKIA|ASIA|ABIA|ACCA|AGPA|AIDA|AROA|APKA)[0-9A-Z]{16}\b/g,
+  },
+  {
+    name: "aws-secret-access-key",
+    regex:
+      /(?:aws_secret_access_key|AWS_SECRET_ACCESS_KEY)["'\s]*[:=]["'\s]*([A-Za-z0-9/+=]{40})/g,
     group: 1,
   },
-  { name: 'github-fine-grained', regex: /\bgithub_pat_[A-Za-z0-9_]{40,}\b/g },
-  { name: 'github-token', regex: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{32,255}\b/g },
-  { name: 'gitlab-pat', regex: /\bglpat-[A-Za-z0-9_-]{20,}\b/g },
-  { name: 'slack-token', regex: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/g },
-  { name: 'stripe-key', regex: /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b/g },
-  { name: 'anthropic-key', regex: /\bsk-ant-[A-Za-z0-9_-]{20,}\b/g },
-  { name: 'openai-key', regex: /\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b/g },
-  { name: 'google-api-key', regex: /\bAIza[0-9A-Za-z_-]{35}\b/g },
-  { name: 'npm-token', regex: /\bnpm_[A-Za-z0-9]{36}\b/g },
-  { name: 'pypi-token', regex: /\bpypi-[A-Za-z0-9_-]{50,}\b/g },
-  { name: 'sendgrid-key', regex: /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/g },
-  { name: 'twilio-key', regex: /\bSK[0-9a-fA-F]{32}\b/g },
-  { name: 'shopify-token', regex: /\bshp(?:at|ca|pa|ss)_[0-9a-fA-F]{32}\b/g },
-  { name: 'telegram-bot-token', regex: /\b\d{8,10}:AA[A-Za-z0-9_-]{33}\b/g },
-  { name: 'azure-storage-key', regex: /AccountKey=([A-Za-z0-9+/=]{80,})/g, group: 1 },
+  { name: "github-fine-grained", regex: /\bgithub_pat_[A-Za-z0-9_]{40,}\b/g },
   {
-    name: 'jwt',
+    name: "github-token",
+    regex: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{32,255}\b/g,
+  },
+  { name: "gitlab-pat", regex: /\bglpat-[A-Za-z0-9_-]{20,}\b/g },
+  { name: "slack-token", regex: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/g },
+  {
+    name: "stripe-key",
+    regex: /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b/g,
+  },
+  { name: "anthropic-key", regex: /\bsk-ant-[A-Za-z0-9_-]{20,}\b/g },
+  {
+    name: "openai-key",
+    regex: /\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b/g,
+  },
+  { name: "google-api-key", regex: /\bAIza[0-9A-Za-z_-]{35}\b/g },
+  { name: "npm-token", regex: /\bnpm_[A-Za-z0-9]{36}\b/g },
+  { name: "pypi-token", regex: /\bpypi-[A-Za-z0-9_-]{50,}\b/g },
+  {
+    name: "sendgrid-key",
+    regex: /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/g,
+  },
+  { name: "twilio-key", regex: /\bSK[0-9a-fA-F]{32}\b/g },
+  { name: "shopify-token", regex: /\bshp(?:at|ca|pa|ss)_[0-9a-fA-F]{32}\b/g },
+  { name: "telegram-bot-token", regex: /\b\d{8,10}:AA[A-Za-z0-9_-]{33}\b/g },
+  {
+    name: "azure-storage-key",
+    regex: /AccountKey=([A-Za-z0-9+/=]{80,})/g,
+    group: 1,
+  },
+  {
+    name: "jwt",
     regex: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
   },
   {
-    name: 'url-credentials',
+    name: "url-credentials",
     regex: /\b[a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:([^/\s@]{4,})@/gi,
     group: 1,
   },
   {
-    name: 'connection-string-password',
+    name: "connection-string-password",
     regex: /\b(?:Password|Pwd)=([^;"'\s]{6,})/gi,
     group: 1,
   },
   {
-    name: 'bearer-token',
+    name: "bearer-token",
     regex: /\bBearer\s+([A-Za-z0-9\-._~+/]{16,}=*)/g,
     group: 1,
   },
   {
-    name: 'basic-auth-header',
+    name: "basic-auth-header",
     regex: /\bAuthorization\s*:\s*Basic\s+([A-Za-z0-9+/]{16,}=*)/gi,
     group: 1,
   },
   {
-    name: 'key-value-secret',
+    name: "key-value-secret",
     regex:
       /(?:\bapi[_-]?key|\bsecret[_-]?key|\bclient[_-]?secret|\baccess[_-]?token|\brefresh[_-]?token|\bauth[_-]?token|\bprivate[_-]?key|\bpassword|\bpasswd)\b["'\s]*[:=]\s*["']?([A-Za-z0-9\-._~+/=]{12,})["']?/gi,
     group: 1,
@@ -91,7 +111,7 @@ interface Range {
 
 export class Redactor {
   private readonly detectors: Detector[];
-  private readonly entropy: NonNullable<RedactionConfig['entropy']>;
+  private readonly entropy: NonNullable<RedactionConfig["entropy"]>;
 
   constructor(private readonly config: RedactionConfig) {
     const disabled = new Set(config.disabled);
@@ -100,9 +120,11 @@ export class Redactor {
     for (const source of config.extraPatterns) {
       let regex: RegExp;
       try {
-        regex = new RegExp(source, 'g');
+        regex = new RegExp(source, "g");
       } catch (err) {
-        throw new Error(`Invalid extraPatterns regex "${source}": ${(err as Error).message}`);
+        throw new Error(
+          `Invalid extraPatterns regex "${source}": ${(err as Error).message}`,
+        );
       }
       this.detectors.push({ name: `custom:${source}`, regex });
     }
@@ -111,7 +133,10 @@ export class Redactor {
   }
 
   /** Redact one string, interning every candidate into the vault. */
-  redactText(text: string, vault: Vault): { text: string; hits: RedactionHit[] } {
+  redactText(
+    text: string,
+    vault: Vault,
+  ): { text: string; hits: RedactionHit[] } {
     if (!this.config.enabled) return { text, hits: [] };
     if (text.length < this.config.minLength) return { text, hits: [] };
 
@@ -119,14 +144,18 @@ export class Redactor {
     if (ranges.length === 0) return { text, hits: [] };
 
     const hits: RedactionHit[] = [];
-    let out = '';
+    let out = "";
     let cursor = 0;
 
     for (const range of ranges) {
       if (range.start < cursor) continue;
       const secret = text.slice(range.start, range.end);
       const placeholder = vault.intern(secret);
-      hits.push({ detector: range.detector, length: secret.length, placeholder });
+      hits.push({
+        detector: range.detector,
+        length: secret.length,
+        placeholder,
+      });
       out += text.slice(cursor, range.start) + placeholder;
       cursor = range.end;
     }
@@ -135,14 +164,18 @@ export class Redactor {
   }
 
   /** Structural redaction over a JSON-compatible tree. Object keys are preserved. */
-  redactDeep<T>(value: T, vault: Vault, hits: RedactionHit[] = []): RedactResult<T> {
+  redactDeep<T>(
+    value: T,
+    vault: Vault,
+    hits: RedactionHit[] = [],
+  ): RedactResult<T> {
     if (!this.config.enabled) return { value, hits };
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       const r = this.redactText(value, vault);
       hits.push(...r.hits);
       return { value: r.text as unknown as T, hits };
     }
-    if (value === null || typeof value !== 'object') return { value, hits };
+    if (value === null || typeof value !== "object") return { value, hits };
     if (Array.isArray(value)) {
       const arr = value.map((v) => this.redactDeep(v, vault, hits).value);
       return { value: arr as unknown as T, hits };
@@ -204,7 +237,11 @@ export class Redactor {
       if (token.length < this.entropy.minLength) continue;
       if (looksBenign(token, this.entropy.skipPureHexLengths)) continue;
       if (shannonEntropy(token) < this.entropy.threshold) continue;
-      out.push({ start: match.index, end: match.index + token.length, detector: 'entropy' });
+      out.push({
+        start: match.index,
+        end: match.index + token.length,
+        detector: "entropy",
+      });
     }
     return out;
   }
@@ -231,7 +268,8 @@ function mergeRanges(ranges: Range[]): Range[] {
  * Pure hex of common digest lengths, words, and path-shaped strings are out.
  */
 function looksBenign(token: string, pureHexLengths: number[]): boolean {
-  if (/^[0-9a-f]+$/.test(token) && pureHexLengths.includes(token.length)) return true;
+  if (/^[0-9a-f]+$/.test(token) && pureHexLengths.includes(token.length))
+    return true;
   if (/^[A-Za-z]+$/.test(token)) return true;
   if (/^\d+$/.test(token)) return true;
 
@@ -240,7 +278,9 @@ function looksBenign(token: string, pureHexLengths: number[]): boolean {
   const hasDigit = /[0-9]/.test(token);
   const hasSymbol = /[+/=_-]/.test(token);
 
-  const classes = [hasLower, hasUpper, hasDigit, hasSymbol].filter(Boolean).length;
+  const classes = [hasLower, hasUpper, hasDigit, hasSymbol].filter(
+    Boolean,
+  ).length;
   if (classes < 3) return true;
 
   return false;

@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes } from "node:crypto";
 
 /**
  * Session-scoped placeholder vault.
@@ -19,14 +19,14 @@ export class Vault {
   private counter = 0;
 
   constructor(
-    private readonly marker: string = 'vault',
+    private readonly marker: string = "vault",
     nonce?: string,
   ) {
     // A caller-supplied nonce keeps placeholder identity reproducible in tests;
     // production always randomises it per process.
-    this.nonce = nonce ?? randomBytes(3).toString('hex');
-    const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    this.pattern = new RegExp(`<${escaped}:(\\d+):${this.nonce}>`, 'g');
+    this.nonce = nonce ?? randomBytes(3).toString("hex");
+    const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    this.pattern = new RegExp(`<${escaped}:(\\d+):${this.nonce}>`, "g");
   }
 
   get size(): number {
@@ -62,14 +62,18 @@ export class Vault {
   /** Replace every known placeholder in a string with its real value. */
   expand(text: string): string {
     this.pattern.lastIndex = 0;
-    return text.replace(this.pattern, (match) => this.byPlaceholder.get(match) ?? match);
+    return text.replace(
+      this.pattern,
+      (match) => this.byPlaceholder.get(match) ?? match,
+    );
   }
 
   /** Structural expansion over a JSON-compatible value. Returns a new tree. */
   expandDeep<T>(value: T): T {
-    if (typeof value === 'string') return this.expand(value) as unknown as T;
-    if (value === null || typeof value !== 'object') return value;
-    if (Array.isArray(value)) return value.map((v) => this.expandDeep(v)) as unknown as T;
+    if (typeof value === "string") return this.expand(value) as unknown as T;
+    if (value === null || typeof value !== "object") return value;
+    if (Array.isArray(value))
+      return value.map((v) => this.expandDeep(v)) as unknown as T;
     const proto = Object.getPrototypeOf(value);
     if (proto !== Object.prototype && proto !== null) return value;
     const out: Record<string, unknown> = {};

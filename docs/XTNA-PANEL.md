@@ -18,14 +18,14 @@ npm run panel -- \
   --out panel.html
 ```
 
-| Flag | Meaning |
-|---|---|
-| `--evidence` | Evidence bundle (required) |
-| `--overlay` | binary path or SHA-256; adds the symbol table |
-| `--hypotheses` | hypothesis store file; adds the claims view |
-| `--checkpoints` | checkpoint directory; adds the snapshot list |
-| `--out` | output HTML path (default `panel.html`) |
-| `--title` | page title |
+| Flag            | Meaning                                       |
+| --------------- | --------------------------------------------- |
+| `--evidence`    | Evidence bundle (required)                    |
+| `--overlay`     | binary path or SHA-256; adds the symbol table |
+| `--hypotheses`  | hypothesis store file; adds the claims view   |
+| `--checkpoints` | checkpoint directory; adds the snapshot list  |
+| `--out`         | output HTML path (default `panel.html`)       |
+| `--title`       | page title                                    |
 
 ## What the page shows
 

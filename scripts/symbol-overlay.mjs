@@ -13,7 +13,14 @@ import { join, resolve } from "node:path";
 
 const SCHEMA = "xtna.symbol-overlay/1";
 const CONFIDENCE = new Set(["observed", "inferred", "guessed"]);
-const KINDS = new Set(["function", "data", "struct", "field", "label", "import"]);
+const KINDS = new Set([
+  "function",
+  "data",
+  "struct",
+  "field",
+  "label",
+  "import",
+]);
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -89,7 +96,11 @@ const save = async (overlay) => {
         : a.address_hex.localeCompare(b.address_hex),
     ),
   };
-  await writeFile(overlayPath(overlay.binary_sha256), `${JSON.stringify(sorted, null, 2)}\n`, "utf8");
+  await writeFile(
+    overlayPath(overlay.binary_sha256),
+    `${JSON.stringify(sorted, null, 2)}\n`,
+    "utf8",
+  );
   return sorted;
 };
 
@@ -103,16 +114,27 @@ const add = async () => {
   const kind = flags.kind ?? "function";
   if (!KINDS.has(kind)) fail(`invalid --kind: ${String(kind)}`);
   const confidence = flags.confidence ?? "inferred";
-  if (!CONFIDENCE.has(confidence)) fail(`invalid --confidence: ${String(confidence)}`);
-  const type = flags.type === undefined || flags.type === true ? null : String(flags.type);
-  const comment = flags.comment === undefined || flags.comment === true ? null : String(flags.comment);
+  if (!CONFIDENCE.has(confidence))
+    fail(`invalid --confidence: ${String(confidence)}`);
+  const type =
+    flags.type === undefined || flags.type === true ? null : String(flags.type);
+  const comment =
+    flags.comment === undefined || flags.comment === true
+      ? null
+      : String(flags.comment);
   const evidence = flags.evidence === undefined ? [] : [String(flags.evidence)];
 
   const overlay = await load(digest);
   const id = entryId(digest, address.hex, name);
   const existing = overlay.entries.find((entry) => entry.id === id);
   if (existing !== undefined) {
-    Object.assign(existing, { kind, type, comment, confidence, evidence_ids: evidence });
+    Object.assign(existing, {
+      kind,
+      type,
+      comment,
+      confidence,
+      evidence_ids: evidence,
+    });
   } else {
     overlay.entries.push({
       id,
@@ -128,7 +150,9 @@ const add = async () => {
     });
   }
   const saved = await save(overlay);
-  process.stdout.write(`${existing ? "updated" : "added"} ${name} @ ${address.hex} (${String(saved.entries.length)} total)\n`);
+  process.stdout.write(
+    `${existing ? "updated" : "added"} ${name} @ ${address.hex} (${String(saved.entries.length)} total)\n`,
+  );
 };
 
 const list = async () => {
@@ -155,7 +179,9 @@ const removeEntry = async () => {
   const before = overlay.entries.length;
   overlay.entries = overlay.entries.filter((entry) => entry.id !== flags.id);
   const saved = await save(overlay);
-  process.stdout.write(`removed ${String(before - saved.entries.length)} entry\n`);
+  process.stdout.write(
+    `removed ${String(before - saved.entries.length)} entry\n`,
+  );
 };
 
 const ghidraExport = (overlay) => {
@@ -171,7 +197,9 @@ const ghidraExport = (overlay) => {
   if (overlay.entries.length === 0) lines.push("    pass");
   for (const entry of overlay.entries) {
     const address = Number.parseInt(entry.address, 10).toString(16);
-    lines.push(`    # ${entry.confidence}${entry.type ? ` :: ${entry.type}` : ""}`);
+    lines.push(
+      `    # ${entry.confidence}${entry.type ? ` :: ${entry.type}` : ""}`,
+    );
     lines.push(`    addr = toAddr(0x${address})`);
     lines.push(
       entry.kind === "function"
@@ -179,7 +207,9 @@ const ghidraExport = (overlay) => {
         : `    symbolTable.createLabel(addr, ${JSON.stringify(entry.name)}, SourceType.USER_DEFINED)`,
     );
     if (entry.comment !== null)
-      lines.push(`    listing.setComment(addr, 0, ${JSON.stringify(entry.comment)})`);
+      lines.push(
+        `    listing.setComment(addr, 0, ${JSON.stringify(entry.comment)})`,
+      );
   }
   lines.push("", "xtna_apply()", "");
   return lines.join("\n");
@@ -208,11 +238,17 @@ const exportCommand = async () => {
   const format = flags.format ?? "ghidra";
   const overlay = await load(digest);
   const text =
-    format === "ghidra" ? ghidraExport(overlay) : format === "ida" ? idaExport(overlay) : null;
+    format === "ghidra"
+      ? ghidraExport(overlay)
+      : format === "ida"
+        ? idaExport(overlay)
+        : null;
   if (text === null) fail("--format must be ghidra or ida");
   if (typeof flags.out === "string") {
     await writeFile(resolve(flags.out), text, "utf8");
-    process.stdout.write(`wrote ${String(overlay.entries.length)} symbols to ${String(flags.out)}\n`);
+    process.stdout.write(
+      `wrote ${String(overlay.entries.length)} symbols to ${String(flags.out)}\n`,
+    );
     return;
   }
   process.stdout.write(text);
@@ -223,9 +259,13 @@ const show = async () => {
   const rows = [];
   for (const file of files.filter((name) => name.endsWith(".json"))) {
     const overlay = JSON.parse(await readFile(join(overlayDir, file), "utf8"));
-    rows.push(`${overlay.binary_sha256.slice(0, 12)}…  ${String(overlay.entries.length).padStart(4)} symbols`);
+    rows.push(
+      `${overlay.binary_sha256.slice(0, 12)}…  ${String(overlay.entries.length).padStart(4)} symbols`,
+    );
   }
-  process.stdout.write(rows.length === 0 ? "no overlays\n" : `${rows.join("\n")}\n`);
+  process.stdout.write(
+    rows.length === 0 ? "no overlays\n" : `${rows.join("\n")}\n`,
+  );
 };
 
 const usage = `usage: node scripts/symbol-overlay.mjs <command> [options]

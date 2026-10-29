@@ -338,7 +338,8 @@ const resolveArtifactRootAbsoluteSpecifier = (
   if (/^file:/iu.test(input.declaredPath)) return null;
 
   const logical = posix.normalize(input.declaredPath.slice(1));
-  if (logical === "" || logical === "." || logical.startsWith("../")) return null;
+  if (logical === "" || logical === "." || logical.startsWith("../"))
+    return null;
 
   const exact = input.files.get(logical);
   if (exact === undefined) return null;

@@ -30,12 +30,12 @@ npm run checkpoint -- delete --id cp_mvsd17ym_a7edb3
 
 ## What a checkpoint contains
 
-| Part | Detail |
-|---|---|
-| `manifest.json` | schema, id, name, timestamp, and one entry per stored file |
-| evidence copies | exact bytes, named `<n>-<original basename>` |
-| overlay copies | exact bytes for every `*.json` in the given overlay directory |
-| hashes | SHA-256 per file, verified on restore |
+| Part            | Detail                                                        |
+| --------------- | ------------------------------------------------------------- |
+| `manifest.json` | schema, id, name, timestamp, and one entry per stored file    |
+| evidence copies | exact bytes, named `<n>-<original basename>`                  |
+| overlay copies  | exact bytes for every `*.json` in the given overlay directory |
+| hashes          | SHA-256 per file, verified on restore                         |
 
 ## Behaviour worth knowing
 
@@ -49,8 +49,8 @@ npm run checkpoint -- delete --id cp_mvsd17ym_a7edb3
 
 ## Environment
 
-| Variable | Default | Effect |
-|---|---|---|
+| Variable              | Default               | Effect                            |
+| --------------------- | --------------------- | --------------------------------- |
 | `XTNA_CHECKPOINT_DIR` | `~/.xtna/checkpoints` | where checkpoint directories live |
 
 ## Limits

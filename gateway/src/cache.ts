@@ -1,10 +1,10 @@
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
-import type { CacheConfig } from './config.js';
-import { createLogger } from './log.js';
+import { DatabaseSync } from "node:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import type { CacheConfig } from "./config.js";
+import { createLogger } from "./log.js";
 
-const log = createLogger('cache');
+const log = createLogger("cache");
 
 export interface CacheEntry {
   payload: string;
@@ -36,8 +36,8 @@ export class ResponseCache {
   constructor(private readonly config: CacheConfig) {
     mkdirSync(dirname(config.path), { recursive: true });
     this.db = new DatabaseSync(config.path);
-    this.db.exec('PRAGMA journal_mode = WAL;');
-    this.db.exec('PRAGMA synchronous = NORMAL;');
+    this.db.exec("PRAGMA journal_mode = WAL;");
+    this.db.exec("PRAGMA synchronous = NORMAL;");
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS cache (
         key        TEXT PRIMARY KEY,
@@ -59,8 +59,17 @@ export class ResponseCache {
     if (!this.config.enabled) return undefined;
 
     const row = this.db
-      .prepare('SELECT payload, created_at, hits, expires_at FROM cache WHERE key = ?')
-      .get(key) as { payload: string; created_at: number; hits: number; expires_at: number } | undefined;
+      .prepare(
+        "SELECT payload, created_at, hits, expires_at FROM cache WHERE key = ?",
+      )
+      .get(key) as
+      | {
+          payload: string;
+          created_at: number;
+          hits: number;
+          expires_at: number;
+        }
+      | undefined;
 
     if (!row) {
       this.misses += 1;
@@ -68,21 +77,34 @@ export class ResponseCache {
     }
 
     if (row.expires_at <= Date.now()) {
-      this.db.prepare('DELETE FROM cache WHERE key = ?').run(key);
+      this.db.prepare("DELETE FROM cache WHERE key = ?").run(key);
       this.misses += 1;
       return undefined;
     }
 
-    this.db.prepare('UPDATE cache SET hits = hits + 1 WHERE key = ?').run(key);
+    this.db.prepare("UPDATE cache SET hits = hits + 1 WHERE key = ?").run(key);
     this.hits += 1;
-    return { payload: row.payload, createdAt: row.created_at, hits: row.hits + 1 };
+    return {
+      payload: row.payload,
+      createdAt: row.created_at,
+      hits: row.hits + 1,
+    };
   }
 
-  put(key: string, upstream: string, method: string, payload: string, ttlMs: number): void {
+  put(
+    key: string,
+    upstream: string,
+    method: string,
+    payload: string,
+    ttlMs: number,
+  ): void {
     if (!this.config.enabled) return;
-    const bytes = Buffer.byteLength(payload, 'utf8');
+    const bytes = Buffer.byteLength(payload, "utf8");
     if (bytes > this.config.maxEntryBytes) {
-      log.debug('entry exceeds maxEntryBytes, skipping', { bytes, limit: this.config.maxEntryBytes });
+      log.debug("entry exceeds maxEntryBytes, skipping", {
+        bytes,
+        limit: this.config.maxEntryBytes,
+      });
       return;
     }
 
@@ -107,21 +129,25 @@ export class ResponseCache {
   clear(upstream?: string): number {
     const before = this.count();
     if (upstream) {
-      this.db.prepare('DELETE FROM cache WHERE upstream = ?').run(upstream);
+      this.db.prepare("DELETE FROM cache WHERE upstream = ?").run(upstream);
     } else {
-      this.db.exec('DELETE FROM cache');
+      this.db.exec("DELETE FROM cache");
     }
     return before - this.count();
   }
 
   prune(): number {
-    const result = this.db.prepare('DELETE FROM cache WHERE expires_at <= ?').run(Date.now());
+    const result = this.db
+      .prepare("DELETE FROM cache WHERE expires_at <= ?")
+      .run(Date.now());
     return Number(result.changes ?? 0);
   }
 
   stats(): CacheStats {
     const row = this.db
-      .prepare('SELECT COUNT(*) AS entries, COALESCE(SUM(bytes), 0) AS bytes, COALESCE(SUM(hits), 0) AS hits FROM cache')
+      .prepare(
+        "SELECT COUNT(*) AS entries, COALESCE(SUM(bytes), 0) AS bytes, COALESCE(SUM(hits), 0) AS hits FROM cache",
+      )
       .get() as { entries: number; bytes: number; hits: number };
 
     return {
@@ -138,12 +164,14 @@ export class ResponseCache {
     try {
       this.db.close();
     } catch (err) {
-      log.warn('cache close failed', { message: (err as Error).message });
+      log.warn("cache close failed", { message: (err as Error).message });
     }
   }
 
   private count(): number {
-    const row = this.db.prepare('SELECT COUNT(*) AS n FROM cache').get() as { n: number };
+    const row = this.db.prepare("SELECT COUNT(*) AS n FROM cache").get() as {
+      n: number;
+    };
     return Number(row.n);
   }
 

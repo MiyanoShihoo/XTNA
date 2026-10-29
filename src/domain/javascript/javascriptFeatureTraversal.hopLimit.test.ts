@@ -7,7 +7,10 @@ import { traverseApplicationFeature } from "./javascriptFeatureTraversal.js";
  * The traversal only reads node and edge identity, so the fixture supplies the
  * fields the algorithm uses. Full graph validation is covered elsewhere.
  */
-const graphOf = (nodeIds: readonly string[], pairs: ReadonlyArray<readonly [string, string]>) =>
+const graphOf = (
+  nodeIds: readonly string[],
+  pairs: ReadonlyArray<readonly [string, string]>,
+) =>
   ({
     nodes: nodeIds.map((nodeId) => ({ node_id: nodeId })),
     edges: pairs.map(([source, target]) => ({
@@ -30,7 +33,12 @@ describe("traverseApplicationFeature hop ceiling", () => {
   it("returns the whole reachable component when no ceiling is set", () => {
     const traversal = traverseApplicationFeature(chain, ["a"], "outgoing");
 
-    expect(traversal.nodes.map(({ node_id }) => node_id)).toEqual(["a", "b", "c", "d"]);
+    expect(traversal.nodes.map(({ node_id }) => node_id)).toEqual([
+      "a",
+      "b",
+      "c",
+      "d",
+    ]);
     expect(traversal.truncated).toBe(false);
     expect(traversal.truncatedNodeIds).toEqual([]);
   });
@@ -38,7 +46,11 @@ describe("traverseApplicationFeature hop ceiling", () => {
   it("stops after max_hops edges and marks the boundary", () => {
     const traversal = traverseApplicationFeature(chain, ["a"], "outgoing", 2);
 
-    expect(traversal.nodes.map(({ node_id }) => node_id)).toEqual(["a", "b", "c"]);
+    expect(traversal.nodes.map(({ node_id }) => node_id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
     expect(traversal.truncated).toBe(true);
     expect(traversal.truncatedNodeIds).toEqual(["c"]);
   });

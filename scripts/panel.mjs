@@ -27,7 +27,9 @@ if (evidencePath === undefined) {
 
 const title = flag("title", "XTNA investigation panel");
 const outPath = resolve(flag("out", "panel.html"));
-const bundle = JSON.parse((await readFile(resolve(evidencePath), "utf8")).replace(/^\uFEFF/u, ""));
+const bundle = JSON.parse(
+  (await readFile(resolve(evidencePath), "utf8")).replace(/^\uFEFF/u, ""),
+);
 
 const artifacts = Array.isArray(bundle.artifacts) ? bundle.artifacts : [];
 const records = Array.isArray(bundle.records) ? bundle.records : [];
@@ -37,16 +39,25 @@ const providers = Array.isArray(bundle.providers) ? bundle.providers : [];
 const limitations = [];
 for (const record of records)
   for (const limitation of record.limitations ?? [])
-    limitations.push({ operation: record.operation ?? "record", text: limitation });
+    limitations.push({
+      operation: record.operation ?? "record",
+      text: limitation,
+    });
 
 let overlay = null;
 const overlayBinary = flag("overlay");
 if (overlayBinary !== undefined) {
   const digest = /^[0-9a-f]{64}$/u.test(overlayBinary)
     ? overlayBinary
-    : createHash("sha256").update(await readFile(resolve(overlayBinary))).digest("hex");
-  const dir = resolve(process.env.XTNA_OVERLAY_DIR ?? join(homedir(), ".xtna", "overlays"));
-  const raw = await readFile(join(dir, `${digest}.json`), "utf8").catch(() => null);
+    : createHash("sha256")
+        .update(await readFile(resolve(overlayBinary)))
+        .digest("hex");
+  const dir = resolve(
+    process.env.XTNA_OVERLAY_DIR ?? join(homedir(), ".xtna", "overlays"),
+  );
+  const raw = await readFile(join(dir, `${digest}.json`), "utf8").catch(
+    () => null,
+  );
   if (raw !== null) overlay = JSON.parse(raw);
 }
 
@@ -65,7 +76,9 @@ if (checkpointDir !== undefined) {
   const entries = await readdir(dir).catch(() => []);
   checkpoints = [];
   for (const entry of entries) {
-    const raw = await readFile(join(dir, entry, "manifest.json"), "utf8").catch(() => null);
+    const raw = await readFile(join(dir, entry, "manifest.json"), "utf8").catch(
+      () => null,
+    );
     if (raw === null) continue;
     const manifest = JSON.parse(raw);
     checkpoints.push({
@@ -99,7 +112,13 @@ const data = {
 };
 
 const escapeHtml = (value) =>
-  String(value).replace(/[&<>"']/gu, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+  String(value).replace(
+    /[&<>"']/gu,
+    (char) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        char
+      ],
+  );
 
 const html = `<!doctype html>
 <html lang="en">
@@ -238,4 +257,6 @@ function renderCheckpoints(root) {
 `;
 
 await writeFile(outPath, html, "utf8");
-process.stderr.write(`panel written to ${outPath} (${String((html.length / 1024).toFixed(0))} KiB)\n`);
+process.stderr.write(
+  `panel written to ${outPath} (${String((html.length / 1024).toFixed(0))} KiB)\n`,
+);

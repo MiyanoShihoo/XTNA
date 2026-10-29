@@ -12,9 +12,9 @@ from an analysis that recorded its own coverage and provenance.
 ```json
 {
   "nodes": [
-    { "id": "n_src",   "kind": "source",     "label": "request.body" },
-    { "id": "n_check", "kind": "sanitizer",  "label": "validateSchema" },
-    { "id": "n_sink",  "kind": "sink",       "label": "db.execute" }
+    { "id": "n_src", "kind": "source", "label": "request.body" },
+    { "id": "n_check", "kind": "sanitizer", "label": "validateSchema" },
+    { "id": "n_sink", "kind": "sink", "label": "db.execute" }
   ],
   "edges": [
     { "from": "n_src", "to": "n_check", "label": "flows" },
@@ -30,11 +30,11 @@ from an analysis that recorded its own coverage and provenance.
 
 ## Options
 
-| Option | Default | Meaning |
-|---|---|---|
-| `--max-hops` | 5 | edges to follow before stopping (1–64) |
-| `--max-paths` | 20 | paths to collect before stopping (1–1000) |
-| `--json` | off | emit the full report |
+| Option        | Default | Meaning                                   |
+| ------------- | ------- | ----------------------------------------- |
+| `--max-hops`  | 5       | edges to follow before stopping (1–64)    |
+| `--max-paths` | 20      | paths to collect before stopping (1–1000) |
+| `--json`      | off     | emit the full report                      |
 
 ## Example
 
@@ -56,12 +56,12 @@ The path through `validateSchema` is absent because sanitizer nodes stop expansi
 
 ## Status values
 
-| Status | Meaning |
-|---|---|
-| `complete` | every simple path within both ceilings was enumerated |
-| `truncated` | the path ceiling stopped the search; more may exist |
-| `no-path` | no path exists within the hop ceiling |
-| `no-match` | a selector matched no node |
+| Status      | Meaning                                               |
+| ----------- | ----------------------------------------------------- |
+| `complete`  | every simple path within both ceilings was enumerated |
+| `truncated` | the path ceiling stopped the search; more may exist   |
+| `no-path`   | no path exists within the hop ceiling                 |
+| `no-match`  | a selector matched no node                            |
 
 ## Producing a graph from an XTNA application graph
 

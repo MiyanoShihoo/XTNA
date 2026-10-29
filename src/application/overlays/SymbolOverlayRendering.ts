@@ -16,7 +16,8 @@ export interface OverlayRenderResult {
 }
 
 /** Identifiers a decompiler derives from an address. */
-const PLACEHOLDER = /\b(?:sub|FUN|nullsub|loc|j|LAB|thunk_FUN)_([0-9a-fA-F]{6,16})\b/gu;
+const PLACEHOLDER =
+  /\b(?:sub|FUN|nullsub|loc|j|LAB|thunk_FUN)_([0-9a-fA-F]{6,16})\b/gu;
 
 const normaliseAddress = (hex: string): string => {
   const value = BigInt(`0x${hex}`);

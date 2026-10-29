@@ -40,7 +40,10 @@ const usage =
   "  node scripts/overlay-render.mjs --binary <path|sha256> --evidence <bundle.json> [--out rendered.md]\n" +
   "  node scripts/overlay-render.mjs --binary <path|sha256> --procedure <name|address> [--path <target>] [--provider <id>] [--out rendered.md]\n";
 
-if (binary === undefined || (evidencePath === undefined && procedure === undefined)) {
+if (
+  binary === undefined ||
+  (evidencePath === undefined && procedure === undefined)
+) {
   die(usage, 2);
 }
 if (evidencePath !== undefined && procedure !== undefined) {
@@ -52,19 +55,23 @@ const overlayDir = resolve(
 );
 const digest = /^[0-9a-f]{64}$/u.test(binary)
   ? binary
-  : createHash("sha256").update(await readFile(resolve(binary))).digest("hex");
+  : createHash("sha256")
+      .update(await readFile(resolve(binary)))
+      .digest("hex");
 
-const overlayRaw = await readFile(join(overlayDir, `${digest}.json`), "utf8").catch(
-  () => null,
-);
+const overlayRaw = await readFile(
+  join(overlayDir, `${digest}.json`),
+  "utf8",
+).catch(() => null);
 if (overlayRaw === null) {
   die(`no overlay for ${digest}; run "npm run overlay -- add ..." first`);
 }
 const overlay = JSON.parse(overlayRaw);
 
 const { applySymbolOverlay, hasAddressPlaceholder } = await import(
-  pathToFileURL(join(process.cwd(), "dist/application/overlays/SymbolOverlayRendering.js"))
-    .href
+  pathToFileURL(
+    join(process.cwd(), "dist/application/overlays/SymbolOverlayRendering.js"),
+  ).href
 );
 
 /**
@@ -90,10 +97,14 @@ const decompileJson = async () => {
   let status;
   try {
     status = await new Promise((resolveStatus, reject) => {
-      const child = spawn(process.execPath, [resolve("scripts/rea.mjs"), ...cliArgs], {
-        stdio: ["ignore", outHandle.fd, errHandle.fd],
-        env: process.env,
-      });
+      const child = spawn(
+        process.execPath,
+        [resolve("scripts/rea.mjs"), ...cliArgs],
+        {
+          stdio: ["ignore", outHandle.fd, errHandle.fd],
+          env: process.env,
+        },
+      );
       child.on("error", reject);
       child.on("close", (code) => resolveStatus(code ?? 1));
     });

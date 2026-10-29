@@ -13,7 +13,12 @@ export function setLogLevel(level: LogLevel): void {
   currentLevel = LEVELS[level] ?? LEVELS.warn;
 }
 
-function emit(level: keyof typeof LEVELS, scope: string, msg: string, extra?: unknown): void {
+function emit(
+  level: keyof typeof LEVELS,
+  scope: string,
+  msg: string,
+  extra?: unknown,
+): void {
   if (LEVELS[level] > currentLevel) return;
   const ts = new Date().toISOString();
   let line = `[${ts}] [${level}] [${scope}] ${msg}`;
@@ -21,17 +26,17 @@ function emit(level: keyof typeof LEVELS, scope: string, msg: string, extra?: un
     try {
       line += ` ${JSON.stringify(extra)}`;
     } catch {
-      line += ' [unserializable]';
+      line += " [unserializable]";
     }
   }
-  process.stderr.write(line + '\n');
+  process.stderr.write(line + "\n");
 }
 
 export function createLogger(scope: string) {
   return {
-    error: (msg: string, extra?: unknown) => emit('error', scope, msg, extra),
-    warn: (msg: string, extra?: unknown) => emit('warn', scope, msg, extra),
-    info: (msg: string, extra?: unknown) => emit('info', scope, msg, extra),
-    debug: (msg: string, extra?: unknown) => emit('debug', scope, msg, extra),
+    error: (msg: string, extra?: unknown) => emit("error", scope, msg, extra),
+    warn: (msg: string, extra?: unknown) => emit("warn", scope, msg, extra),
+    info: (msg: string, extra?: unknown) => emit("info", scope, msg, extra),
+    debug: (msg: string, extra?: unknown) => emit("debug", scope, msg, extra),
   };
 }

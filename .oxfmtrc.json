@@ -11,6 +11,14 @@
     "CHANGELOG.md",
     "package-lock.json",
     "_reference/**",
-    "third_party/**"
+    "third_party/**",
+    ".fixtures/**",
+    ".tmp-provider/**",
+    ".verify/**",
+    "rea-ghidra-*/**",
+    "gateway/test-fixture/**",
+    "coverage/**",
+    "test-results/**",
+    "*.asar"
   ]
 }

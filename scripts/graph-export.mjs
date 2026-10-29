@@ -33,14 +33,19 @@ if (outPath === undefined) {
 
 const splitKinds = (value) =>
   typeof value === "string" && value.length > 0
-    ? value.split(",").map((kind) => kind.trim()).filter(Boolean)
+    ? value
+        .split(",")
+        .map((kind) => kind.trim())
+        .filter(Boolean)
     : [];
 
 const sourceKinds = splitKinds(flag("map-source"));
 const sinkKinds = splitKinds(flag("map-sink"));
 const sanitizerKinds = splitKinds(flag("map-sanitizer"));
 
-const document = JSON.parse((await readFile(resolve(inputPath), "utf8")).replace(/^\uFEFF/u, ""));
+const document = JSON.parse(
+  (await readFile(resolve(inputPath), "utf8")).replace(/^\uFEFF/u, ""),
+);
 
 /** Find the first object that looks like an application graph. */
 const findGraph = (value, depth = 0) => {
@@ -90,7 +95,11 @@ for (const edge of graph.edges) {
   const from = String(edge.source_node_id ?? edge.from);
   const to = String(edge.target_node_id ?? edge.to);
   if (!known.has(from) || !known.has(to)) continue;
-  edges.push({ from, to, label: String(edge.relation ?? edge.label ?? "relation") });
+  edges.push({
+    from,
+    to,
+    label: String(edge.relation ?? edge.label ?? "relation"),
+  });
 }
 
 const exported = {
@@ -105,12 +114,18 @@ const exported = {
   edges,
 };
 
-await writeFile(resolve(outPath), `${JSON.stringify(exported, null, 2)}\n`, "utf8");
+await writeFile(
+  resolve(outPath),
+  `${JSON.stringify(exported, null, 2)}\n`,
+  "utf8",
+);
 const counts = nodes.reduce((acc, node) => {
   acc[node.kind] = (acc[node.kind] ?? 0) + 1;
   return acc;
 }, {});
 process.stderr.write(
   `exported ${String(nodes.length)} nodes / ${String(edges.length)} edges -> ${outPath} ` +
-    `(${Object.entries(counts).map(([kind, count]) => `${kind}=${String(count)}`).join(", ")})\n`,
+    `(${Object.entries(counts)
+      .map(([kind, count]) => `${kind}=${String(count)}`)
+      .join(", ")})\n`,
 );

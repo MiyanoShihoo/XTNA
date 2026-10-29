@@ -34,12 +34,12 @@ Google UMP (consent)       45 refs  classes.dex,classes2.dex,classes3.dex,classe
 
 ## 字段说明
 
-| 字段 | 含义 |
-|---|---|
-| `artifact` | 被扫描字节的路径、大小与 SHA-256 |
-| `dex` | 每个 `classes*.dex` 条目及其大小 |
-| `manifest` | 包名、min/target SDK、声明权限(需 aapt2) |
-| `sdks` | 命中的标记族、引用次数、出现在哪些 DEX |
+| 字段       | 含义                                      |
+| ---------- | ----------------------------------------- |
+| `artifact` | 被扫描字节的路径、大小与 SHA-256          |
+| `dex`      | 每个 `classes*.dex` 条目及其大小          |
+| `manifest` | 包名、min/target SDK、声明权限(需 aapt2)  |
+| `sdks`     | 命中的标记族、引用次数、出现在哪些 DEX    |
 | `coverage` | 明确说明这是存在性扫描,运行时启用状态未知 |
 
 ## 覆盖的 SDK 族
@@ -57,14 +57,14 @@ Google Ads/AdMob 与 UMP、Facebook Audience Network、Unity Ads、AppLovin、ir
 
 ## 环境变量
 
-| 变量 | 作用 |
-|---|---|
+| 变量                | 作用                                          |
+| ------------------- | --------------------------------------------- |
 | `REA_AAPT2_COMMAND` | `aapt2.exe` 绝对路径;启用手动、SDK 与权限事实 |
 
 ## 退出码
 
-| 码 | 含义 |
-|---|---|
-| 0 | 审计完成(包括"未发现 SDK 标记") |
-| 2 | 参数错误 |
-| 非 0 | APK 不可读或 I/O 失败 |
+| 码   | 含义                            |
+| ---- | ------------------------------- |
+| 0    | 审计完成(包括"未发现 SDK 标记") |
+| 2    | 参数错误                        |
+| 非 0 | APK 不可读或 I/O 失败           |

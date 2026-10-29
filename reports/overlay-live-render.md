@@ -8,10 +8,10 @@ SHA-256: `868f8e2bab0d6a7ef8afc4c5960c608eccef82bd086bd6e0c0e2670199a5ca45`
 Installed under `E:\xtna-verify` for this verification only; nothing in the distribution,
 the repository or the user configuration depends on those paths.
 
-| Tool | Version |
-|---|---|
+| Tool   | Version                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------ |
 | Ghidra | 12.2 PUBLIC (`ghidra_12.2_PUBLIC`, reports `12.2`, accepted by the provider version check) |
-| JDK | Temurin 25.0.5+8 (`jdk-25.0.5+8`, 64-bit full JDK) |
+| JDK    | Temurin 25.0.5+8 (`jdk-25.0.5+8`, 64-bit full JDK)                                         |
 
 ## Command
 
@@ -27,14 +27,14 @@ Overlay: `.verify/overlays/868f8e2b….json`, 3 entries.
 
 ## Result
 
-| Field | Value |
-|---|---|
-| exit status | 0 |
-| stderr | empty |
-| rendered strings | 1 |
-| identifier replacements | 1 |
-| replacement | `FUN_0040100b` → `scalar_deleting_destructor_candidate` |
-| section | `normalized_result` |
+| Field                   | Value                                                   |
+| ----------------------- | ------------------------------------------------------- |
+| exit status             | 0                                                       |
+| stderr                  | empty                                                   |
+| rendered strings        | 1                                                       |
+| identifier replacements | 1                                                       |
+| replacement             | `FUN_0040100b` → `scalar_deleting_destructor_candidate` |
+| section                 | `normalized_result`                                     |
 
 Rendered text came from a fresh `decompile 0x40100b` through the CLI entry point; the analysis
 document was not modified.

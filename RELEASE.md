@@ -4,35 +4,35 @@ Snapshot: 2026-10-29. Published on `main` at `MiyanoShihoo/XTNA`.
 
 ## Published
 
-| Item | Value |
-|---|---|
-| Version | 1.0.0 (`package.json`, `package-lock.json`, `gateway/package.json`, generated metadata, Windows native manifest) |
-| Head | the commit that contains this file (`git log -1`) |
-| Remote version | `1.0.0`, confirmed from `raw.githubusercontent.com` |
-| CI | success on `80259ae` and `7ec857b`; the head containing this file is checked after its push |
+| Item           | Value                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Version        | 1.0.0 (`package.json`, `package-lock.json`, `gateway/package.json`, generated metadata, Windows native manifest) |
+| Head           | the commit that contains this file (`git log -1`)                                                                |
+| Remote version | `1.0.0`, confirmed from `raw.githubusercontent.com`                                                              |
+| CI             | success on `80259ae` and `7ec857b`; the head containing this file is checked after its push                      |
 
 ## Green
 
-| Check | Command | Result |
-|---|---|---|
-| Types | `npm run typecheck` | 0 |
-| Lint | `npm run lint:details` | 0 errors, 2,966 pre-existing warnings |
-| Module boundaries | `npm run verify:module-boundaries` | 3,269 source files |
-| Package metadata | `npm run metadata:check` | pass |
-| Build | `npm run compile` | pass |
-| Distribution self-check | `npm run verify:xtna` | 8/8 |
-| Gateway protocol | `npm run vault:test` | 12/12 |
-| Gateway process-level | `npm run vault:test:e2e` | 6/6 |
-| APK audit | `npm run audit:apk -- <apk>` | verified on a 38 MB signed APK |
-| PE probes | `inspect-pe-*` | verified on a 5.3 MB 32-bit executable |
-| Ghidra | analyze / search / decompile / instructions / procedure_info / call_graph | verified, see `reports/ghidra-verification.md` |
-| JavaScript analysis | `analyze-javascript-application` | verified on a Vite build and a self-authored Electron asar |
-| Symbol overlay rendering | `npm run overlay:render` | file mode and live Ghidra decompile, 1 replacement each, source unchanged; `reports/overlay-live-render.md` |
+| Check                    | Command                                                                   | Result                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Types                    | `npm run typecheck`                                                       | 0                                                                                                           |
+| Lint                     | `npm run lint:details`                                                    | 0 errors, 2,966 pre-existing warnings                                                                       |
+| Module boundaries        | `npm run verify:module-boundaries`                                        | 3,269 source files                                                                                          |
+| Package metadata         | `npm run metadata:check`                                                  | pass                                                                                                        |
+| Build                    | `npm run compile`                                                         | pass                                                                                                        |
+| Distribution self-check  | `npm run verify:xtna`                                                     | 8/8                                                                                                         |
+| Gateway protocol         | `npm run vault:test`                                                      | 12/12                                                                                                       |
+| Gateway process-level    | `npm run vault:test:e2e`                                                  | 6/6                                                                                                         |
+| APK audit                | `npm run audit:apk -- <apk>`                                              | verified on a 38 MB signed APK                                                                              |
+| PE probes                | `inspect-pe-*`                                                            | verified on a 5.3 MB 32-bit executable                                                                      |
+| Ghidra                   | analyze / search / decompile / instructions / procedure_info / call_graph | verified, see `reports/ghidra-verification.md`                                                              |
+| JavaScript analysis      | `analyze-javascript-application`                                          | verified on a Vite build and a self-authored Electron asar                                                  |
+| Symbol overlay rendering | `npm run overlay:render`                                                  | file mode and live Ghidra decompile, 1 replacement each, source unchanged; `reports/overlay-live-render.md` |
 
 ## Environment notes
 
 - `turbo` 2.11.7 needs a resolvable global config. The empty, redirected `HOME` used by the
-  C:-free run produced *"Global config path not found"*; that is an artefact of the redirect,
+  C:-free run produced _"Global config path not found"_; that is an artefact of the redirect,
   not a source failure. With a normal `USERPROFILE` the task graph runs.
 - `scripts/ci/static-check-report.mjs` spawns its child with piped stdio. A process sandbox
   that forbids pipe creation fails it with `spawnSync … EPERM` before any linting starts.

@@ -50,16 +50,16 @@ overlay cannot silently attach to a different build of the same filename.
 
 ## Entry fields
 
-| Field | Meaning |
-|---|---|
-| `address_hex` / `address` | exact virtual address, hex and decimal |
-| `name` | proposed symbol |
-| `kind` | `function`, `data`, `struct`, `field`, `label`, `import` |
-| `type` | optional C-like type or signature text |
-| `comment` | optional plate comment |
-| `confidence` | `observed`, `inferred` or `guessed` — never collapsed |
-| `evidence_ids` | Evidence records that motivated the proposal |
-| `created_at` | when the entry first appeared |
+| Field                     | Meaning                                                  |
+| ------------------------- | -------------------------------------------------------- |
+| `address_hex` / `address` | exact virtual address, hex and decimal                   |
+| `name`                    | proposed symbol                                          |
+| `kind`                    | `function`, `data`, `struct`, `field`, `label`, `import` |
+| `type`                    | optional C-like type or signature text                   |
+| `comment`                 | optional plate comment                                   |
+| `confidence`              | `observed`, `inferred` or `guessed` — never collapsed    |
+| `evidence_ids`            | Evidence records that motivated the proposal             |
+| `created_at`              | when the entry first appeared                            |
 
 Entry identity is `sym_<hash>` over `(binary digest, address, name)`, so re-adding the same
 symbol updates it instead of duplicating.
@@ -100,6 +100,6 @@ needs a configured provider. File mode needs only the bundle.
 
 ## Environment
 
-| Variable | Default | Effect |
-|---|---|---|
+| Variable           | Default            | Effect                              |
+| ------------------ | ------------------ | ----------------------------------- |
 | `XTNA_OVERLAY_DIR` | `~/.xtna/overlays` | where per-binary overlay files live |
