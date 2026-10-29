@@ -89,6 +89,7 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 | ---------------------------------------- | ----------------------------------------------------------- |
 | `npm run audit:apk -- <apk>`             | DEX inventory + ad/analytics/tracking SDK fingerprints      |
 | `npm run ast:normalize -- <file>`        | Literal folding and literal-branch collapse for minified JS |
+| `npm run sdk:gen -- <har>`               | Recorded HTTP traffic to a typed TypeScript / Python client |
 | `npm run overlay -- …`                   | Symbol overlay store, Ghidra/IDA export, text rendering     |
 | `npm run dossier -- …`                   | Evidence bundle → reviewable Markdown                       |
 | `npm run checkpoint -- …`                | Hash-verified snapshots of evidence and overlays            |
@@ -210,18 +211,19 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 
 ### 工具箱
 
-| 命令                                     | 作用                                        |
-| ---------------------------------------- | ------------------------------------------- |
-| `npm run audit:apk -- <apk>`             | DEX 盘点 + 广告/统计/追踪 SDK 指纹          |
-| `npm run ast:normalize -- <file>`        | 压缩代码的字面量折叠与字面量分支消除        |
-| `npm run overlay -- …`                   | 符号覆盖层存储、Ghidra/IDA 导出、文本渲染   |
-| `npm run dossier -- …`                   | 证据包 → 可评审 Markdown                    |
-| `npm run checkpoint -- …`                | 证据与覆盖层的哈希校验快照                  |
-| `npm run graph:export` / `npm run taint` | 应用图 → 污点路径查询                       |
-| `npm run crypto:radar -- <file>`         | 算法常量特征与偏移                          |
-| `npm run schema:synth -- …`              | JSON 样本 → TypeScript / Pydantic / OpenAPI |
-| `npm run hypothesis -- …`                | 假设、置信度、状态与反证                    |
-| `npm run panel -- …`                     | 单文件离线调查面板                          |
+| 命令                                     | 作用                                            |
+| ---------------------------------------- | ----------------------------------------------- |
+| `npm run audit:apk -- <apk>`             | DEX 盘点 + 广告/统计/追踪 SDK 指纹              |
+| `npm run ast:normalize -- <file>`        | 压缩代码的字面量折叠与字面量分支消除            |
+| `npm run sdk:gen -- <har>`               | 录制流量生成带类型的 TypeScript / Python 客户端 |
+| `npm run overlay -- …`                   | 符号覆盖层存储、Ghidra/IDA 导出、文本渲染       |
+| `npm run dossier -- …`                   | 证据包 → 可评审 Markdown                        |
+| `npm run checkpoint -- …`                | 证据与覆盖层的哈希校验快照                      |
+| `npm run graph:export` / `npm run taint` | 应用图 → 污点路径查询                           |
+| `npm run crypto:radar -- <file>`         | 算法常量特征与偏移                              |
+| `npm run schema:synth -- …`              | JSON 样本 → TypeScript / Pydantic / OpenAPI     |
+| `npm run hypothesis -- …`                | 假设、置信度、状态与反证                        |
+| `npm run panel -- …`                     | 单文件离线调查面板                              |
 
 ### 网关
 

@@ -70,6 +70,10 @@ variables are unchanged.
   literals. Every rule requires literal operands, so calls, getters and identifiers are never
   evaluated; untouched ranges keep their original bytes. `--json` reports what changed.
   See `docs/XTNA-AST-NORMALIZATION.md`.
+- `npm run sdk:gen -- --in <capture> --out <dir>` projects a recorded HTTP capture into a typed
+  client for TypeScript (global `fetch`) and Python (standard library only). Requests sharing a
+  method and path template merge into one operation with path and query parameters, request
+  bodies and merged response shapes. See `docs/XTNA-CLIENT-SDK.md`.
 
 ### Added (gateway)
 
