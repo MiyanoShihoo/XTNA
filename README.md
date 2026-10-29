@@ -96,6 +96,8 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 | `npm run trace:causal -- <streams>`      | Merge UI / IPC / probe streams into one timeline            |
 | `npm run wasm:link -- <wasm> <js>`       | Static Wasm ↔ JavaScript bridge graph                       |
 | `npm run stability:smoke`                | End-to-end smoke over every analysis utility                |
+| `npm run diff:narrate -- <a> <b>`        | Two reports to an added/removed/changed narrative           |
+| `npm run api:spec -- <har>`              | Recorded traffic to an OpenAPI 3.1 draft                    |
 | `npm run overlay -- …`                   | Symbol overlay store, Ghidra/IDA export, text rendering     |
 | `npm run dossier -- …`                   | Evidence bundle → reviewable Markdown                       |
 | `npm run checkpoint -- …`                | Hash-verified snapshots of evidence and overlays            |
@@ -228,6 +230,8 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 | `npm run trace:causal -- <streams>`      | 把 UI / IPC / 探针事件流合并成时间轴            |
 | `npm run wasm:link -- <wasm> <js>`       | 静态 Wasm ↔ JavaScript 桥接图                   |
 | `npm run stability:smoke`                | 全部分析工具的端到端冒烟检查                    |
+| `npm run diff:narrate -- <a> <b>`        | 两份报告对比生成增删改叙事                      |
+| `npm run api:spec -- <har>`              | 录制流量生成 OpenAPI 3.1 草稿                   |
 | `npm run overlay -- …`                   | 符号覆盖层存储、Ghidra/IDA 导出、文本渲染       |
 | `npm run dossier -- …`                   | 证据包 → 可评审 Markdown                        |
 | `npm run checkpoint -- …`                | 证据与覆盖层的哈希校验快照                      |

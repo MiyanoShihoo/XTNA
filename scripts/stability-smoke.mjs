@@ -193,6 +193,22 @@ await writeFile(
   }),
   "utf8",
 );
+await writeFile(
+  join(work, "before.json"),
+  JSON.stringify([
+    { name: "a", size: 1 },
+    { name: "b", size: 2 },
+  ]),
+  "utf8",
+);
+await writeFile(
+  join(work, "after.json"),
+  JSON.stringify([
+    { name: "a", size: 2 },
+    { name: "c", size: 3 },
+  ]),
+  "utf8",
+);
 
 const checks = [
   [
@@ -279,6 +295,29 @@ const checks = [
       join(work, "evidence.json"),
     ],
     /identifier replacements: 1/u,
+  ],
+  [
+    "diff:narrate",
+    [
+      "scripts/diff-narrate.mjs",
+      "--before",
+      join(work, "before.json"),
+      "--after",
+      join(work, "after.json"),
+      "--json",
+    ],
+    /"added": *\[/u,
+  ],
+  [
+    "api:spec",
+    [
+      "scripts/api-spec.mjs",
+      "--in",
+      join(work, "capture.har"),
+      "--out",
+      join(work, "openapi.json"),
+    ],
+    /"operations": *2/u,
   ],
 ];
 

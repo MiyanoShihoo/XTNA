@@ -97,8 +97,14 @@ variables are unchanged.
   whose name is never assigned, shadowed by a parameter, or declared twice. `const t = 60;
   const ms = t * 1000` folds to `60000`; a reassigned or captured name is left alone.
 - `npm run stability:smoke` generates fixtures and runs every analysis utility as a child
-  process, failing on a non-zero exit or a missing output marker (9 checks).
+  process, failing on a non-zero exit or a missing output marker (11 checks).
   See `docs/XTNA-STABILITY.md`.
+- `npm run diff:narrate -- --before a.json --after b.json` pairs two reports by a stable key
+  and reports added, removed and changed records plus the fields that moved.
+  See `docs/XTNA-CHANGE-NARRATIVE.md`.
+- `npm run api:spec -- --in capture.har --out openapi.json` groups recorded requests by method
+  and path template and emits an OpenAPI 3.1 draft with merged request/response schemas.
+  See `docs/XTNA-OPENAPI-FROM-CAPTURE.md`.
 
 ### Added (gateway)
 
