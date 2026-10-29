@@ -1,4 +1,4 @@
-﻿# Ghidra provider verification — 2026-10-29
+# Ghidra provider verification — 2026-10-29
 
 Binary: PlantsVsZombies.exe (5,296,312 bytes)
 SHA-256: 868f8e2bab0d6a7ef8afc4c5960c608eccef82bd086bd6e0c0e2670199a5ca45
@@ -37,18 +37,41 @@ Rendered header: overlay entries 3, rendered strings 1, identifier replacements 
 FUN_0040100b became scalar_deleting_destructor_candidate; the evidence bundle on disk kept
 the same SHA-256 (be50fccfe374235c62b335ab7d54b1dd499b78ec64535fa7479826e94dc35b1a).
 
-## Not verified — and why
+## Instructions (verified on a second attempt)
 
-function 0x40100b and instructions 0x40100b were started together in one background run.
-The JVM stayed alive for over 20 minutes, held ~860 MB RSS, and accumulated only ~48 s of CPU:
-it was waiting, not working. The run was cancelled and the JVM was stopped. No evidence was
-produced for either command, so they stay unverified.
+`instructions 0x40100b` succeeded when run alone in its own process:
 
-analyze, search and decompile on the same binary complete in ~3 minutes each, so this is
-specific to those two commands, not to the provider as a whole.
+- procedure `FUN_0040100b`, body ranges `0x40100b-0x401025` and `0x401027-0x40102c`
+- `total_bytes=33`, `span_bytes=34`, `non_contiguous=true`, `contains_entry=true`
+- 10 instructions returned:
+
+```
+0x40100b: PUSH ESI
+0x40100c: MOV ESI, ECX
+0x40100e: MOV dword ptr [ESI], 0x52380c
+0x401014: CALL 0x004e16bb
+0x401019: TEST byte ptr [ESP + 0x8], 0x1
+0x40101e: JZ 0x00401027
+0x401020: PUSH ESI
+0x401021: CALL 0x004e2978
+0x401027: MOV EAX, ESI
+0x401029: POP ESI
+0x40102a: RET 0x4
+```
+
+The first attempt, which ran `function` and `instructions` in one background job, stalled for
+over 20 minutes with ~48 s of CPU. Running one command per process is what made it work.
+
+## Still unverified
+
+`function 0x40100b` was retried alone and again made no progress for ~15 minutes (CPU grew from
+37 s to 80 s, no output); it was cancelled. No procedure-info evidence was produced.
+
+Call-graph traversal was not attempted: the CLI exposes no direct command for it, and the MCP path
+would need a live server session.
 
 ## Verdict
 
-The Ghidra provider is verified for: analysis open, procedure inventory, and real decompilation.
-It is not verified for procedure-info, instruction listing, or call-graph traversal on this
-binary. Those need a fresh attempt with a shorter per-command budget and one command per process.
+Verified: analysis open, procedure inventory (7,516), real decompilation, instruction listing.
+Unverified: procedure-info payload, call-graph traversal. One command per process; do not batch
+Ghidra CLI calls.
