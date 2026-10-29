@@ -7,9 +7,9 @@ Snapshot: 2026-10-29. Published on `main` at `MiyanoShihoo/XTNA`.
 | Item | Value |
 |---|---|
 | Version | 1.0.0 (`package.json`, `package-lock.json`, `gateway/package.json`, generated metadata, Windows native manifest) |
-| Head | `7ec857b` — single README with English and Chinese sections and anchor links |
+| Head | the commit that contains this file (`git log -1`) |
 | Remote version | `1.0.0`, confirmed from `raw.githubusercontent.com` |
-| CI | success on `80259ae` and `7ec857b` |
+| CI | success on `80259ae` and `7ec857b`; the head containing this file is checked after its push |
 
 ## Green
 
@@ -27,7 +27,7 @@ Snapshot: 2026-10-29. Published on `main` at `MiyanoShihoo/XTNA`.
 | PE probes | `inspect-pe-*` | verified on a 5.3 MB 32-bit executable |
 | Ghidra | analyze / search / decompile / instructions / procedure_info / call_graph | verified, see `reports/ghidra-verification.md` |
 | JavaScript analysis | `analyze-javascript-application` | verified on a Vite build and a self-authored Electron asar |
-| Symbol overlay rendering | real Ghidra pseudocode | 1 replacement, evidence hash unchanged |
+| Symbol overlay rendering | `npm run overlay:render` | file mode and live Ghidra decompile, 1 replacement each, source unchanged; `reports/overlay-live-render.md` |
 
 ## Environment notes
 
@@ -52,8 +52,9 @@ Snapshot: 2026-10-29. Published on `main` at `MiyanoShihoo/XTNA`.
 - `node scripts/generate-skill-metadata.mjs --check` and
   `node scripts/generate-product-catalog.mjs --check` pass after one generation run; both
   outputs are gitignored.
-- `generate-completion-ledger.mjs` and the Vitest conformance suite cannot run in this session:
-  both spawn children with piped stdio, which the process sandbox refuses (`EPERM`).
+- `generate-completion-ledger.mjs` and the Vitest conformance suite pass in a session that
+  permits child processes: the ledger matches its manifest, and
+  `npx vitest run tests/conformance/readmeConsistency.test.ts` reports 8/8.
 - `npm run format:check` (`oxfmt --check .`) exits 2 on this host even on a pristine tree.
   Markdown edits were matched to the surrounding file style by hand instead.
 

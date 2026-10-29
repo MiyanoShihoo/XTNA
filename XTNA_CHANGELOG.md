@@ -111,10 +111,10 @@ variables are unchanged.
   for over 20 minutes, while one command per process and the MCP tool path both work. See
   `reports/ghidra-verification.md`.
 - IDA and Hopper were not exercised on this host.
-- `overlay:render` file mode was re-verified against the stored PlantsVsZombies Evidence
-  (1 replacement, source unchanged). Its live `--procedure` mode could not be exercised here
-  because no analysis provider is configured on this host; the provider-unavailable path does
-  exit non-zero with the CLI's own error document.
+- `overlay:render` was verified in both modes: file mode against the stored PlantsVsZombies
+  Evidence, and live mode against a fresh Ghidra 12.2 decompile of `0x40100b` (1 replacement,
+  source unchanged). The provider-unavailable path exits non-zero with the CLI's own error
+  document. See `reports/overlay-live-render.md`.
 
 ### Known gaps carried over
 

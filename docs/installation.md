@@ -1569,9 +1569,9 @@ For a client that requires manual configuration, use:
 ```json
 {
   "mcpServers": {
-    "rea": {
+    "xtna": {
       "command": "npx",
-      "args": ["-y", "rea-agents@6.8.0", "mcp"]
+      "args": ["-y", "xtna@1.0.0", "mcp"]
     }
   }
 }
