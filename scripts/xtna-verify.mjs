@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * XTNA distribution checks that do not need the Vite test pipeline.
  * Run after `npm run compile`: node scripts/xtna-verify.mjs

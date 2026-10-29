@@ -1,4 +1,4 @@
-﻿import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve, isAbsolute } from 'node:path';
 import { z } from 'zod';

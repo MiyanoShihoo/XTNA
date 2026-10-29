@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Minimal stdio MCP server used to exercise the gateway.
  * Deliberately hand-rolled so the test controls every byte on the wire.
  */

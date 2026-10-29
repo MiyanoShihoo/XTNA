@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Protocol-level gateway test with an in-memory transport and a stub upstream.
  * The host sandbox here denies spawning child processes, so the upstream is a
  * plain object; everything above it (MCP server, redaction, cache, routing) is real.

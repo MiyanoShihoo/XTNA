@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Constant-signature radar: find well-known crypto, compression and encoding
  * tables in a local file.

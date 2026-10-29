@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * XTNA APK audit: inventory an APK's DEX payload and fingerprint the ad,
  * analytics and tracking SDKs compiled into it.
