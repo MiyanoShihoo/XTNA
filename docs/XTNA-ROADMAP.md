@@ -22,6 +22,8 @@ not implemented here.
 | MCP JSON Schema flattening for strict hosts | planned | — |
 | Sandboxed dynamic execution (container / Windows Sandbox) | planned | — |
 | Local model pre-filtering (Ollama / vLLM) | planned | — |
+| Ghidra provider verification (analyze / search / decompile) | **verified** | eports/ghidra-verification.md; function/instructions/call-graph still unverified |
+| JavaScript analysis end-to-end on a real build | **verified** | Vite dist: 2 files, 4 findings, 555 data-flow relations |
 
 ## Feature modules
 

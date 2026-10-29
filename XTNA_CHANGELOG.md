@@ -92,13 +92,14 @@ variables are unchanged.
   distribution; its Vitest pipeline could not start under the authoring host's process
   sandbox (`spawn EPERM` in Vite's config bundler). `npm run typecheck`, `npm run compile`,
   and `npm run verify:xtna` pass.
-- End-to-end `analyze-javascript-application` reaches the analyzer worker on Windows and
-  then stops at `EPERM` while writing its owned `.source` handoff file, which the same host
-  sandbox denies to spawned processes. The failure is reported as a per-source
-  `execution_failure` with the exact path; it is not a code path this distribution changed.
-  Re-run that command outside a restricted process sandbox to confirm the analysis result.
-- No real-provider verification (Ghidra/IDA/Hopper) was performed for the budget change;
-  the change is confined to retained-budget accounting and keeps the admission ceiling.
+- End-to-end `analyze-javascript-application` is now verified on a real Vite build with the
+  host temp, HOME and APPDATA redirected to E:. Result: 2 parsed files, 4 findings, 555
+  retained data-flow relations, application coverage complete.
+- Ghidra 12.2 verification: `analyze` opened a 5.3 MB PE in 197 s with 7,516 procedures;
+  `search --kind procedures` and `decompile 0x40100b` completed and returned real
+  pseudocode. `function` and `instructions` stalled (>20 min, ~48 s CPU) and are recorded
+  as unverified in `reports/ghidra-verification.md`.
+- IDA and Hopper were not exercised on this host.
 
 ### Known gaps carried over
 
