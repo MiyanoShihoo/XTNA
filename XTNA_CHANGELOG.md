@@ -81,6 +81,10 @@ variables are unchanged.
 - `npm run probe:gen -- --address <0x…|symbol>` emits a Frida or LLDB probe skeleton for one
   address: entry arguments from the ABI registers, the return value and a bounded backtrace,
   as JSON lines. It never attaches to a target. See `docs/XTNA-RUNTIME-PROBES.md`.
+- `npm run heap:query -- --in <snapshot.heapsnapshot>` indexes a V8 heap snapshot from its
+  declared record layout and answers two questions: which constructors hold the most shallow
+  memory, and which instances of one exact name exist with their incoming-reference counts.
+  No inspector, no execution. See `docs/XTNA-HEAP-QUERY.md`.
 
 ### Added (gateway)
 
