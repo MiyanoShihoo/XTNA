@@ -30,7 +30,7 @@ not implemented here.
 
 |   # | Module                              | Status                                | Notes                                                                                                                                                   |
 | --: | ----------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   1 | Wasm end-to-end + JS bridge         | partial                               | `inspect_wasm_artifact` covers imports/exports/WAT; JS↔Wasm call edges not built                                                                        |
+|   1 | Wasm end-to-end + JS bridge         | **shipped** (static bridge)           | `npm run wasm:link`: import/export sections plus the JS glue, giving js→wasm calls, wasm→js providers, unresolved imports and unused exports            |
 |   2 | Hermes / V8 snapshot / PyInstaller  | planned                               | —                                                                                                                                                       |
 |   3 | Semantic version diff               | partial                               | `compare_functions`, `compare_artifacts`, `compare_application_versions` exist; no change narrative                                                     |
 |   4 | Runtime probe generation            | **shipped** (skeleton)                | `npm run probe:gen`: address to a Frida or LLDB probe skeleton that records arguments, return value and a backtrace; target selection stays manual      |

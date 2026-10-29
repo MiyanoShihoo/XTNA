@@ -89,6 +89,10 @@ variables are unchanged.
   ordered timeline and groups them into candidate chains by explicit `traceId` or by a bounded
   time window. Ordering is evidence; causation stays an inference.
   See `docs/XTNA-CAUSAL-TRACING.md`.
+- `npm run wasm:link -- --wasm <module.wasm> --js <glue.js>` decodes the module's import and
+  export sections, reads the glue's import object and `.exports.<name>` accesses, and reports
+  the static bridge: js→wasm calls, wasm→js providers, unresolved imports and unused exports.
+  Nothing is instantiated. See `docs/XTNA-WASM-BRIDGE.md`.
 
 ### Added (gateway)
 
