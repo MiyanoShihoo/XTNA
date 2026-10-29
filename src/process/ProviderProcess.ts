@@ -268,8 +268,13 @@ export const spawnOwnedProviderProcess = async (
     options.signal?.throwIfAborted();
   }
   const hostEnvironment = options.hostEnvironment ?? process.env;
+  const windowsSystemRoot = process.env.SystemRoot ?? process.env.SYSTEMROOT;
+  const selectedHostEnvironment =
+    platform === "win32" && windowsSystemRoot !== undefined
+      ? { SystemRoot: windowsSystemRoot, ...hostEnvironment }
+      : hostEnvironment;
   const selectedEnvironment = mergeEnvironmentOverrides(
-    hostEnvironment,
+    selectedHostEnvironment,
     options.env ?? {},
     platform,
   );
