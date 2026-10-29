@@ -11,8 +11,10 @@ it("retains the Windows system root with a minimal explicit host environment", a
     hostEnvironment: { PATH: process.env.PATH ?? "" },
   });
   let stdout = "";
-  child.process.stdout?.setEncoding("utf8");
-  child.process.stdout?.on("data", (chunk: string) => {
+  const stream = child.process.stdout;
+  if (stream === null) throw new Error("Expected owned process stdout");
+  stream.setEncoding("utf8");
+  stream.on("data", (chunk: string) => {
     stdout += chunk;
   });
   await new Promise<void>((resolve) =>

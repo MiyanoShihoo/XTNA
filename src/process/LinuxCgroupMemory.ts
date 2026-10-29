@@ -1,5 +1,5 @@
 import { open } from "node:fs/promises";
-import { posix } from "node:path";
+import { join, posix } from "node:path";
 
 /** Memory facts for the cgroup v2 group that holds this process. */
 export interface LinuxCgroupMemoryState {
@@ -121,7 +121,12 @@ export const linuxCgroupDirectory = (
   }
   return selected === undefined
     ? undefined
-    : posix.resolve(selected.mount.mountPoint, `.${selected.rest}`);
+    : selected.mount.mountPoint.startsWith("/")
+      ? posix.resolve(selected.mount.mountPoint, `.${selected.rest}`)
+      : join(
+          selected.mount.mountPoint,
+          ...selected.rest.split("/").filter(Boolean),
+        );
 };
 
 /**
@@ -151,11 +156,11 @@ export const readLinuxCgroupMemoryState = async (
       ? undefined
       : linuxCgroupDirectory(parseLinuxCgroup2Mounts(mountInfo), path);
   if (group === undefined) return undefined;
-  const events = await readKernelFile(posix.join(group, "memory.events"));
+  const events = await readKernelFile(join(group, "memory.events"));
   const oomKills =
     events === undefined ? undefined : parseLinuxCgroupOomKills(events);
   if (oomKills === undefined) return undefined;
-  const limit = await readKernelFile(posix.join(group, "memory.max"));
+  const limit = await readKernelFile(join(group, "memory.max"));
   return {
     path,
     oomKills,

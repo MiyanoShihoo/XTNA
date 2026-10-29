@@ -201,7 +201,8 @@ const environmentDetails = (
     ? undefined
     : {
         analysisProvider: configuration.REA_ANALYSIS_PROVIDER,
-        ghidraStartupTimeoutMs: configuration.REA_GHIDRA_STARTUP_TIMEOUT_MS,
+        ghidraStartupTimeoutMs:
+          configuration.REA_GHIDRA_STARTUP_TIMEOUT_MS ?? 330_000,
         ...(configuration.REA_GHIDRA_DECOMPILE_TIMEOUT_SECONDS === undefined
           ? {}
           : {

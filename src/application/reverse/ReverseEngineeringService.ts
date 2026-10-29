@@ -554,7 +554,7 @@ export class ReverseEngineeringService {
             `Unable to run configured command (${String(code ?? "unknown error")})`,
             {
               cause,
-              userMessage: `Could not launch the selected ${provider} executable ${JSON.stringify(command)} (${String(code ?? "unknown error")}).`,
+              userMessage: `Could not launch the selected ${provider} executable ${command} (${String(code ?? "unknown error")}).`,
               remediationAction: `Set ${setting} to an installed executable ${provider === "objdump" ? "GNU objdump" : "Rizin"} command, or make that command available on PATH. Check execute permission on the command and search permission on its parent directories before retrying.`,
               diagnostics: {
                 boundary: "provider-launch",

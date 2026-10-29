@@ -1,0 +1,28 @@
+name: Real Windows Ghidra
+on:
+  repository_dispatch:
+    types: [real-ghidra-windows]
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    environment: real-ghidra-windows
+    runs-on: [self-hosted, Windows, x64]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-node@53b8390a97890bb89832b94ad30e692d50a4bf85
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - shell: pwsh
+        run: npm ci
+      - shell: pwsh
+        env:
+          REA_ANALYSIS_PROVIDER: ghidra
+        run: npm run verify:ghidra:windows | Tee-Object -FilePath windows-ghidra-proof.log
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7b1c1a1a0c6d9f97b7
+        with:
+          name: windows-ghidra-proof
+          path: windows-ghidra-proof.log

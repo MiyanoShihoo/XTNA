@@ -1,7 +1,7 @@
 import { ArtifactResourceScope } from "../artifacts/ArtifactResourceScope.js";
 import { AnalysisCleanupLease } from "../artifacts/AnalysisCleanupLease.js";
 import { snapshotEnvironment } from "../process/snapshotEnvironment.js";
-import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -46,12 +46,11 @@ export const createNativeUiHelperRuntime = (
     root = await mkdtemp(join(tmpdir(), "rea-native-ui-"));
     const output = join(root, "observer");
     const main = join(root, "main.swift");
-    await symlink(
-      fileURLToPath(
-        new URL("../../bridge/native/ReaNativeUI.swift", import.meta.url),
-      ),
-      main,
+    const mainSource = fileURLToPath(
+      new URL("../../bridge/native/ReaNativeUI.swift", import.meta.url),
     );
+    if (process.platform === "win32") await copyFile(mainSource, main);
+    else await symlink(mainSource, main);
     // Keep swiftc's intermediate objects inside the removable root.
     const compilerTemporary = join(root, "tmp");
     await mkdir(compilerTemporary);
