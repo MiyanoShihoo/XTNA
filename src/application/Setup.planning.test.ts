@@ -562,7 +562,7 @@ describe("setup workflow lifecycle and provider planning", () => {
       {
         client: "codex",
         config_path: "/codex.toml",
-        command: ["rea", "mcp"],
+        command: [...host.registrationCommand] as [string, ...string[]],
         state: "aligned",
         remediation: null,
       },

@@ -446,7 +446,7 @@ describe("setup scoped readiness", () => {
       {
         client: "codex",
         config_path: "/codex.toml",
-        command: ["rea", "mcp"],
+        command: [...host.registrationCommand] as [string, ...string[]],
         state: "aligned",
         remediation: null,
       },

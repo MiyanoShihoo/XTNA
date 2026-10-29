@@ -58,7 +58,10 @@ it("plans setup and uninstall against selected home and client overrides", async
   vi.stubEnv("CODEX_HOME", join(root, "ambient-codex"));
   vi.stubEnv("npm_command", "other");
   try {
-    const doctor = createDoctorHostFixture({ homeDirectory: environment.HOME });
+    const doctor = createDoctorHostFixture({
+      platform: process.platform,
+      homeDirectory: environment.HOME,
+    });
     const host = systemSetupHost(doctor, environment);
     const result = await runSetup(
       {

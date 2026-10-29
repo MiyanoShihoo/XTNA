@@ -946,7 +946,11 @@ export const clientSkillDirectories = (
       : clientIds.length === 0
         ? ["shared"]
         : clientIds;
-  const sharedDirectory = appendCallerPath(home, ".agents/skills", platform);
+  const sharedDirectory = appendCallerPath(
+    appendCallerPath(home, ".agents", platform),
+    "skills",
+    platform,
+  );
   const destinations = new Map<string, { client: string; directory: string }>();
   for (const client of selected) {
     const definition = definitions.find(({ name }) => name === client);

@@ -254,7 +254,6 @@ const runSetupWorkflow = async (
     skillSelected,
     selectedSkillClientIds,
     selectedClients: planned.selectedClients,
-    clientsToConfigure: planned.clientsToConfigure,
   };
   readinessScope = resolvedReadinessScope(
     options.readinessScope,
@@ -325,8 +324,7 @@ const runSetupWorkflow = async (
     );
     if (!admission.ok) return failSkill(admission.error);
   }
-  let selectedClients: readonly SetupClient[] =
-    planSelection.clientsToConfigure;
+  let selectedClients: readonly SetupClient[] = planned.clientsToConfigure;
   let hopperWarning: string | undefined;
   let hopperFailure: SetupHopperInstallFailure | undefined;
   if (
