@@ -105,6 +105,10 @@ variables are unchanged.
 - `npm run api:spec -- --in capture.har --out openapi.json` groups recorded requests by method
   and path template and emits an OpenAPI 3.1 draft with merged request/response schemas.
   See `docs/XTNA-OPENAPI-FROM-CAPTURE.md`.
+- `npm run panel:serve -- --evidence <bundle>` serves a read-only live panel over loopback:
+  HTML shell, `/api/state` JSON snapshot, and an SSE `refresh` event when the evidence files
+  change. Only those three routes exist; no disk path is served.
+  See `docs/XTNA-LIVE-PANEL.md`.
 
 ### Added (gateway)
 
