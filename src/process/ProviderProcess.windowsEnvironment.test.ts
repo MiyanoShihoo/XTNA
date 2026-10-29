@@ -12,8 +12,12 @@ it("retains the Windows system root with a minimal explicit host environment", a
   });
   let stdout = "";
   child.process.stdout?.setEncoding("utf8");
-  child.process.stdout?.on("data", (chunk: string) => { stdout += chunk; });
-  await new Promise<void>((resolve) => child.process.once("close", () => resolve()));
-  expect(stdout).toBe(process.env.SystemRoot);
+  child.process.stdout?.on("data", (chunk: string) => {
+    stdout += chunk;
+  });
+  await new Promise<void>((resolve) =>
+    child.process.once("close", () => resolve()),
+  );
+  expect(stdout).toBe(process.env.SystemRoot ?? process.env.SYSTEMROOT);
   expect((await child.cleanup()).cleaned).toBe(true);
 });
