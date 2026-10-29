@@ -21,7 +21,7 @@ not a verified digest.
 Start with a compact summary and keep the complete Evidence bundle:
 
 ```sh
-rea inspect-artifact /artifacts/game.pck --detail summary \
+xtna inspect-artifact /artifacts/game.pck --detail summary \
   --evidence_output /evidence/game.json --json
 rea extract-artifact /artifacts/game.pck --json
 ```
@@ -88,7 +88,7 @@ they do not reopen the source. These are historical observations, including
 after the source changes or disappears. Close the target with `close_binary`
 when finished. To read an exported bundle through the CLI, select its complete
 inspection record as `source: {kind: "inline", evidence: ...}` in a JSON request
-file for `rea inspect-analysis-view request.json --json`.
+file for `xtna inspect-analysis-view request.json --json`.
 
 ## Coverage and limits
 

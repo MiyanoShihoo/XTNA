@@ -145,9 +145,9 @@ remains owned and retryable.
 sigrok catalog without opening a recording or scanning devices:
 
 ```sh
-rea inspect-signal-decoders --query uart
-rea inspect-signal-decoders --decoder uart --query baud
-rea inspect-signal-decoders --decoder i2c --offset 0 --limit 50
+xtna inspect-signal-decoders --query uart
+xtna inspect-signal-decoders --decoder uart --query baud
+xtna inspect-signal-decoders --decoder i2c --offset 0 --limit 50
 ```
 
 Omit `decoder` to search decoder IDs and names. Supply one exact decoder ID to

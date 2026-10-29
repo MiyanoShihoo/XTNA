@@ -63,17 +63,17 @@ and DLLs.
 ## Configuration
 
 ```powershell
-npm install --global rea-agents
+npm install --global xtna
 $env:GHIDRA_INSTALL_DIR = "C:\tools\ghidra_12.1.4_PUBLIC"
 $env:JAVA_HOME = "C:\tools\jdk-21"
 $env:REA_ANALYSIS_PROVIDER = "ghidra"
 
-rea doctor --json
-rea providers --json
-rea inspect "C:\fixtures\sample.exe" --provider ghidra --format json
+xtna doctor --json
+xtna providers --json
+xtna inspect "C:\fixtures\sample.exe" --provider ghidra --format json
 ```
 
-`rea doctor` distinguishes installation prerequisites from native artifact or
+`xtna doctor` distinguishes installation prerequisites from native artifact or
 OS failures. It checks the Ghidra release, headless launcher, full JDK, x64
 host, and native controls. A missing or mismatched addon requires the matching
 Windows x64 package; changing MCP registration cannot supply that artifact.
@@ -97,7 +97,7 @@ failures remain stable for the process lifetime.
 Other doctor checks, including unconfigured agent integrations, can remain
 unready while Ghidra itself is available.
 
-`rea setup` can register supported agent integrations and the bundled skill.
+`xtna setup` can register supported agent integrations and the bundled skill.
 Its existing preview and approval apply to configuration writes. Setup
 preserves valid Ghidra and Java settings even when a separate runtime
 prerequisite is unavailable.
@@ -107,7 +107,7 @@ For MCP, register the resolved Node entry point and the same provider settings:
 ```json
 {
   "mcpServers": {
-    "rea": {
+    "xtna": {
       "command": "C:\\tools\\node\\node.exe",
       "args": ["C:\\tools\\rea\\scripts\\rea.mjs", "mcp"],
       "env": {

@@ -190,7 +190,7 @@ inside these environment values:
 ```powershell
 $env:REA_JADX_MCP_JAR = 'D:\tools\jadx-headless-mcp-0.7.1-all.jar'
 $env:JAVA_HOME = 'D:\tools\jdk-21'
-rea inspect-android-package 'D:\targets\Example.apk'
+xtna inspect-android-package 'D:\targets\Example.apk'
 ```
 
 REA selects `JAVA_HOME\bin\java.exe`, or resolves `java.exe` on the selected
@@ -217,14 +217,14 @@ the pinned JADX 0.7.1 JAR; see the real verification lane below.
 ## Answer an analyst question
 
 ```sh
-rea inspect-android-package /path/Example.apk
-rea search-android-classes /path/Example.apk MainActivity
-rea inspect-android-class /path/Example.apk example.MainActivity
-rea inspect-android-method /path/Example.apk example.MainActivity onCreate
-rea inspect-android-method /path/Example.apk example.MainActivity select --overload-index 1
-rea trace-android-references /path/Example.apk example.MainActivity
-rea trace-android-references /path/Example.apk example.MainActivity --method-name onCreate
-rea trace-android-references /path/Example.apk example.MainActivity --method-name select --overload-index 1
+xtna inspect-android-package /path/Example.apk
+xtna search-android-classes /path/Example.apk MainActivity
+xtna inspect-android-class /path/Example.apk example.MainActivity
+xtna inspect-android-method /path/Example.apk example.MainActivity onCreate
+xtna inspect-android-method /path/Example.apk example.MainActivity select --overload-index 1
+xtna trace-android-references /path/Example.apk example.MainActivity
+xtna trace-android-references /path/Example.apk example.MainActivity --method-name onCreate
+xtna trace-android-references /path/Example.apk example.MainActivity --method-name select --overload-index 1
 ```
 
 Equivalent MCP methods are `inspect_android_package`, `search_android_classes`,
@@ -293,7 +293,7 @@ build's `mapping.txt` with `mapping_path` on `inspect_android_class` or
 `inspect_android_method`, or `--mapping-path` on the matching CLI command:
 
 ```sh
-rea inspect-android-class /path/Example.apk a.b --mapping-path /path/mapping.txt \
+xtna inspect-android-class /path/Example.apk a.b --mapping-path /path/mapping.txt \
   --detail summary --evidence_output /tmp/class-evidence.json
 ```
 
@@ -430,7 +430,7 @@ CLI uses the same selection and delivery contracts. Its common one-shot
 default remains complete; summary delivery requires an explicit Evidence path:
 
 ```sh
-rea inspect-android-jni-bindings /absolute/Example.apk \
+xtna inspect-android-jni-bindings /absolute/Example.apk \
   --query '{"class_name":"org.conscrypt.NativeCrypto","method_names":["EVP_PKEY_new_RSA"],"abis":["arm64-v8a"]}' \
   --detail summary --evidence_output /absolute/fresh-jni-evidence.json
 ```
@@ -654,7 +654,7 @@ and range, with `details.limit` identifying the runtime setting. An invalid
 provider-local launch value can also be repaired by a runtime override; reset
 exposes that invalid launch value again. See the
 [settings design](design/limits-and-recovery.md#invalid-launch-configuration).
-A passing JADX configuration check in `rea doctor` reports its launch-derived
+A passing JADX configuration check in `xtna doctor` reports its launch-derived
 `operation_timeout_ms`; it does not inspect another running server's overrides. Explicit
 cancellation still ends the operation immediately, and partial observations
 and owned-process cleanup are unchanged. Raising the deadline does not extend

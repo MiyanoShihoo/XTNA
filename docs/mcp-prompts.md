@@ -19,7 +19,7 @@ A `REA_MCP_TOOL_FAMILIES` scope advertises a workflow only when every tool in
 its suggested steps belongs to a selected family. Partially available
 workflows are omitted from `prompts/list` — `prompts/get` reports them as not
 found — so a rendered prompt never directs the agent to a disabled call. The
-server identity digest and `rea mcp doctor` prompt inventory follow the same
+server identity digest and `xtna mcp doctor` prompt inventory follow the same
 scope.
 
 Every rendered prompt provides optional starting points using current REA tool
@@ -36,7 +36,7 @@ For a JavaScript/Electron application directory, `investigate_feature` points
 directly to `analyze_javascript_application` with `input_path`; it does not
 require `open_binary`. When that Evidence, or `inspect_binary_layout` Evidence,
 is already retained, it suggests `inspect_analysis_view` before tracing a
-feature seed. The CLI equivalent is `rea analyze <directory>`.
+feature seed. The CLI equivalent is `xtna analyze <directory>`.
 `open_binary` and the doctor target check admit files and macOS app bundles.
 A directory outside that opening route is reported with an available analysis
 action; this does not establish support for every directory format.

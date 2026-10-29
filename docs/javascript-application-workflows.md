@@ -588,14 +588,14 @@ For a literal string trace, analyze your supplied tree once, then build the
 input from the saved Evidence (replace the target and seed):
 
 ```bash
-rea analyze-javascript-application /absolute/path/to/app --json > application-evidence.json
+xtna analyze-javascript-application /absolute/path/to/app --json > application-evidence.json
 node --input-type=module -e '
 import { readFileSync, writeFileSync } from "node:fs";
 const application = JSON.parse(readFileSync("application-evidence.json", "utf8"));
 writeFileSync("trace-input.json", JSON.stringify({
   application, seed: { kind: "string", value: "search-result" }, direction: "both"
 }));'
-rea trace-application-feature ./trace-input.json --json
+xtna trace-application-feature ./trace-input.json --json
 ```
 
 MCP analysis returns the complete Evidence record, with the operation result

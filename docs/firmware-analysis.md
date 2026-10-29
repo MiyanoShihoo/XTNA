@@ -27,7 +27,7 @@ checks the tool's `--version` banner when executing a request. Binwalk must
 print `binwalk <version>` and Unblob must print the version alone. Inspection and
 extraction have independent prerequisites; one does not require the other.
 Both require util-linux `prlimit`, normally `/usr/bin/prlimit`; override its
-absolute path with `REA_FIRMWARE_PRLIMIT_COMMAND` if needed. `rea doctor` does
+absolute path with `REA_FIRMWARE_PRLIMIT_COMMAND` if needed. `xtna doctor` does
 not currently inspect firmware readiness. Engine selection/version checks run
 when the firmware operation is requested; successful general doctor checks do
 not establish firmware tool or external-extractor availability.
@@ -86,7 +86,7 @@ name bytes in hexadecimal instead of silently omitting the entry.
 ## CLI and MCP
 
 ```sh
-rea inspect-firmware-regions /path/to/firmware.bin
+xtna inspect-firmware-regions /path/to/firmware.bin
 rea extract-firmware /path/to/firmware.bin /path/to/new-output
 rea extract-firmware /path/to/firmware.bin /path/to/selected-output \
   --offset 64 --length 4096 --max-depth 3
@@ -288,7 +288,7 @@ firmware, other hosts and architectures remain unverified.
 
 ## Inspect extracted devicetrees
 
-Use [`inspect_devicetree`](devicetree.md) / `rea inspect-devicetree` on an
+Use [`inspect_devicetree`](devicetree.md) / `xtna inspect-devicetree` on an
 extracted DTB for its node/property tree, reservations, hardware summary and
 selected phandle relationships. FDT v16/v17 inspection is portable and requires
 no external tool or disassembler.

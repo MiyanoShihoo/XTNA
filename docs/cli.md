@@ -12,12 +12,12 @@ After [installing REA](installation.md), use `rea`. You can also run a command
 without a global installation:
 
 ```bash
-npx -y rea-agents@latest analyze-javascript-application /absolute/path/to/app --json
+npx -y xtna@1.0.0 analyze-javascript-application /absolute/path/to/app --json
 ```
 
 Use an extracted application directory or an ASAR as the target. Static
 JavaScript analysis returns the application graph and Evidence directly.
-Generic `rea analyze PATH` selects this workflow for directories and `.asar`
+Generic `xtna analyze PATH` selects this workflow for directories and `.asar`
 files when neither `--provider` nor `--snapshot` is supplied. See
 [JavaScript artifact reconstruction](javascript-artifact-reconstruction.md)
 for results, integrity checks and coverage.
@@ -27,9 +27,9 @@ application. When an agent or a person reads the result, save it to a file and
 project a summary, a module page or one module from the saved Evidence:
 
 ```bash
-rea analyze-javascript-application /absolute/path/to/app --json > app-evidence.json
+xtna analyze-javascript-application /absolute/path/to/app --json > app-evidence.json
 jq -c '{source: {kind: "inline", evidence: .}, view: {kind: "summary"}}' app-evidence.json > app-view.json
-rea inspect-analysis-view app-view.json
+xtna inspect-analysis-view app-view.json
 ```
 
 The request can also name the saved file instead of embedding it:
@@ -59,7 +59,7 @@ Use `--format jsonl` to consume row-oriented results one record per line:
 cat > observations-view.json <<'JSON'
 {"source":{"kind":"evidence-file","path":"app-evidence.json"},"view":{"kind":"javascript-facts","property_keys":[],"offset":0,"limit":32}}
 JSON
-rea inspect-analysis-view observations-view.json --format jsonl > observations.jsonl
+xtna inspect-analysis-view observations-view.json --format jsonl > observations.jsonl
 ```
 
 This request selects up to 32 observation identities and their provenance,
@@ -159,7 +159,7 @@ eval "$(rea completions bash)"
 The Bash hook supports macOS system Bash 3.2. It uses optional completion
 features when the shell provides them and falls back to portable registration.
 Completion includes standard global options and the active command's options;
-`rea mcp ` offers only `add` and `doctor`. Output-option values remain data when
+`xtna mcp ` offers only `add` and `doctor`. Output-option values remain data when
 resolving the command scope.
 
 For future interactive non-login Bash sessions, add the command to
@@ -180,9 +180,9 @@ Language (CIL) without loading or executing the assembly and require no native
 analysis engine:
 
 ```bash
-rea inspect-managed-artifact /absolute/path/Assembly.dll --json
-rea inspect-managed-members /absolute/path/Assembly.dll --json
-rea inspect-managed-members /absolute/path/Assembly.dll --type Example.Parser --json
+xtna inspect-managed-artifact /absolute/path/Assembly.dll --json
+xtna inspect-managed-members /absolute/path/Assembly.dll --json
+xtna inspect-managed-members /absolute/path/Assembly.dll --type Example.Parser --json
 ```
 
 Replace `Example.Parser` with an exact `full_name` from the member inspection,
@@ -211,7 +211,7 @@ for supported deployment forms, selection semantics, and coverage limits.
 
 ## SQLite snapshots
 
-For a local database snapshot, use `rea inspect-sqlite-database PATH --json`.
+For a local database snapshot, use `xtna inspect-sqlite-database PATH --json`.
 Add `--table NAME --row-limit 20` to read a bounded sample from an ordinary
 table. This command does not require a native analysis provider. See
 [SQLite database snapshots](sqlite-databases.md) for database/WAL identity,
@@ -223,7 +223,7 @@ Inspect embedded Go build metadata without installing Go or configuring a
 disassembler:
 
 ```bash
-rea inspect-go-binary /absolute/path/to/program --json
+xtna inspect-go-binary /absolute/path/to/program --json
 ```
 
 The shared CLI/MCP workflow reports compiler version, modules, replacements,
@@ -233,7 +233,7 @@ for supported containers and absent or malformed metadata.
 Inspect a Godot PCK without running the game:
 
 ```sh
-rea inspect-artifact game.pck --detail summary --evidence_output evidence.json --json
+xtna inspect-artifact game.pck --detail summary --evidence_output evidence.json --json
 rea extract-artifact game.pck --json
 ```
 
@@ -244,7 +244,7 @@ for embedded packs, batch queries and unknown encrypted coverage.
 Inspect a Node.js SEA carrier without running it:
 
 ```sh
-rea inspect-artifact ./application --json
+xtna inspect-artifact ./application --json
 rea extract-artifact ./application --json
 ```
 
@@ -254,8 +254,8 @@ fuse observations, and the real-fixture verification lane.
 Inspect local model declarations without loading weights:
 
 ```bash
-rea inspect-model-artifact /absolute/path/model.gguf --json
-rea inspect-model-artifact /absolute/path/model.safetensors --hash full --json
+xtna inspect-model-artifact /absolute/path/model.gguf --json
+xtna inspect-model-artifact /absolute/path/model.safetensors --hash full --json
 ```
 
 Default hashing reads only headers and leaves full-file identity unknown.
@@ -267,7 +267,7 @@ uses `--detail summary --evidence_output FILE`. See [model files](model-artifact
 Inspect Unity IL2CPP metadata names without Unity or a disassembler:
 
 ```bash
-rea inspect-il2cpp-metadata /absolute/path/global-metadata.dat --json
+xtna inspect-il2cpp-metadata /absolute/path/global-metadata.dat --json
 ```
 
 The command decodes a version 24, 27, 29, 31 or 39 `global-metadata.dat` and reports assembly
@@ -285,7 +285,7 @@ Inspect an embedded cargo-auditable Rust dependency list without installing
 Rust or configuring a disassembler:
 
 ```bash
-rea inspect-rust-binary /absolute/path/to/program --json
+xtna inspect-rust-binary /absolute/path/to/program --json
 ```
 
 The same workflow reports package names, versions, sources, the root package,
@@ -297,7 +297,7 @@ Inspect a PE Authenticode certificate table without executing the image or
 verifying signatures:
 
 ```bash
-rea inspect-pe-certificates /absolute/path/to/application.exe --json
+xtna inspect-pe-certificates /absolute/path/to/application.exe --json
 ```
 
 The workflow reports `WIN_CERTIFICATE` entries and, for PKCS#7 signedData,
@@ -308,7 +308,7 @@ directory is observed absence of that table. See
 Inspect PE import and delay-load tables without executing the image:
 
 ```bash
-rea inspect-pe-imports /absolute/path/to/application.exe --json
+xtna inspect-pe-imports /absolute/path/to/application.exe --json
 ```
 
 The workflow reports DLL names, named and ordinal functions, delay-load
@@ -319,7 +319,7 @@ A missing import directory is observed absence of that table. See
 Inspect ELF PT_NOTE and SHT_NOTE tables without executing the image:
 
 ```bash
-rea inspect-elf-notes /absolute/path/to/program --json
+xtna inspect-elf-notes /absolute/path/to/program --json
 ```
 
 The workflow reports note owners, types, descriptor hashes, and GNU build-id
@@ -329,7 +329,7 @@ observed absence of those declarations. See [ELF note tables](elf-notes.md).
 Inspect an Apple `.ips` crash report without executing a target:
 
 ```bash
-rea inspect-apple-ips /absolute/path/to/report.ips --json
+xtna inspect-apple-ips /absolute/path/to/report.ips --json
 ```
 
 The workflow reports first-line metadata, process/exception/termination facts,
@@ -340,7 +340,7 @@ Inspect Linux kernel module metadata without executing the module or requiring
 `modinfo`:
 
 ```bash
-rea inspect-kernel-module /absolute/path/to/module.ko --json
+xtna inspect-kernel-module /absolute/path/to/module.ko --json
 ```
 
 The workflow reports ordered `.modinfo` keys (duplicate `alias` and `parm`
@@ -357,7 +357,7 @@ Inspect a CPython 3.7–3.13 `.pyc` header and nested marshal code objects
 without executing bytecode or installing Python:
 
 ```bash
-rea inspect-python-pyc /absolute/path/to/module.pyc --json
+xtna inspect-python-pyc /absolute/path/to/module.pyc --json
 ```
 
 The workflow reports the pinned CPython version for the magic, PEP 552 hash or
@@ -367,7 +367,7 @@ not decompiled. See [CPython pyc inspection](python-pyc.md).
 Inspect an Erlang BEAM file without executing bytecode:
 
 ```bash
-rea inspect-erlang-beam /absolute/path/to/app.beam --json
+xtna inspect-erlang-beam /absolute/path/to/app.beam --json
 ```
 
 The workflow reports IFF chunk names, atom tables, exports, imports, lambdas,
@@ -380,20 +380,20 @@ native target. Substitute
 your target, search text and function name or address in these examples:
 
 ```bash
-rea analyze /absolute/path/to/program --provider ghidra --json
-rea search /absolute/path/to/program "search" --provider ghidra --json
-rea function /absolute/path/to/program main --provider ghidra --json
-rea decompile /absolute/path/to/program 0x1000 --provider ghidra --json
-rea xrefs /absolute/path/to/program 0x1000 --provider ghidra --json
-rea trace /absolute/path/to/program "search" --provider ghidra --json
+xtna analyze /absolute/path/to/program --provider ghidra --json
+xtna search /absolute/path/to/program "search" --provider ghidra --json
+xtna function /absolute/path/to/program main --provider ghidra --json
+xtna decompile /absolute/path/to/program 0x1000 --provider ghidra --json
+xtna xrefs /absolute/path/to/program 0x1000 --provider ghidra --json
+xtna trace /absolute/path/to/program "search" --provider ghidra --json
 ```
 
 `analyze` and `inspect` share the native overview workflow. `function` returns
 a function dossier; `decompile` returns pseudocode. For assembly instructions
-alone, use `rea instructions`. A macOS `.app` bundle can be supplied directly.
+alone, use `xtna instructions`. A macOS `.app` bundle can be supplied directly.
 
 A complete dossier can reach several megabytes of value-flow and references.
-`rea function ... --detail summary --evidence_output /absolute/path/dossier.json` returns the
+`xtna function ... --detail summary --evidence_output /absolute/path/dossier.json` returns the
 compact summary and saves the complete dossier as an Evidence bundle, never
 overwriting an existing file. Page that bundle without reanalysis by naming it
 as an `inspect-analysis-view` source, selecting the summary's
@@ -402,7 +402,7 @@ as an `inspect-analysis-view` source, selecting the summary's
 MCP `analyze_function` defaults to the same summary and retains the complete
 dossier in the session for `inspect_analysis_view`.
 
-Run `rea --help` or a command's `--help` for arguments and output options.
+Run `xtna --help` or a command's `--help` for arguments and output options.
 The [generated catalog](mcp-contracts.md#generated-catalog) lists all CLI commands and MCP
 tools. Provider-specific target support is described in the
 [native guide](native-investigation.md), [DOS guide](ghidra-dos.md),
@@ -414,8 +414,8 @@ tools. Provider-specific target support is described in the
 List the available providers and their supported operations:
 
 ```bash
-rea providers --json
-rea capabilities --json
+xtna providers --json
+xtna capabilities --json
 ```
 
 These commands describe binary-session providers and auxiliary capabilities.
@@ -426,7 +426,7 @@ With automatic selection, REA uses the single available provider that supports
 the target. When several providers support it, select one explicitly:
 
 ```bash
-rea analyze /absolute/path/to/program --provider hopper
+xtna analyze /absolute/path/to/program --provider hopper
 ```
 
 Set `REA_ANALYSIS_PROVIDER` for a standing preference. An explicit `--provider`
@@ -450,7 +450,7 @@ entries record a refused kind, format, architecture, or role. An availability-on
 message describes the recorded rejections without claiming that every provider
 is unconfigured or that target support is known.
 For Hopper, Ghidra, IDA, JADX, and Kuna, run
-`rea doctor --provider ID --json` to diagnose the selected engine. Other adapters,
+`xtna doctor --provider ID --json` to diagnose the selected engine. Other adapters,
 such as `pwntools-elf`, report their configuration requirements directly and are
 not accepted by `doctor --provider`. See
 [task readiness](installation.md#check-readiness-for-your-task) and
@@ -503,9 +503,9 @@ cannot be retained, the entire history is excluded instead of reverting the
 question to an earlier revision or disposition.
 
 ```bash
-rea analyze /absolute/path/to/program --provider ghidra --snapshot /absolute/path/to/analysis/program.json
+xtna analyze /absolute/path/to/program --provider ghidra --snapshot /absolute/path/to/analysis/program.json
 # Repeat the same query to reuse its saved result.
-rea analyze /absolute/path/to/program --provider ghidra --snapshot /absolute/path/to/analysis/program.json
+xtna analyze /absolute/path/to/program --provider ghidra --snapshot /absolute/path/to/analysis/program.json
 ```
 
 An exact CLI cache hit is normally read before starting a provider process.
@@ -743,12 +743,12 @@ user permissions; consult the chosen guide for host requirements and effects.
 
 ## Serve MCP over streamable HTTP
 
-`rea mcp` speaks stdio to the client that launched it. To serve the same MCP
+`xtna mcp` speaks stdio to the client that launched it. To serve the same MCP
 catalog over streamable HTTP for one local client, such as an agent environment
 runtime, start the dispatcher entry with `--http`:
 
 ```sh
-rea mcp --http --port 8765
+xtna mcp --http --port 8765
 ```
 
 `--host` and `--port` default to `MCP_HOST` and `MCP_PORT` from the environment,
@@ -757,14 +757,14 @@ then to `127.0.0.1` and an ephemeral port. A bind outside loopback requires
 names or IP addresses without URLs or ports. For example:
 
 ```sh
-rea mcp --http --host 0.0.0.0 --allowed-hosts 127.0.0.1,rea.lan
+xtna mcp --http --host 0.0.0.0 --allowed-hosts 127.0.0.1,rea.lan
 ```
 
 Requests with a different `Host` or browser `Origin` receive `403`; a missing
 `Origin` is accepted. The announced client URL uses the bound hostname when
 admitted, otherwise the first declared hostname, with the actual bound port.
 It is written to stderr as one JSON log line (`"msg":"MCP transport listening"`) whatever `REA_LOG_LEVEL`
-is set to; nothing is written to stdout. `rea mcp --http --help` lists the accepted options. The listener serves
+is set to; nothing is written to stdout. `xtna mcp --http --help` lists the accepted options. The listener serves
 one client at a time: a session ends with the client's `DELETE`, and a client
 that connects while another session is open takes it over, so a client that
 exited without ending its session needs no restart. The listener runs until
@@ -800,11 +800,11 @@ member is `{"served": true, "evidence_id": …}`,
 rea environment-serve manifest.json --evidence capture.json --port 8765
 ```
 
-`--host` and `--port` resolve like `rea mcp --http`: flags, then `MCP_HOST` and
+`--host` and `--port` resolve like `xtna mcp --http`: flags, then `MCP_HOST` and
 `MCP_PORT`, then `127.0.0.1` and an ephemeral port. A non-loopback bind requires
 `MCP_ALLOWED_HOSTS` with the same hostname rules and Host/Origin gates as above.
 `environment-serve` uses this environment setting; `--allowed-hosts` belongs to
-`rea mcp --http`. For example:
+`xtna mcp --http`. For example:
 
 ```sh
 MCP_ALLOWED_HOSTS=127.0.0.1,rea.lan rea environment-serve manifest.json --evidence capture.json --host 0.0.0.0
@@ -859,12 +859,12 @@ rea environment-export manifest.json --evidence capture.json ./grafana-example -
 ```
 
 The folder holds a `README.md` with the bundle's provenance, an env folder
-`envs/<name>/` with a `Dockerfile` that installs this exact `rea-agents`
+`envs/<name>/` with a `Dockerfile` that installs this exact `xtna`
 version and serves the copied `manifest.json` and `evidence.json` (written
 with mode `0600` on POSIX; Windows retains inherited ACLs) with
 `environment-serve` (from the state by default), a Python verifier under
 `artifacts/check_<name>/` that checks the served tool count and one served
-answer, and the smoke task `tasks/smoke.json`. `--package-tarball` copies a packed `rea-agents`
+answer, and the smoke task `tasks/smoke.json`. `--package-tarball` copies a packed `xtna`
 tarball into the env folder and installs it instead of the registry package,
 which is how the hosted lane proves a checkout rather than a release. `--name`
 replaces the manifest's kebab-case name as the env folder and env id; a device
@@ -893,19 +893,19 @@ rea environment-compare manifest.json --evidence capture.json --probe probe.json
 
 ## Report version and runtime
 
-`rea --version` prints the package version. Add an output format to get the
+`xtna --version` prints the package version. Add an output format to get the
 version with the runtime and platform context that a support request needs:
 
 Version reports do not initialize analysis providers. Invalid global settings
 or output options still report their usual errors.
 
 ```bash
-rea --version --json
+xtna --version --json
 ```
 
 ```json
 {
-  "name": "rea-agents",
+  "name": "xtna",
   "version": "6.7.0",
   "runtime": { "id": "node", "version": "24.22.1" },
   "platform": "linux",
@@ -917,15 +917,15 @@ rea --version --json
 }
 ```
 
-| Field                                | Meaning                                                                                                        |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `name`, `version`                    | Published package name and version; `version` matches plain `--version`.                                       |
-| `runtime.id`                         | `node` or `bun`.                                                                                               |
-| `runtime.version`                    | Version of that runtime.                                                                                       |
-| `runtime.node_compatibility_version` | Bun only: the Node.js version it reports compatibility with.                                                   |
-| `platform`, `architecture`           | Node.js `process.platform` and `process.arch`, such as `linux` and `x64`.                                      |
-| `supported_runtime.range`            | Supported Node.js range.                                                                                       |
-| `supported_runtime.satisfied`        | Whether this runtime is supported, judged as `rea doctor` judges it; Bun by its Node.js compatibility version. |
+| Field                                | Meaning                                                                                                         |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `name`, `version`                    | Published package name and version; `version` matches plain `--version`.                                        |
+| `runtime.id`                         | `node` or `bun`.                                                                                                |
+| `runtime.version`                    | Version of that runtime.                                                                                        |
+| `runtime.node_compatibility_version` | Bun only: the Node.js version it reports compatibility with.                                                    |
+| `platform`, `architecture`           | Node.js `process.platform` and `process.arch`, such as `linux` and `x64`.                                       |
+| `supported_runtime.range`            | Supported Node.js range.                                                                                        |
+| `supported_runtime.satisfied`        | Whether this runtime is supported, judged as `xtna doctor` judges it; Bun by its Node.js compatibility version. |
 
 The field names are stable. The report contains no paths, environment values,
 user or host names, and it starts no provider and reads no target. `--format`
@@ -935,7 +935,7 @@ takes precedence. With other output controls, `--version` keeps its existing
 behavior: valid controls such as `--filter-output` or `--full-output` print the
 plain version, and invalid combinations report the usual output-flag error,
 such as `UNSUPPORTED_OUTPUT_COMBINATION` for `--json` with `--token-limit`. Use
-`rea doctor` for provider and host readiness.
+`xtna doctor` for provider and host readiness.
 
 ## Output and exit status
 
@@ -943,7 +943,7 @@ Commands reject surplus positional arguments before execution, including command
 that accept no positionals. Use `rea <command> --help` for the declared argument
 shape; a final variadic argument continues to accept multiple values.
 
-`rea mcp doctor --json` checks production MCP startup and reports child logs in
+`xtna mcp doctor --json` checks production MCP startup and reports child logs in
 `diagnostics`. It drains stderr while retaining at most its first 64 KiB of raw
 bytes as text, omitting a final UTF-8 code point if it crosses that byte limit.
 `stderr_bytes` counts all observed bytes, including omitted output;
@@ -1001,7 +1001,7 @@ the CLI result should use JSON; either argument order is accepted.
 | `1`       | The operation could not complete. Structured output identifies invalid input, permissions, cancellation, timeouts or another failure when available.                                                                                                                                                                                                                                   |
 | `128 + N` | Signal-derived status. An unhandled signal may have ended the process, with the shell or runtime preserving the conventional status; a command may instead have handled the signal, waited for its operation and cleanup to settle, and assigned the same status (`130` for SIGINT, `143` for SIGTERM). In the handled case, it may also have printed a structured `cancelled` result. |
 
-`rea mcp --http` is long-running and prints no structured result. It exits
+`xtna mcp --http` is long-running and prints no structured result. It exits
 `130` on SIGINT or `143` on SIGTERM after closing the listener, the session and
 its providers, and `1` when that cleanup fails.
 
@@ -1087,7 +1087,7 @@ REA's failure status:
 
 ```bash
 set -o pipefail
-rea inspect-artifact ./app.asar --json | jq . > inspection.json
+xtna inspect-artifact ./app.asar --json | jq . > inspection.json
 ```
 
 `--token-count` reports a tokenx estimate for the selected emitted document,
@@ -1108,14 +1108,14 @@ selected phandle references. See [devicetree inspection](devicetree.md) for
 limits and retained-view pagination.
 
 ```bash
-rea inspect-devicetree /artifacts/board.dtb --json
-rea inspect-devicetree /artifacts/board.dtb --detail summary --evidence_output /artifacts/board-evidence.json --json
+xtna inspect-devicetree /artifacts/board.dtb --json
+xtna inspect-devicetree /artifacts/board.dtb --detail summary --evidence_output /artifacts/board-evidence.json --json
 ```
 
 ### PE TLS and load configuration
 
 ```sh
-rea inspect-pe-load-config /absolute/path/to/application.exe --json
+xtna inspect-pe-load-config /absolute/path/to/application.exe --json
 ```
 
 Reports TLS callbacks and size-covered load-config fields without execution.

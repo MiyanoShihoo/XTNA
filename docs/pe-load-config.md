@@ -5,8 +5,8 @@ configuration of an explicit local PE32 or PE32+ image. No disassembler, Windows
 host, or target execution is required.
 
 ```sh
-rea inspect-pe-load-config /absolute/path/to/application.exe --json
-rea inspect-pe-load-config /absolute/path/to/application.exe --max-callbacks 256 --json
+xtna inspect-pe-load-config /absolute/path/to/application.exe --json
+xtna inspect-pe-load-config /absolute/path/to/application.exe --max-callbacks 256 --json
 ```
 
 MCP accepts `{ "path": "/absolute/path/to/application.exe" }`. CLI paths may be

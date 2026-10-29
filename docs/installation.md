@@ -14,7 +14,7 @@ Setup previews configuration changes and asks for approval before applying them.
 ## Start setup
 
 ```bash
-npx rea-agents setup
+npx xtna setup
 ```
 
 Choose the agents to configure, review the proposed paths and changes, and
@@ -28,13 +28,13 @@ During package resolution, npm may print a deprecation warning for `prebuild-ins
 from transitive native dependencies (such as Frida). This warning originates from
 the upstream dependency tree and does not affect REA or indicate setup failure.
 
-For the latest published release, use `npx rea-agents@latest setup`.
+For the latest published release, use `npx xtna@1.0.0 setup`.
 [Package-runner and global-installation options](#package-runners-and-global-installation)
 cover explicit versions, Bun, runtime requirements, and the curl wrapper.
 
 ## Review setup changes
 
-`rea setup` first offers the supported agents in a multi-select. Existing REA
+`xtna setup` first offers the supported agents in a multi-select. Existing REA
 registrations are selected by default. Newly detected clients remain available
 but unselected: detection gives setup context, not permission to add a new
 registration. Clients without a detected configuration can still be selected.
@@ -126,7 +126,7 @@ even when an explicit client is not detected. Each client is configured once.
 with status `planned` and exit code 0:
 
 ```bash
-rea setup --client codex --client cursor --skill=false --dry-run
+xtna setup --client codex --client cursor --skill=false --dry-run
 ```
 
 Prompt UI and progress are written to stderr so stdout remains available for
@@ -136,8 +136,8 @@ interactive setup requires stdin, stdout, and stderr to all be terminals; when
 any stream is redirected, setup stays non-interactive. Declining or cancelling
 returns status `cancelled` with exit code 0.
 
-For automation, `rea setup --json` reports the plan and a compact `.doctor`
-readiness projection without applying it. Use `rea doctor --json` for full
+For automation, `xtna setup --json` reports the plan and a compact `.doctor`
+readiness projection without applying it. Use `xtna doctor --json` for full
 health diagnostics and canonical tool catalog details. Pair
 `--yes` with explicit scope such as `--client codex`, or use
 `--all-detected` when the broad scope is intended. Without a scope flag,
@@ -147,7 +147,7 @@ exits 1. Installing missing Hopper non-interactively additionally requires
 `--install-hopper`:
 
 ```bash
-rea setup --yes --all-detected --install-hopper --json
+xtna setup --yes --all-detected --install-hopper --json
 ```
 
 Client configuration writes detect changes to the file read by setup, including
@@ -197,7 +197,7 @@ These checks do not lock out another writer modifying the same inode or exclude
 pathname changes between the last check and publication. Avoid editing managed
 skill files or running another installer while setup applies them.
 
-`rea setup --skill-client claude_code --yes --json` refreshes and verifies the
+`xtna setup --skill-client claude_code --yes --json` refreshes and verifies the
 selected skill destination independently of MCP registration selection. The
 final `doctor.scope.skill_clients` records which skill destinations were
 checked; `doctor.scope.clients` continues to describe required registrations.
@@ -237,7 +237,7 @@ skill remain active in other projects. Back up the default configuration and
 REA skill first, then, with `CLAUDE_CONFIG_DIR` unset, remove the REA user
 registration with `claude mcp remove --scope user rea` and remove the known
 REA-installed `~/.claude/skills/reverse-engineer-anything` directory. Preserve
-unrelated registrations and skills. `rea uninstall` applies to other clients
+unrelated registrations and skills. `xtna uninstall` applies to other clients
 as well, so it is broader than this Claude-only migration.
 
 **A separate Claude Code profile.** Claude Code keeps settings, skills and session
@@ -248,7 +248,7 @@ For REA setup, an empty `CLAUDE_CONFIG_DIR` is treated as unset: registration
 goes to `~/.claude.json` and the skill goes to `~/.claude/skills`.
 
 ```bash
-CLAUDE_CONFIG_DIR=~/.claude-rea npx rea-agents setup --client claude_code
+CLAUDE_CONFIG_DIR=~/.claude-rea npx xtna setup --client claude_code
 CLAUDE_CONFIG_DIR=~/.claude-rea claude
 ```
 
@@ -264,13 +264,13 @@ environment and can otherwise inspect or recreate default-profile state:
 
 ```bash
 CLAUDE_CONFIG_DIR=~/.claude-rea claude mcp list
-CLAUDE_CONFIG_DIR=~/.claude-rea npx rea-agents doctor --client claude_code --skill --json
-CLAUDE_CONFIG_DIR=~/.claude-rea npx -y rea-agents@latest setup --client claude_code --dry-run
+CLAUDE_CONFIG_DIR=~/.claude-rea npx xtna doctor --client claude_code --skill --json
+CLAUDE_CONFIG_DIR=~/.claude-rea npx -y xtna@1.0.0 setup --client claude_code --dry-run
 ```
 
 After reviewing an update plan, rerun that same prefixed setup command without
 `--dry-run` and approve its exact changes. Profile removal likewise needs the
-prefix on `claude mcp remove --scope user rea` and any `rea uninstall` command;
+prefix on `claude mcp remove --scope user rea` and any `xtna uninstall` command;
 keep the broader client scope of uninstall in mind. Restart the selected
 profile after changing its pinned registration.
 
@@ -288,10 +288,10 @@ restore the previous selection afterward:
 $previousClaudeConfigDir = $env:CLAUDE_CONFIG_DIR
 try {
   $env:CLAUDE_CONFIG_DIR = Join-Path $HOME ".claude-rea"
-  npx rea-agents setup --client claude_code
+  npx xtna setup --client claude_code
   claude mcp list
-  npx rea-agents doctor --client claude_code --skill --json
-  npx -y rea-agents@latest setup --client claude_code --dry-run
+  npx xtna doctor --client claude_code --skill --json
+  npx -y xtna@1.0.0 setup --client claude_code --dry-run
   # After reviewing the plan, repeat setup without --dry-run and approve it.
   claude
   # Profile removal, when intended, also belongs inside this selected scope:
@@ -327,14 +327,14 @@ Register with the variable unset:
 <!-- x-release-please-start-version -->
 
 ```bash
-claude mcp add --scope local rea -- npx -y rea-agents@6.8.0 mcp
+claude mcp add --scope local rea -- npx -y xtna@1.0.0 mcp
 ```
 
 On native Windows, use the same project directory and wrap the package-runner
 shim so the stdio client can launch it:
 
 ```powershell
-claude mcp add --scope local rea -- cmd.exe /d /c npx -y rea-agents@6.8.0 mcp
+claude mcp add --scope local rea -- cmd.exe /d /c npx -y xtna@1.0.0 mcp
 ```
 
 <!-- x-release-please-end -->
@@ -342,10 +342,10 @@ claude mcp add --scope local rea -- cmd.exe /d /c npx -y rea-agents@6.8.0 mcp
 Local scope stores the entry under that directory's path in `~/.claude.json`,
 so other projects don't load it. This route doesn't install the bundled skill.
 Avoid `--scope project`, which writes `.mcp.json` into the repository where it
-can be committed or copied. `rea doctor` and `rea uninstall` read only the
+can be committed or copied. `xtna doctor` and `xtna uninstall` read only the
 user-level entry, so they don't report or remove a local-scope registration;
 remove it with `claude mcp remove --scope local rea` from the same directory.
-`rea update` doesn't refresh it either, so it stays on the version it names.
+`xtna update` doesn't refresh it either, so it stays on the version it names.
 To move it to a newer release, first back up the project entry in
 `~/.claude.json` and record its environment and other metadata. In particular,
 preserve caller-selected overrides such as `REA_MCP_INPUT_SCHEMA_PROFILE` and
@@ -363,7 +363,7 @@ with the default profile with `CLAUDE_CONFIG_DIR` unset. For local scope, run
 
 ## Check readiness for your task
 
-Run `rea doctor` when you need diagnosis. It reads host prerequisites and agent
+Run `xtna doctor` when you need diagnosis. It reads host prerequisites and agent
 configuration without changing them. Without options, it audits every detected
 registration, the installed skill and optional analysis engines; its overall
 `healthy` value can be false while your chosen workflow works.
@@ -379,12 +379,12 @@ a particular caller-supplied input will be valid. See
 
 Select the part you want to check:
 
-| Task                                | Readiness check                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------ |
-| Static JavaScript/Electron analysis | Run `rea analyze-javascript-application PATH --json` directly.           |
-| One analysis engine                 | `rea doctor --provider ghidra --json` (or `hopper`, `ida`)               |
-| One agent registration              | `rea doctor --client codex --json` (see [client IDs](#supported-agents)) |
-| Installed workflow instructions     | `rea doctor --skill --json`                                              |
+| Task                                | Readiness check                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| Static JavaScript/Electron analysis | Run `xtna analyze-javascript-application PATH --json` directly.           |
+| One analysis engine                 | `xtna doctor --provider ghidra --json` (or `hopper`, `ida`)               |
+| One agent registration              | `xtna doctor --client codex --json` (see [client IDs](#supported-agents)) |
+| Installed workflow instructions     | `xtna doctor --skill --json`                                              |
 
 A scoped report has `scope.mode: "explicit"`. Its `scope_checks` determine
 `healthy` and the exit status. Other checks appear in `informational_checks`;
@@ -429,12 +429,12 @@ their own status. `open_binary` keeps the refusal described above.
 
 ## Diagnose, update, and remove
 
-`rea doctor --json` is strictly read-only. `rea update` updates only the npm or Bun global installation that owns the running CLI. Source checkouts and package-runner copies must be updated through the mechanism that owns them; a fresh package-runner invocation can use `npx rea-agents@latest` or `bunx rea-agents@latest`. `rea uninstall` removes only REA-owned agent registrations and skill files; `--purge-data` additionally removes REA cache and state paths.
+`xtna doctor --json` is strictly read-only. `xtna update` updates only the npm or Bun global installation that owns the running CLI. Source checkouts and package-runner copies must be updated through the mechanism that owns them; a fresh package-runner invocation can use `npx xtna@1.0.0` or `bunx xtna@1.0.0`. `xtna uninstall` removes only REA-owned agent registrations and skill files; `--purge-data` additionally removes REA cache and state paths.
 
 ```bash
-rea update
-rea uninstall
-rea uninstall --purge-data
+xtna update
+xtna uninstall
+xtna uninstall --purge-data
 ```
 
 Uninstall preserves Hopper, Node.js, Evidence files, captures, unrelated skills
@@ -488,7 +488,7 @@ entry:
    ```
 
    Replace `REA_CACHE_KEY` with the key from the failing `_npx` path. Check that
-   `info` reports that location and the expected `rea-agents` version. Its
+   `info` reports that location and the expected `xtna` version. Its
    `valid` label describes the cache entry metadata, not the presence of every
    installed file. These subcommands require npm with `cache npx` support.
 
@@ -497,7 +497,7 @@ entry:
 
    ```powershell
    npm.cmd cache npx rm REA_CACHE_KEY
-   npx.cmd --yes rea-agents@6.7.0 doctor --json
+   npx.cmd --yes xtna@6.7.0 doctor --json
    ```
 
    Keep the key argument: this recovery does not require clearing all npm caches
@@ -517,7 +517,7 @@ Read-only metadata and version checks time out after 10 seconds. This does not
 interrupt a package installation already in progress. If a probe cannot be
 stopped, the updater reports a cleanup failure.
 
-`rea update` installs the exact resolved
+`xtna update` installs the exact resolved
 release into the npm prefix or Bun global directory that owns the running
 package, then checks the new executable's version before reporting success.
 That verification covers the CLI version; it does not establish readiness of
@@ -571,7 +571,7 @@ release containing changes after this checkpoint is required for newer
 functionality. Package startup alone does not verify a provider's real
 platform workflow.
 
-To check the published version, run `npm view rea-agents dist-tags.latest`.
+To check the published version, run `npm view xtna dist-tags.latest`.
 Use the connected server's actual tool list and advertised input schemas for
 feature selection. The same package version string in a development checkout
 does not establish that its bytes match the npm tarball. Update a registration
@@ -599,7 +599,7 @@ and the release boundary above. Static JavaScript CLI inspection can proceed
 while MCP is unavailable:
 
 ```bash
-npx -y rea-agents@latest analyze-javascript-application /absolute/path/to/app --json
+npx -y xtna@1.0.0 analyze-javascript-application /absolute/path/to/app --json
 ```
 
 It returns the complete Evidence record directly and requires no native engine.
@@ -641,9 +641,9 @@ hosted connector; see [its configuration](client-configuration.md#other-client-s
 | FreeBuff           | `freebuff`       |
 
 `droid`, `dsh`, `kimi`, `qoder`, `trae`, `workbuddy`, and `zcode` require
-`rea-agents@6.5.0` or later. The 6.4.0 registry check above does not cover them.
-`freebuff` requires `rea-agents@6.8.0` or later. Older releases reject
-`rea setup --client freebuff` as an unsupported client.
+`xtna@6.5.0` or later. The 6.4.0 registry check above does not cover them.
+`freebuff` requires `xtna@1.0.0` or later. Older releases reject
+`xtna setup --client freebuff` as an unsupported client.
 
 See [client configuration and troubleshooting](client-configuration.md) for
 configuration paths, profiles, trust policies, and schema-limit workarounds.
@@ -754,7 +754,7 @@ desktop display. Unattended package-manager access requires
 mount, REA first verifies the conflict and then uses an unprivileged user and
 mount namespace with a private mode-1777 tmpfs over that directory only. The
 host mount and the rest of `/tmp` remain unchanged; this fallback never invokes
-`sudo`. `rea doctor --provider hopper --json` reports the selected
+`sudo`. `xtna doctor --provider hopper --json` reports the selected
 strategy and both host and effective mount facts.
 
 Hopper also embeds Python; the Python executable and standard library alone
@@ -765,7 +765,7 @@ APT resolves the concrete package (for example, `libpython3.12t64` on Ubuntu
 24.04). Doctor includes these fresh observations in the `embedded_python`
 details of its `hopper-demo-runtime` check, alongside the private-display
 diagnostic. Failed inspections remain unknown rather than proving a library
-absent. Run `rea setup --yes --install-hopper` to repair a supported install.
+absent. Run `xtna setup --yes --install-hopper` to repair a supported install.
 This prerequisite check does not launch the bridge or validate a custom Python
 interpreter configured inside Hopper; that interpreter needs its own matching
 shared runtime. Custom installation prefixes or shared-library ABIs require
@@ -778,7 +778,7 @@ registrations and skill, then reports `needs_human` with the Hopper failure. On
 Arch Linux and CachyOS, the unversioned compatibility package `zlib-ng-compat`
 may conflict with Hopper's versioned `zlib` dependency. Resolve the package
 conflict yourself, install Hopper's official package manually, or use another
-provider such as Ghidra; rerun `rea setup` after installing Hopper.
+provider such as Ghidra; rerun `xtna setup` after installing Hopper.
 
 If setup cannot finish releasing its resources, a normally returned structured
 result reports `needs_human` and includes `cleanup.reason` with the identified
@@ -814,9 +814,9 @@ sessions before removing that recovery directory and retrying.
 ### Launcher paths and troubleshooting
 
 On macOS, REA checks executable Hopper launchers in this order: the canonical
-system application, the canonical application installed by `rea setup` under
+system application, the canonical application installed by `xtna setup` under
 `~/Applications`, then other `Hopper*.app` bundles in `/Applications` and
-`~/Applications`. The Homebrew cask location is an optional `rea doctor`
+`~/Applications`. The Homebrew cask location is an optional `xtna doctor`
 diagnostic; to use a Homebrew-installed launcher for CLI/MCP startup, set
 `HOPPER_LAUNCHER_PATH` to the path reported by doctor. REA does not run Homebrew
 while loading runtime configuration.
@@ -825,13 +825,13 @@ and skips directories.
 On Linux, it prefers executable `/opt/hopper/bin/Hopper`, then executable
 `~/.local/share/rea/hopper/bin/Hopper`, followed by `/opt/hopper-v4/bin/hopper`
 and `/usr/bin/hopper`; if none exists, `/opt/hopper/bin/Hopper` remains the
-diagnostic fallback. `rea doctor` checks only the current platform's candidates, in the
+diagnostic fallback. `xtna doctor` checks only the current platform's candidates, in the
 same order; other platforms have no automatic candidates.
 `HOPPER_LAUNCHER_PATH` overrides those choices:
 
 ```bash
 export HOPPER_LAUNCHER_PATH=/absolute/path/to/Hopper
-rea doctor --provider hopper --json
+xtna doctor --provider hopper --json
 ```
 
 Hopper startup allows 120,000 ms for launch, initial analysis, and authenticated
@@ -977,7 +977,7 @@ starting an unattended job. Ephemeral macOS runners therefore need a
 pre-provisioned user session or a deliberate interactive bootstrap step.
 
 When Hopper cannot start in CI, run
-`rea doctor --provider hopper --json` in the failing runner.
+`xtna doctor --provider hopper --json` in the failing runner.
 Structured failures distinguish private-display dependencies, an unsupported
 demo dialog or build, process-ownership conflicts, and an early lifecycle exit.
 If a private-display probe times out or is cancelled and its process cleanup
@@ -1064,8 +1064,8 @@ Extract Ghidra and install the JDK outside REA, then export absolute paths:
 ```bash
 export GHIDRA_INSTALL_DIR=/absolute/path/to/ghidra_12.1.4_PUBLIC
 export JAVA_HOME=/absolute/path/to/jdk-21 # optional if java/javac are on PATH
-rea doctor --json
-rea setup
+xtna doctor --json
+xtna setup
 ```
 
 On macOS, [Homebrew OpenJDK is keg-only](https://formulae.brew.sh/formula/openjdk)
@@ -1086,21 +1086,21 @@ On Windows, configure the existing installation in PowerShell:
 ```powershell
 $env:GHIDRA_INSTALL_DIR = "C:\tools\ghidra_12.1.4_PUBLIC"
 $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
-rea doctor --json
-rea providers --json
+xtna doctor --json
+xtna providers --json
 ```
 
-`rea setup` can configure supported Windows agents and install the bundled
+`xtna setup` can configure supported Windows agents and install the bundled
 REA skill after approval. Direct registrations use Node to launch REA's entry
 script; package-runner registrations use the pinned `npx` or `bunx` command. Hopper
 installation remains unavailable on Windows. Setup never installs Ghidra,
 Java, or Python. It preserves valid detected Ghidra/JDK settings in agent
 registrations. See [Windows Ghidra P0](windows-ghidra-p0.md) for provider diagnostics.
 
-The separate `rea mcp add` builtin currently uses Incur's package-runner child
+The separate `xtna mcp add` builtin currently uses Incur's package-runner child
 launcher, which can fail on Windows with `MCP_ADD_FAILED: spawn npx ENOENT`
 before registering a client. REA's setup path is unaffected. For a client supported
-by setup, review `rea setup --client opencode --skill=false --dry-run --json`
+by setup, review `xtna setup --client opencode --skill=false --dry-run --json`
 (substitute its client ID), then use the same scoped command without `--dry-run`
 and approve the displayed plan. Non-interactive application additionally needs
 `--yes`. This configures setup's user-level client location; it does not replace
@@ -1222,7 +1222,7 @@ by that server.
 For a CLI retry with an example 30-minute allowance:
 
 ```sh
-REA_GHIDRA_STARTUP_TIMEOUT_MS=1800000 rea analyze /absolute/path/to/app.exe --provider ghidra --json
+REA_GHIDRA_STARTUP_TIMEOUT_MS=1800000 xtna analyze /absolute/path/to/app.exe --provider ghidra --json
 ```
 
 For MCP, update the runtime setting and resolve any retained cleanup before the
@@ -1263,7 +1263,7 @@ value for newly accepted operations on the existing Program; explicit `null`
 removes the deadline. A transient timeout remains uncached so the same function
 can be retried after an update. See the
 [settings design](design/limits-and-recovery.md#runtime-settings-through-mcp).
-Codex/Kimi registrations derived by `rea setup` add the selected launch value
+Codex/Kimi registrations derived by `xtna setup` add the selected launch value
 to the tool deadline as a single-decompile estimate; a runtime update does not
 change that registration. A bulk call can need that limit for
 every attempted function plus listing and file work; select the client deadline
@@ -1274,7 +1274,7 @@ pseudocode is never treated as original source or Hopper-equivalent text.
 
 ### Missing macOS native decompiler
 
-If `rea doctor --json` reports `native_decompiler` as missing on macOS x64,
+If `xtna doctor --json` reports `native_decompiler` as missing on macOS x64,
 the extracted Ghidra archive may include the decompiler source without the
 macOS executable. For Ghidra 12.1.4, you can build it manually with an existing
 Xcode Command Line Tools installation, `make`, and `bison`:
@@ -1286,7 +1286,7 @@ decompiler_dir="$GHIDRA_INSTALL_DIR/Ghidra/Features/Decompiler/os/mac_x86_64"
 mkdir -p "$decompiler_dir"
 test ! -e "$decompiler_dir/decompile" && test ! -L "$decompiler_dir/decompile" &&
   install -m 755 ghidra_opt "$decompiler_dir/decompile"
-rea doctor --json
+xtna doctor --json
 ```
 
 The copy step requires the destination to be absent and preserves an existing
@@ -1313,13 +1313,13 @@ decompiler_dir="$GHIDRA_INSTALL_DIR/Ghidra/Features/Decompiler/os/mac_arm_64"
 mkdir -p "$decompiler_dir"
 test ! -e "$decompiler_dir/decompile" && test ! -L "$decompiler_dir/decompile" &&
   install -m 755 ghidra_opt "$decompiler_dir/decompile"
-rea doctor --json
+xtna doctor --json
 ```
 
 Verified end to end on macOS 15.6 arm64 with Apple clang 17 and the stock
 bison 2.3, against Ghidra 12.1.4: the build produces a Mach-O arm64
 `ghidra_opt`, the doctor check `ghidra-native_decompiler` turns healthy with
-"reports mach-o arm64, which matches darwin/arm64", and `rea decompile` on an
+"reports mach-o arm64, which matches darwin/arm64", and `xtna decompile` on an
 arm64 Mach-O returns decompiled C through the headless provider. The JDK is
 not needed for the make step, only for the Ghidra provider. If your toolchain
 rejects the inherited `-mmacosx-version-min=10.6` flag, retry the make with
@@ -1338,11 +1338,11 @@ directory must be present; restore `.grez` archives with Ghidra first.
 export REA_ANALYSIS_PROVIDER=ghidra
 export REA_GHIDRA_PROJECT_PATH=/absolute/projects/app-analysis.gpr
 export REA_GHIDRA_PROGRAM_NAME=app
-rea decompile /absolute/target/app --procedure entry --provider ghidra --json
+xtna decompile /absolute/target/app --procedure entry --provider ghidra --json
 ```
 
 Set the same variables in the MCP server environment and restart/reconnect;
-`open_binary` still selects the original target file. `rea setup` retains these
+`open_binary` still selects the original target file. `xtna setup` retains these
 explicit settings in a saved registration. Fresh import remains the default
 when the project setting is absent. This route supports native ELF, PE and
 Mach-O programs on POSIX without provider-pinned import preparation; Windows,
@@ -1555,7 +1555,7 @@ Ghidra/JDK installation; neither is inferred from startup alone.
 ## MCP Registry
 
 REA is published in the official MCP Registry as `io.github.morluto/rea`. Registry
-clients can discover the server and install the existing public `rea-agents` npm
+clients can discover the server and install the existing public `xtna` npm
 package; the Registry entry does not introduce a second distribution artifact.
 
 For a client that supports Registry discovery, search for `io.github.morluto/rea`
@@ -1579,8 +1579,8 @@ For a client that requires manual configuration, use:
 
 <!-- x-release-please-end -->
 
-Persistent registrations should use one exact package version. `rea setup`
-writes the same package-runner shape, or `bunx rea-agents@<version> mcp` when
+Persistent registrations should use one exact package version. `xtna setup`
+writes the same package-runner shape, or `bunx xtna@<version> mcp` when
 setup runs through `bunx`, and pins it to the exact version that performed
 setup. Run current setup to refresh an older registration, then restart the
 client.
@@ -1598,7 +1598,7 @@ A package-runner invocation can use a REA version installed in the current proje
 request the latest release explicitly, use:
 
 ```bash
-npx rea-agents@latest setup
+npx xtna@1.0.0 setup
 ```
 
 REA runs the version npm selects. To update older agent registrations, run the
@@ -1609,23 +1609,23 @@ setup changes.
 For an intentional rollback, make the package request explicit:
 
 ```bash
-npm exec --yes --package=rea-agents@2.4.0 -- rea setup
+npm exec --yes --package=xtna@2.4.0 -- xtna setup
 ```
 
 Setup continues to pin persistent MCP registrations to the exact version that
 performed setup. Running current setup later migrates unversioned or older
 managed registrations through the normal reviewed setup transaction.
 
-With Bun, `bunx rea-agents setup` (or `bunx rea-agents@latest setup`) is the
+With Bun, `bunx xtna setup` (or `bunx xtna@1.0.0 setup`) is the
 equivalent entry point. Setup run through `npx` registers
-`npx -y rea-agents@<version> mcp`; setup run through `bunx` or `bun x` registers
-`bunx rea-agents@<version> mcp`. On Windows, setup wraps either command in
+`npx -y xtna@<version> mcp`; setup run through `bunx` or `bun x` registers
+`bunx xtna@<version> mcp`. On Windows, setup wraps either command in
 `cmd.exe /d /c` so clients can start the runner's command shim. Neither
 registration points into the runner's temporary package cache.
 
 REA supports Node.js 22.x (>=22.23.4), 24.x (>=24.22.1), and 26.12.1+. Node.js 23, 25, earlier 26.x releases, and prereleases are unsupported. It uses the npm already paired with that runtime and never upgrades Node.js, npm, or Homebrew.
 
-When REA runs on Bun, the `rea doctor` `node` check reports the Bun version and
+When REA runs on Bun, the `xtna doctor` `node` check reports the Bun version and
 the Node.js compatibility version Bun declares, and passes when that
 compatibility version is in the supported range. Bun does not enforce the V8
 heap flags REA gives its owned helper processes, so Evidence that reports those
@@ -1637,25 +1637,25 @@ the matching bundled Windows native artifact; an artifact without the control
 refuses to start the helper rather than running it unlimited. CI tests Node.js
 only.
 
-Running `npm install rea-agents` without `--global` installs the executable only
+Running `npm install xtna` without `--global` installs the executable only
 in the current project's `node_modules/.bin`; it does not make `rea` available
 on the shell `PATH`. Use the setup command above for the guided setup
-journey, `npx -y rea-agents@latest` for unattended one-off commands, or install globally
-with `npm install --global rea-agents` for a shell-visible `rea` command.
+journey, `npx -y xtna@1.0.0` for unattended one-off commands, or install globally
+with `npm install --global xtna` for a shell-visible `rea` command.
 
 For many concurrent agent sessions, run setup directly from a global installation
 to avoid keeping a separate npm launcher process for each MCP connection:
 
 ```bash
-npm install --global rea-agents
-rea setup
+npm install --global xtna
+xtna setup
 ```
 
 Review the plan, approve the selected client changes, then restart those clients.
 This registers the installed entrypoint directly; installing the global package
 alone does not replace existing `npx` registrations. Each client still has its own
 REA process and analysis state. Direct registrations follow the installed CLI;
-use `rea update` to update it. Running setup through `npx` again selects the pinned
+use `xtna update` to update it. Running setup through `npx` again selects the pinned
 package-runner command. Do not register paths inside npm's temporary package cache.
 
 ### npm workspace errors before REA starts
@@ -1669,7 +1669,7 @@ outside OpenCode as well as through that client's workspace-default launch.
 
 Use the direct global-installation setup flow above to replace the affected
 package-runner registration, then restart the client. If REA is already installed
-globally, run that installed `rea setup --client <client-id> --dry-run`, review
+globally, run that installed `xtna setup --client <client-id> --dry-run`, review
 the direct launcher in the plan, and apply the approved scope. Installing a
 global copy alone does not change an existing registration. Keep the client's
 working directory: changing it to bypass npm inspection can change the meaning
@@ -1684,7 +1684,7 @@ The optional curl wrapper installs only the global npm package:
 curl -fsSL https://raw.githubusercontent.com/morluto/rea/main/install.sh | bash
 ```
 
-It prints the version, runtime, npm command, and destination before installing. When a controlling terminal exists it starts `rea setup`; otherwise it prints the command to run later.
+It prints the version, runtime, npm command, and destination before installing. When a controlling terminal exists it starts `xtna setup`; otherwise it prints the command to run later.
 
 Pass options with `bash -s --`:
 
@@ -1698,7 +1698,7 @@ version, download its tagged script, and inspect the downloaded file:
 
 ```bash
 rea_version=6.7.0
-curl -fsSL "https://raw.githubusercontent.com/morluto/rea/rea-agents-${rea_version}/install.sh" -o rea-install.sh
+curl -fsSL "https://raw.githubusercontent.com/morluto/rea/xtna-${rea_version}/install.sh" -o rea-install.sh
 less rea-install.sh
 ```
 

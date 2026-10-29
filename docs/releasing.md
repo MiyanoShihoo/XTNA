@@ -356,7 +356,7 @@ tag is an ancestor of main:
 
 ```bash
 git fetch origin main --tags
-git merge-base --is-ancestor rea-agents-5.0.0 origin/main
+git merge-base --is-ancestor xtna-5.0.0 origin/main
 ```
 
 Close the superseded main proposal before merging the synchronization PR.

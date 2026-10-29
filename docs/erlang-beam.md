@@ -7,7 +7,7 @@ It reads the file without executing bytecode and does not require an Erlang
 installation or BEAM emulator.
 
 ```bash
-rea inspect-erlang-beam /absolute/path/to/app.beam --json
+xtna inspect-erlang-beam /absolute/path/to/app.beam --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP
@@ -107,10 +107,10 @@ source's examined chunks and parser budgets.
 CLI summary delivery requires a destination for the complete Evidence bundle:
 
 ```sh
-rea inspect-erlang-beam /artifacts/app.beam --detail summary \
+xtna inspect-erlang-beam /artifacts/app.beam --detail summary \
   --view '{"kind":"beam","collection":"exports","names":["module_info"],"fields":["function","arity"]}' \
   --evidence_output /reports/app-beam.evidence.json --json
-rea inspect-analysis-view '{"source":{"kind":"evidence-file","path":"/reports/app-beam.evidence.json"},"view":{"kind":"beam","collection":"imports","modules":["erlang"]}}' --json
+xtna inspect-analysis-view '{"source":{"kind":"evidence-file","path":"/reports/app-beam.evidence.json"},"view":{"kind":"beam","collection":"imports","modules":["erlang"]}}' --json
 ```
 
 The bundle retains the complete report. Subsequent MCP queries may use

@@ -5,8 +5,8 @@ retained producer evidence. This is an offline operation: recorded URLs are
 never fetched, and no browser or proxy listener is started.
 
 ```sh
-rea inspect-web-network-capture /absolute/session.har har --json
-rea inspect-web-network-capture /absolute/session.har har --record 2 --record 0 --json
+xtna inspect-web-network-capture /absolute/session.har har --json
+xtna inspect-web-network-capture /absolute/session.har har --record 2 --record 0 --json
 ```
 
 ```json
@@ -98,7 +98,7 @@ Native mitmproxy decoding requires a caller-supplied **mitmdump 12.2.3 on
 Linux**. Set its absolute executable path:
 
 ```sh
-REA_MITMDUMP_COMMAND=/absolute/mitmdump rea inspect-web-network-capture /absolute/session.mitm mitmproxy --json
+REA_MITMDUMP_COMMAND=/absolute/mitmdump xtna inspect-web-network-capture /absolute/session.mitm mitmproxy --json
 ```
 
 REA does not install mitmproxy. Its owned process uses a private configuration
@@ -117,8 +117,8 @@ Fiddler Everywhere saves traffic in **Session Archive Zip (`.saz`)** files.
 Inspect native SAZ directly, without installing Fiddler or converting to HAR:
 
 ```sh
-rea inspect-web-network-capture /absolute/session.saz saz --json
-rea inspect-web-network-capture /absolute/session.saz saz --record 0 --json
+xtna inspect-web-network-capture /absolute/session.saz saz --json
+xtna inspect-web-network-capture /absolute/session.saz saz --record 0 --json
 ```
 
 MCP uses the same `capture_path`, `format: "saz"`, and optional
@@ -210,7 +210,7 @@ and previously admitted capture Evidence remains available.
 ```bash
 # Compile your own schema with your existing protoc, including local imports:
 protoc --include_imports --descriptor_set_out=/evidence/api.pb api.proto
-rea inspect-web-network-capture /evidence/session.har har --record 3 \
+xtna inspect-web-network-capture /evidence/session.har har --record 3 \
   --protobuf-schema /evidence/api.pb --protobuf-message example.Response \
   --detail summary --evidence_output /evidence/session-evidence.json --json
 ```
@@ -979,8 +979,8 @@ MCP advertises the same strict named input contract used by the application. His
 Select `format: "qlog"` through `inspect_web_network_capture`, or:
 
 ```bash
-rea inspect-web-network-capture /absolute/origin.qlog qlog --json
-rea inspect-web-network-capture /absolute/origin.qlog qlog --record 95 --record 0 --json
+xtna inspect-web-network-capture /absolute/origin.qlog qlog --json
+xtna inspect-web-network-capture /absolute/origin.qlog qlog --record 95 --record 0 --json
 ```
 
 The initial profile is **aioquic 1.5.0, JSON qlog 0.3**: one JSON object with

@@ -73,7 +73,7 @@ instead of silently discarding them. Preserve an incompatible snapshot and
 choose a new output path when rerunning analysis, for example:
 
 ```bash
-rea analyze /absolute/path/to/program --provider ghidra --snapshot /absolute/path/to/analysis/program-6.2.json
+xtna analyze /absolute/path/to/program --provider ghidra --snapshot /absolute/path/to/analysis/program-6.2.json
 ```
 
 In MCP, open the target without the incompatible `snapshot_path`, run the

@@ -13,6 +13,7 @@
     "_reference/**",
     "third_party/**",
     ".fixtures/**",
+    ".tmp/**",
     ".tmp-provider/**",
     ".verify/**",
     "rea-ghidra-*/**",

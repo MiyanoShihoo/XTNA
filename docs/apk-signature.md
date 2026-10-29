@@ -11,7 +11,7 @@ recomputes the content digest. No Android code executes, and no device or
 CLI and MCP share one workflow and return artifact-bound Evidence inline.
 
 ```sh
-rea inspect-apk-signature /path/app.apk
+xtna inspect-apk-signature /path/app.apk
 ```
 
 ## Selected facts and retained Evidence
@@ -71,7 +71,7 @@ CLI defaults to complete delivery. A compact one-shot response requires a comple
 Evidence export:
 
 ```sh
-rea inspect-apk-signature /path/app.apk --detail summary \
+xtna inspect-apk-signature /path/app.apk --detail summary \
   --view '{"collection":"signers","fields":["certificate_sha256"]}' \
   --evidence_output /path/app-signing-evidence.json --json
 ```

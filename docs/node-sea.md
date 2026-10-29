@@ -6,8 +6,8 @@ REA inventories injected Node.js SEA blobs through `inspect-artifact` /
 or code cache.
 
 ```sh
-rea inspect-artifact ./application --json
-rea inspect-artifact ./application --detail summary --evidence_output evidence.json --json
+xtna inspect-artifact ./application --json
+xtna inspect-artifact ./application --detail summary --evidence_output evidence.json --json
 rea extract-artifact ./application --json
 ```
 

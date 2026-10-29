@@ -1,6 +1,6 @@
 # Captured website module relationships
 
-`trace_web_module_imports` / `rea trace-web-module-imports` traces one script's
+`trace_web_module_imports` / `xtna trace-web-module-imports` traces one script's
 outgoing native ES imports and re-exports from an
 [exported capture](website-script-export.md). It verifies the selected source's
 SHA-256 and byte count, preserves browser URL identities, and returns every
@@ -14,7 +14,7 @@ other hosts have not received this feature's real workflow verification.
 
 ```bash
 REA_BROWSER_EXECUTABLE=/absolute/path/to/chrome \
-  rea trace-web-module-imports /analysis/export/manifest.json 0 \
+  xtna trace-web-module-imports /analysis/export/manifest.json 0 \
   --importer-url 'https://example.test/app/main.js?build=2#entry' \
   --import-map-path /analysis/import-map.json \
   --import-map-base-url https://example.test/maps/ \

@@ -7,7 +7,7 @@ the pefile-compatible import hash of the standard import table. It reads the
 file without executing it and does not require a Windows SDK or disassembler.
 
 ```bash
-rea inspect-pe-imports /absolute/path/to/application.exe --json
+xtna inspect-pe-imports /absolute/path/to/application.exe --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP

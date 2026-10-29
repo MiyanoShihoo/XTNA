@@ -51,7 +51,7 @@ Both give the same binary (SHA-256
 
 ```sh
 rea recover-javascript-sources /tmp/web-scripts/app.js /tmp/recovered-app --json
-rea analyze-javascript-application /tmp/recovered-app/modules --json
+xtna analyze-javascript-application /tmp/recovered-app/modules --json
 
 # Recover related code-split chunks together; repeat --additional-path.
 rea recover-javascript-sources /tmp/web-scripts/main.js /tmp/recovered-chunks \

@@ -98,7 +98,7 @@ cost less overall; prefer compact delivery when the full member graph would
 overwhelm the answer.
 
 ```bash
-rea inspect-artifact /absolute/path/hello --detail summary --evidence_output /absolute/new/evidence.json --json
+xtna inspect-artifact /absolute/path/hello --detail summary --evidence_output /absolute/new/evidence.json --json
 rea extract-artifact /absolute/path/hello --json
 ```
 

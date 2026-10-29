@@ -22,8 +22,8 @@ authority are validated independently before selection and connection.
 ## Shipped surfaces
 
 - `list_browser_targets` / `rea list-browser-targets` discovers all eligible page targets at the endpoint by default, with an optional exact-origin filter.
-- `inspect_web_page` / `rea inspect-web-page` captures DOM structure, accessibility nodes, scripts, resources, safe response/DOM metadata, attach-window network and console metadata, WebSocket frame sizes, workers, quota, and optionally selected storage key names, redacted storage-content fingerprints, or script sources.
-- `analyze_web_bundle` / `rea analyze-web-bundle` parses selected script artifacts without execution and derives chunk edges, route and endpoint candidates, vendor fingerprints, static WebMCP declarations, and optionally source-map/original-source evidence.
+- `inspect_web_page` / `xtna inspect-web-page` captures DOM structure, accessibility nodes, scripts, resources, safe response/DOM metadata, attach-window network and console metadata, WebSocket frame sizes, workers, quota, and optionally selected storage key names, redacted storage-content fingerprints, or script sources.
+- `analyze_web_bundle` / `xtna analyze-web-bundle` parses selected script artifacts without execution and derives chunk edges, route and endpoint candidates, vendor fingerprints, static WebMCP declarations, and optionally source-map/original-source evidence.
 - `observe_web_session` / `rea observe-web-session` arms an observation window of the requested duration for an external user action and records ordered reload, SPA navigation, redirect, failure, lifecycle, and target-termination metadata.
 - `discover_webmcp_tools` / `rea discover-webmcp-tools` uses the experimental CDP WebMCP domain to return observed in-scope registrations and their complete observed `input_schema` declaration and canonical `input_schema_sha256` digest inline. Declarations are untrusted JSON data, including declared types, required fields, enums, examples and reference URLs. REA does not resolve schema references. An omitted optional `inputSchema` is a valid parameterless registration, represented by null schema and digest. These fields replace `input_schema_shape`. Registrations with the same name and URL in distinct observed frames retain separate identities. `tool_key` includes the observed frame ID; it is not a stable identity across navigation or browser sessions. Same-frame registration updates replace that owner only, and removal leaves other owners intact. Declared `readOnly`, `untrustedContent`, `consequential`, and `autosubmit` annotation hints are reported per registration: `true`/`false` are declared values, `null` means the declaration did not provide the hint in that capture, and a missing `consequential` key means the hint was not recorded, either in a historical capture or because the observed annotation was invalid. Consult discovery completeness and exclusions to distinguish these cases. Malformed annotation values or registration stacks retain the registration with incomplete coverage and an `invalid_protocol_value` exclusion. Other malformed protocol payloads can fail discovery explicitly. REA never exposes `WebMCP.invokeTool`.
 
@@ -281,7 +281,7 @@ optional and narrows the target set.
 
 ```bash
 rea list-browser-targets http://127.0.0.1:9222 --json
-rea inspect-web-page http://127.0.0.1:9222 TARGET_ID \
+xtna inspect-web-page http://127.0.0.1:9222 TARGET_ID \
   --observation-ms 1000 \
   --json
 ```
@@ -294,7 +294,7 @@ collection early. `window_elapsed` identifies completion of the requested wait.
 Static bundle analysis and a user-driven observation window are separate operations:
 
 ```bash
-rea analyze-web-bundle http://127.0.0.1:9222 TARGET_ID \
+xtna analyze-web-bundle http://127.0.0.1:9222 TARGET_ID \
   --json
 rea observe-web-session http://127.0.0.1:9222 TARGET_ID \
   --observation-ms 10000 --json
@@ -339,7 +339,7 @@ descriptors. REA does not reload, evaluate, or invoke tools to fill that gap.
 Accessibility names/descriptions, console primitive text, JSON body shapes, WebSocket shapes, script content, and storage key names are selected independently:
 
 ```bash
-rea inspect-web-page http://127.0.0.1:9222 TARGET_ID \
+xtna inspect-web-page http://127.0.0.1:9222 TARGET_ID \
   --include-accessibility-text \
   --include-console-text \
   --include-json-body-shapes \

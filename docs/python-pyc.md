@@ -7,7 +7,7 @@ marshal graph contains. It reads the file without running bytecode and requires
 no Python installation, active binary target, Hopper, Ghidra, or IDA.
 
 ```bash
-rea inspect-python-pyc /absolute/path/to/module.pyc --json
+xtna inspect-python-pyc /absolute/path/to/module.pyc --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP
@@ -62,7 +62,7 @@ coverage. Views preserve `nested_code` indexes and their code-constant semantics
 CLI summary delivery requires a durable destination for the complete Evidence:
 
 ```bash
-rea inspect-python-pyc module.pyc --detail summary --evidence_output module.evidence.json --json
+xtna inspect-python-pyc module.pyc --detail summary --evidence_output module.evidence.json --json
 ```
 
 Add `--view '{"kind":"python-pyc","collection":"code_objects","names":["parse_args"],"fields":["name","bytecode"]}'`

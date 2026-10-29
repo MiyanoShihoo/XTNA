@@ -15,12 +15,12 @@ when an operation is interrupted.
 The tool reads the caller-selected local directory or ASAR path directly:
 
 ```bash
-rea analyze /absolute/path/to/apps/app.asar --json
-rea analyze-javascript-application /absolute/path/to/apps/app.asar \
+xtna analyze /absolute/path/to/apps/app.asar --json
+xtna analyze-javascript-application /absolute/path/to/apps/app.asar \
   --integrity-policy record-and-continue --json
 ```
 
-Generic `rea analyze` selects this static provider for directories and `.asar`
+Generic `xtna analyze` selects this static provider for directories and `.asar`
 paths when neither `--provider` nor `--snapshot` is supplied. The dedicated
 command and the generic route return their complete results inline. Native
 targets, single JavaScript files, `.app` bundles, and explicit deep-provider or
@@ -34,7 +34,7 @@ creation; a failed analysis retains its typed diagnostic result.
 Configure an MCP client with the ordinary REA setup command:
 
 ```bash
-rea setup
+xtna setup
 ```
 
 The equivalent MCP input is:
@@ -90,7 +90,7 @@ For a question about known entry sources, supply exact artifact-relative file
 paths in `source_paths`, or repeat `--source-path` on either CLI route:
 
 ```bash
-rea analyze /absolute/path/to/app.asar \
+xtna analyze /absolute/path/to/app.asar \
   --source-path package.json --source-path main.js --json
 ```
 
@@ -121,7 +121,7 @@ the `cmd.exe` shim that `npx` uses on Windows. Its entries follow any
 against the working directory:
 
 ```bash
-rea analyze-javascript-application /absolute/path/to/app.asar \
+xtna analyze-javascript-application /absolute/path/to/app.asar \
   --source-paths-json /absolute/path/to/paths.json --json
 ```
 

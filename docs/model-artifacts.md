@@ -11,15 +11,15 @@ than inferring big-endian from an unrecognized little-endian value. Little-endia
 v2/v3 and big-endian v3 remain supported; big-endian v2 remains refused.
 
 ```bash
-rea inspect-model-artifact /absolute/path/model.gguf --json
-rea inspect-model-artifact /absolute/path/model.safetensors --hash full --json
+xtna inspect-model-artifact /absolute/path/model.gguf --json
+xtna inspect-model-artifact /absolute/path/model.safetensors --hash full --json
 ```
 
 The CLI defaults to complete Evidence. For compact delivery with portable access
 to every retained observation:
 
 ```bash
-rea inspect-model-artifact /absolute/path/model.gguf \
+xtna inspect-model-artifact /absolute/path/model.gguf \
   --detail summary --evidence_output /absolute/path/model-evidence.json --json
 ```
 

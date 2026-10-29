@@ -9,7 +9,7 @@ appended signature trailer. It does not require a Linux host or the `modinfo`
 program.
 
 ```bash
-rea inspect-kernel-module /absolute/path/to/module.ko --json
+xtna inspect-kernel-module /absolute/path/to/module.ko --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP

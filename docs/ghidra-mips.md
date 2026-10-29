@@ -212,8 +212,8 @@ usually soft-float and therefore also use the soft-float storage policy.
 With a caller-installed Ghidra and compatible JDK on a supported Linux/macOS host:
 
 ```bash
-rea analyze /absolute/path/to/mips.elf --provider ghidra --json
-rea function /absolute/path/to/mips.elf function_name --provider ghidra --json
+xtna analyze /absolute/path/to/mips.elf --provider ghidra --json
+xtna function /absolute/path/to/mips.elf function_name --provider ghidra --json
 ```
 
 MCP uses the existing tools, including `open_binary` with an absolute path and

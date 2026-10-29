@@ -96,3 +96,7 @@ website/.i18n-*/
 # Local turbo global config experiment
 /.turbo-global/
 
+
+# Local scratch (turbo temp, ad-hoc runs)
+.tmp/
+

@@ -20,7 +20,7 @@ Start a JEB client that serves MCP and point REA at it:
 - JEB's documented programmatic route (`JebMcpServerInstance` from the JEB API) remains an alternative. The earlier licensed 5.48 headless verification used that route because its CLI did not accept `--mcp`. Check your installed build's `-c --help` and live tool catalog; the version number alone does not establish the launcher options or supported operations.
 
 For setup registration, set `REA_JEB_MCP_URL` in the REA process environment
-before running `rea setup`. The approved setup plan preserves the exact selected
+before running `xtna setup`. The approved setup plan preserves the exact selected
 URL after validating its syntax. That validation does not establish that the
 JEB service is reachable or that a project is open; use the existing
 `inspect-jeb-client` command for a read-only service query.

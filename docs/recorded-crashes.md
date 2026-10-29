@@ -1,6 +1,6 @@
 # Recorded crash evidence
 
-`inspect_recorded_crash` / `rea inspect-recorded-crash` inspect a caller-selected
+`inspect_recorded_crash` / `xtna inspect-recorded-crash` inspect a caller-selected
 Linux ELF64 little-endian core independently of an active binary target. Apple
 `.ips` crash reports use the separate [Apple IPS](apple-ips.md) workflow. Two
 architecture profiles are interpreted, x86-64 and AArch64; each binds registers
@@ -9,7 +9,7 @@ to its own `NT_PRSTATUS` layout, and any other `e_machine` is refused as
 
 ```sh
 export REA_PWNTOOLS_PYTHON=/absolute/existing/venv/bin/python
-rea inspect-recorded-crash ./crash.core --json
+xtna inspect-recorded-crash ./crash.core --json
 ```
 
 The selected Python needs unchanged pwntools 4.15.0, pyelftools 0.33 and Unicorn 2.1.2.
@@ -62,7 +62,7 @@ interpretation completeness and signal-thread association remain unknown.
 export REA_PWNDBG_GDB=/absolute/existing/gdb
 export REA_PWNDBG_GDBINIT=/absolute/unchanged/pwndbg/gdbinit.py
 export REA_PWNDBG_VENV_PATH=/absolute/existing/pwndbg-venv
-rea inspect-recorded-crash ./crash.core --debugger-context --json
+xtna inspect-recorded-crash ./crash.core --debugger-context --json
 ```
 
 MCP uses `{ "path": "/artifacts/crash.core", "include_debugger_context": true }`.

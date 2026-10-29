@@ -9,7 +9,7 @@ acceptance is verified only where explicitly recorded.
 ## Launchers and PATH
 
 A client launched from a desktop app, IDE or service can inherit a different
-`PATH` from your terminal. An absolute path to `rea-agents` does not resolve its
+`PATH` from your terminal. An absolute path to `xtna` does not resolve its
 interpreter: the npm launcher's `#!/usr/bin/env node` still searches `PATH` for
 Node. Running that command successfully in a terminal does not establish that
 the client can launch it.
@@ -21,7 +21,7 @@ same selected files. This preserves manager-owned aliases across version updates
 otherwise setup uses the selected paths directly. Package-runner registrations keep
 their selected runner. Setup does not copy your ambient environment into client
 settings. To refresh an older registration, preview
-`rea setup --client <client-id> --skill=false --dry-run`, then run the same command
+`xtna setup --client <client-id> --skill=false --dry-run`, then run the same command
 without `--dry-run` and approve the displayed changes. Setup preserves unrelated
 settings, backs up changed configuration and leaves an aligned registration
 unchanged. Restart the client after applying the update.
@@ -34,7 +34,7 @@ path and supported version of the runtime you intend to use, then update only
 the runtime command, preserving the REA script arguments and other settings.
 Rerun setup to review the registration and restart the client.
 
-`rea mcp doctor --json` tests the production MCP adapter using the runtime
+`xtna mcp doctor --json` tests the production MCP adapter using the runtime
 executable and environment of the terminal running doctor. It does not launch
 the client's configured command or reproduce the client's environment. If doctor
 passes but the client disconnects, inspect the client's startup error and registered
@@ -44,10 +44,10 @@ launcher; see [verification scope](client-verification.md#launch-environment-ver
 
 `update_analysis_settings` changes curated defaults inside the running REA
 server. It does not edit the client registration, extend the client's tool-call
-deadline, or recompute timeout values previously derived by `rea setup`. When
+deadline, or recompute timeout values previously derived by `xtna setup`. When
 raising a REA startup or operation deadline, separately ensure the client allows
 enough time for the full request. Use `inspect_analysis_settings` for the running
-server's defaults; `rea doctor` checks launch configuration and cannot observe
+server's defaults; `xtna doctor` checks launch configuration and cannot observe
 another process's runtime overrides. See the
 [settings design](design/limits-and-recovery.md) for ownership and lifetime.
 
@@ -76,12 +76,12 @@ preserving your REA client entry. See the
 
 ## VS Code
 
-`rea setup --client vscode` configures the default VS Code user profile's
+`xtna setup --client vscode` configures the default VS Code user profile's
 `mcp.json`. Setup honors `VSCODE_PORTABLE` and `VSCODE_APPDATA` when they are
 present in its environment. It cannot infer a running window's named profile
 or `--user-data-dir`; configure that profile separately when needed.
 
-`rea setup --client copilot_cli` instead configures Copilot's user
+`xtna setup --client copilot_cli` instead configures Copilot's user
 `mcp-config.json`. VS Code can forward eligible profile servers to Copilot
 sessions; see the [VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
 
@@ -216,7 +216,7 @@ and Claude Code reports that autocompact is thrashing. To avoid this:
   when that variable is set), then restart Claude Code. Setup keeps this
   override.
 - To remove entire tool families from the upfront catalog, run
-  `rea setup --client claude_code --tool-families <ids>` with the families the
+  `xtna setup --client claude_code --tool-families <ids>` with the families the
   workflow needs (see [the advertising scope contract](mcp-contracts.md#tool-family-advertising-scope)).
   Out-of-scope tools are not advertised and their calls fail with the SDK's
   disabled-tool error, so widen the selection when a task needs another
@@ -289,9 +289,9 @@ selects `REA_MCP_INPUT_SCHEMA_PROFILE=full` or `compact`. This keeps REA's
 canonical tool validation unchanged while avoiding a Moonshot Kimi Code 2.2.0
 failure observed with the full catalog: its request was rejected because a
 single tool schema exceeded the provider's size limit. The limit is
-provider-specific and not an MCP protocol limit. `rea doctor --client kimi`
+provider-specific and not an MCP protocol limit. `xtna doctor --client kimi`
 reports an older registration with no explicit profile as stale. To restore the
-compact profile, run `rea setup --client kimi` or add
+compact profile, run `xtna setup --client kimi` or add
 `REA_MCP_INPUT_SCHEMA_PROFILE=compact` to the registration's `env`, then restart
 Kimi Code. An explicit `full` profile remains respected and can still exceed
 Moonshot's limit.
@@ -305,9 +305,9 @@ Start a new Kimi Code session to pick up MCP and skill changes.
 For [Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/mcp.md),
 setup writes a `type: "stdio"` entry under `mcpServers.rea` in the user-level
 `~/.pi/agent/mcp.json` and installs the bundled skill under `~/.agents/skills`.
-Use `rea setup --client pi --dry-run --json` to inspect the plan, then
-`rea setup --client pi --yes --json` to approve it. Check the registration with
-`rea doctor --client pi --json`. Pi reads `mcp.json` as strict JSON, like its
+Use `xtna setup --client pi --dry-run --json` to inspect the plan, then
+`xtna setup --client pi --yes --json` to approve it. Check the registration with
+`xtna doctor --client pi --json`. Pi reads `mcp.json` as strict JSON, like its
 own loader: comments, trailing commas, a byte-order mark, or an empty existing
 file are invalid, and setup reports them instead of rewriting the file. Repair
 such a file to plain JSON first, then rerun setup.
@@ -632,18 +632,18 @@ with an installed native FreeBuff client/version; filesystem tests cover REA's
 editing, discovery, and ownership behavior only. Automatic applicability
 requires the FreeBuff profile directory even when the shared MCP file exists.
 
-FreeBuff setup support requires `rea-agents@6.8.0` or later. Older versions
-reject `rea setup --client freebuff` as an unsupported client. See the
+FreeBuff setup support requires `xtna@1.0.0` or later. Older versions
+reject `xtna setup --client freebuff` as an unsupported client. See the
 [installation guide](installation.md#supported-agents) for client availability.
 
 ## DeepSeek Harness
 
 DeepSeek Harness registers MCP clients through a Cordis YAML patch sequence
-rather than a `mcpServers` object. `rea setup --client dsh` appends (or
+rather than a `mcpServers` object. `xtna setup --client dsh` appends (or
 replaces) the REA entry in the home patch `$DSH_HOME/cordis.patch.yml`
 (`~/.dsh/cordis.patch.yml` when `DSH_HOME` is unset), preserving unrelated
-patches and comments. `rea doctor --client dsh` checks that same entry id.
-`rea uninstall` removes it by scanning supported clients; uninstall takes no
+patches and comments. `xtna doctor --client dsh` checks that same entry id.
+`xtna uninstall` removes it by scanning supported clients; uninstall takes no
 `--client` flag. The home patch applies to every Harness profile, so the
 registration is written once and no per-profile edit is needed.
 
@@ -672,9 +672,9 @@ that produces the entire REA config, or a group-targeted REA insertion. Use a
 literal config and a root-level insertion as shown above.
 
 For a global npm installation, the launcher is under
-`$(npm root -g)/rea-agents/scripts/rea.mjs`. Restart Harness after setup; it
-exposes tools as `mcp__rea__<tool_name>`. Run `rea setup --skill --dry-run`,
-review the destination, then `rea setup --skill --yes` to install the workflow
+`$(npm root -g)/xtna/scripts/rea.mjs`. Restart Harness after setup; it
+exposes tools as `mcp__rea__<tool_name>`. Run `xtna setup --skill --dry-run`,
+review the destination, then `xtna setup --skill --yes` to install the workflow
 in `~/.agents/skills` (`$DSH_AGENTS_HOME/skills` when configured); Harness
 discovers that directory, and its native `skill` tool can load
 `reverse-engineer-anything`.
@@ -718,11 +718,11 @@ the data directory as aligned. Ask the Grok Bot chat to add a custom MCP
 server named `rea` that runs on the Bot's computer:
 
 ```bash
-npx -y rea-agents@<version> mcp
+npx -y xtna@<version> mcp
 ```
 
-Do not put credentials in that command or its arguments. `rea doctor --client grok_bot`
-reports this manual step. `rea uninstall` does not remove the account connector.
+Do not put credentials in that command or its arguments. `xtna doctor --client grok_bot`
+reports this manual step. `xtna uninstall` does not remove the account connector.
 
 ## Skill selection and maintenance
 
@@ -736,7 +736,7 @@ requires manual repair before setup can write.
 
 With no client selected, the interactive skill choice targets the shared
 `~/.agents/skills` copy. Selecting a client targets its personal destination
-when supported. Use `rea setup --skill-client shared --skill` for the shared
+when supported. Use `xtna setup --skill-client shared --skill` for the shared
 copy, or `--skill-client claude_code --skill` for that client's copy. Setup
 resolves the final selection before deciding which files need installation.
 Doctor retains each selected stale or missing path and names the matching

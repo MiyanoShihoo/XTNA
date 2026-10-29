@@ -6,8 +6,8 @@ contract investigation, compatibility, audit and CTF showcases use the same
 portable primitive. It does not require an active native binary target.
 
 ```sh
-rea inspect-evm-interface ./runtime.hex hex --json
-rea inspect-evm-interface ./runtime.bin raw --json
+xtna inspect-evm-interface ./runtime.hex hex --json
+xtna inspect-evm-interface ./runtime.bin raw --json
 ```
 
 ```json
@@ -112,7 +112,7 @@ output to 1 MiB. An owned worker has a 256 MiB JavaScript heap; its profile
 maxima are 3 GiB virtual address space and 30 CPU seconds, with tighter inherited
 limits retained. The worker command deadline is
 `timeout_ms` (default 30000 ms, integer 1 through 2147483647) on the next call,
-or `--timeout-ms` on `rea inspect-evm-interface`. Omission keeps 30000 ms.
+or `--timeout-ms` on `xtna inspect-evm-interface`. Omission keeps 30000 ms.
 Those byte, address-space, and CPU ceilings have no runtime override, and
 `timeout_ms` does not raise them. An oversized selected carrier returns a
 non-retryable `resource_constraint` with resource `file-size` and its fixed

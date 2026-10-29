@@ -13,7 +13,7 @@ not establish live model-service acceptance.
 
 ## Launch environment verification
 
-`rea mcp doctor --json` starts the production MCP adapter with the current runtime
+`xtna mcp doctor --json` starts the production MCP adapter with the current runtime
 executable and environment. A healthy result establishes that adapter's
 initialization, discovery and target-free request flow; it does not verify a
 client's configured launcher or its inherited environment. Test the generated
@@ -502,7 +502,7 @@ exceeding these diagnostic budgets fails explicitly. Scenario JSON events stream
 to the evaluator without retaining a second raw stdout copy. Cleanup attempts the
 remaining run tree even if auth removal fails, and reports unresolved cleanup
 together with the original verification failure. The lane
-installs the packaged skill and MCP registration through public `rea setup`,
+installs the packaged skill and MCP registration through public `xtna setup`,
 rather than copying a skill into a project that also inherits the caller's
 skills and configuration. Only authentication is copied, when present, and it
 is removed after confirmed process cleanup even with

@@ -7,7 +7,7 @@ signer and X.509 fields those entries carry. It reads the file without
 executing it and does not require a Windows SDK, catalog file, or disassembler.
 
 ```bash
-rea inspect-pe-certificates /absolute/path/to/application.exe --json
+xtna inspect-pe-certificates /absolute/path/to/application.exe --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP

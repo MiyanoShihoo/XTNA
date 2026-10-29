@@ -8,7 +8,7 @@ match. It reads the file without executing a target and does not require Xcode,
 atos, a disassembler, or pwntools.
 
 ```bash
-rea inspect-apple-ips /absolute/path/to/report.ips --json
+xtna inspect-apple-ips /absolute/path/to/report.ips --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP
@@ -117,7 +117,7 @@ buffer. An exhausted allowance reports a typed resource error without partial
 success or truncated integer facts.
 
 ```bash
-rea inspect-apple-ips /absolute/path/to/report.ips --max-integer-text-bytes 16777216 --json
+xtna inspect-apple-ips /absolute/path/to/report.ips --max-integer-text-bytes 16777216 --json
 ```
 
 This workflow does not execute a target, launch atos, or search for dSYMs.

@@ -7,7 +7,7 @@ returns the original position and embedded source inline. It acquires no browser
 fetches no URL and executes no application code.
 
 ```bash
-rea trace-web-source-location \
+xtna trace-web-source-location \
   /analysis/scripts/manifest.json 0 \
   /analysis/app.js.map 'https://example.test/maps/app.js.map?v=7#context' \
   1 25 --json

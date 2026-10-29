@@ -12,7 +12,7 @@ was decoded. Failed cleanup stays incomplete until its exact owner confirms
 release; cancellation keeps the caller's reason.
 
 ```bash
-rea inspect-go-binary /absolute/path/to/application --json
+xtna inspect-go-binary /absolute/path/to/application --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP
@@ -61,7 +61,7 @@ remain in the parent and can be exported as an Evidence bundle.
 One-shot CLI summaries save complete Evidence before returning the projection:
 
 ```bash
-rea inspect-go-binary ./application --detail summary --evidence_output ./go-evidence.json --json
+xtna inspect-go-binary ./application --detail summary --evidence_output ./go-evidence.json --json
 ```
 
 `--evidence_output` is required for CLI summary delivery and never overwrites an

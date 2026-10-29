@@ -243,7 +243,7 @@ complete discovery of all code or strings. An unbound source keeps
 The CLI uses the same projector. For an original complete Evidence JSON file,
 write `{"source":{"kind":"evidence-file","path":"/absolute/source.json"},"view":{"kind":"native-inventory","limit":32}}`
 to `/absolute/view-request.json`, then run
-`rea inspect-analysis-view /absolute/view-request.json --json`. This also reads
+`xtna inspect-analysis-view /absolute/view-request.json --json`. This also reads
 pre-summary source records without changing their identity; no live provider is started.
 
 `procedure_address`, `procedure_callees`, `procedure_callers`,
@@ -324,7 +324,7 @@ or page `list_unknowns` to recover the result; do not repeat the committed
 mutation. A delivery failure does not undo that revision.
 
 For a portable exported bundle, the CLI shares this projection:
-`rea inspect-evidence-bundle '{"path":"/tmp/evidence.json","detail":"summary","filters":{"operation":"analyze_function"}}' --format json`.
+`xtna inspect-evidence-bundle '{"path":"/tmp/evidence.json","detail":"summary","filters":{"operation":"analyze_function"}}' --format json`.
 The CLI validates and materializes that local bundle under its existing memory
 budget; summary delivery does not make arbitrary large files cheap to import.
 
@@ -601,7 +601,7 @@ parent for another invocation.
 ## Identity and discovery
 
 `binary_session` reports the active package, server, SDK, and negotiated
-protocol details. `rea doctor` separately inspects supported JSON/TOML client
+protocol details. `xtna doctor` separately inspects supported JSON/TOML client
 registrations, reports their command vectors as aligned, stale, missing, or
 invalid, and keeps live-server state `unknown` unless the active connection
 supplies identity.
@@ -706,7 +706,7 @@ session. `open_binary` can switch back to executable analysis, and
 `path` selects a plist in that context and does not create a session;
 `binary_session` reports `target_required` while neither session is open.
 Use `open_bundle_resources` for a bundle whose executable cannot be resolved.
-The CLI `rea inspect-plist <path>` opens its selected artifact for one invocation.
+The CLI `xtna inspect-plist <path>` opens its selected artifact for one invocation.
 
 Each provider client receives `binary_session.analysis_run.run_id` before any
 provider startup, including clients whose startup fails. `process_lineage` is
@@ -745,7 +745,7 @@ startup capacity ends startup with a transport resource constraint; it has no
 runtime override. HTTP startup never reads stdin.
 
 stdio is the default transport and the only one that client registrations,
-`rea mcp doctor` and the MCP registry entry describe. `rea mcp --http [--host H]
+`xtna mcp doctor` and the MCP registry entry describe. `xtna mcp --http [--host H]
 [--port N]` is an opt-in alternative that serves the same catalog over the
 streamable HTTP transport at `/mcp`; it replaces stdio for that process rather
 than running beside it. Host and port come from the flags, then `MCP_HOST` and
@@ -822,7 +822,7 @@ On such a bind, requests whose `Host` header is outside the SDK loopback allowli
 the configured name and the bound address are refused with `403`, and a browser
 `Origin` outside that allowlist is refused the same way (a missing `Origin`
 passes). A non-loopback bind requires `MCP_ALLOWED_HOSTS`, or
-`--allowed-hosts` for `rea mcp --http`, listing every client host name or IP
+`--allowed-hosts` for `xtna mcp --http`, listing every client host name or IP
 address. Configuration validates and canonicalizes complete tokens once;
 URLs, ports and empty entries are refused. Both Host and Origin checks remain
 active on that declared list. The announced URL uses the bound hostname if
@@ -1424,7 +1424,7 @@ doctor treats a server without the prompts capability as an empty inventory.
 Recovery instructions recommend runtime settings tools only when `application`
 is advertised; otherwise they explain launch settings and how to widen the scope.
 The server identity digest and
-`rea mcp doctor` tool and prompt inventory derive from the
+`xtna mcp doctor` tool and prompt inventory derive from the
 same selected scope, so a scoped server reports itself healthy; a scope
 without the `session` family cannot serve `binary_session`, and doctor says
 so explicitly instead of reporting a mismatch. Canonical server-side
@@ -1433,7 +1433,7 @@ the tools that remain advertised. The default (unset) advertises the complete
 catalog exactly as before. Saved registrations with an invalid selection
 report `invalid` in status instead of starting a server that fails.
 
-`rea setup --client <id> --tool-families <ids>` writes the same selection
+`xtna setup --client <id> --tool-families <ids>` writes the same selection
 into the `env` object of that client's `rea` entry, so the scope travels with
 the registration; rerunning setup with a different selection refreshes it.
 

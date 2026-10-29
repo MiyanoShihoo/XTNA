@@ -24,8 +24,8 @@ from retained Evidence. `rea environment-export` writes the same pair as a
 bundle folder; see [Export a bundle](#export-a-bundle).
 
 ```sh
-rea inspect-web-network-capture /absolute/session.har har --format json > capture.json
-rea inspect-analysis-view view.json --format json > manifest.json
+xtna inspect-web-network-capture /absolute/session.har har --format json > capture.json
+xtna inspect-analysis-view view.json --format json > manifest.json
 rea environment-serve manifest.json --evidence capture.json --port 8765
 ```
 
@@ -154,7 +154,7 @@ at info level; the report is the only output on stdout:
     }
   },
   "tool_count": 37,
-  "package_source": { "kind": "registry", "specifier": "rea-agents@…" },
+  "package_source": { "kind": "registry", "specifier": "xtna@…" },
   "files": [{ "path": "README.md", "bytes": 4210 }],
   "warnings": [{ "code": "name-from-file", "message": "…" }],
   "next": ["agent-env run /work/grafana"]
@@ -302,7 +302,7 @@ kept when the declared secret has at least 12 characters:
 
 ```sh
 APP_PASSWORD=… rea capture-browser-scenario scenario.json --format json > capture.json
-rea inspect-analysis-view view.json --format json > manifest.json   # view.json wraps capture.json as before
+xtna inspect-analysis-view view.json --format json > manifest.json   # view.json wraps capture.json as before
 rea environment-serve manifest.json --evidence capture.json --port 8765
 ```
 
@@ -502,7 +502,7 @@ see [Serve from the state](#serve-from-the-state).
 
 `--host` and `--port` default to `MCP_HOST` and `MCP_PORT` from the
 environment, then to `127.0.0.1` and an ephemeral port, exactly as
-[`rea mcp --http`](cli.md#serve-mcp-over-streamable-http) resolves them. The
+[`xtna mcp --http`](cli.md#serve-mcp-over-streamable-http) resolves them. The
 bound MCP URL is written to stderr as one JSON log line
 (`"msg":"MCP transport listening"` with `url`); `REA_LOG_LEVEL` overrides that
 log level. `ENVIRONMENT_NAME` renames the served environment; otherwise the
@@ -967,7 +967,7 @@ agent-env run ./grafana-example
 ```text
 grafana-example/
   README.md                                 provenance, what it serves, run command, rights note
-  envs/grafana-example/Dockerfile           pinned image: node:24.22.1-bookworm-slim + rea-agents@<this version>
+  envs/grafana-example/Dockerfile           pinned image: node:24.22.1-bookworm-slim + xtna@<this version>
   envs/grafana-example/env.toml             environment_name = "grafana-example"
   envs/grafana-example/manifest.json        byte-exact copy of manifest.json
   envs/grafana-example/evidence.json        byte-exact copy of capture.json
@@ -992,7 +992,7 @@ and replay share immutable response trees rather than copying the capture repeat
 `--name` replaces the manifest's portable kebab-case name as the env folder and env id
 (at most 63 characters for its DNS service label; Windows device names and
 labels interpreted as IP addresses are refused);
-`--package-tarball <path>` copies a packed `rea-agents` tarball into the env
+`--package-tarball <path>` copies a packed `xtna` tarball into the env
 folder and makes the Dockerfile install it instead of the registry package and
 remove it in the same layer, which is how a checkout rather than a release is
 run. The command prints the

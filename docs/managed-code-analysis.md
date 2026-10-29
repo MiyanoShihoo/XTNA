@@ -19,7 +19,7 @@ The seven shipped tools are:
 | Add managed findings to an application graph                                | `project_managed_application_graph` |
 
 Each has a matching CLI command: replace underscores with hyphens and prefix
-the name with `rea`, for example `rea inspect-managed-artifact`.
+the name with `rea`, for example `xtna inspect-managed-artifact`.
 Native-body bridge mapping and managed runtime execution are outside the
 current tool set.
 
@@ -29,8 +29,8 @@ The canonical tool inventory is the
 ## Inspect an assembly
 
 ```bash
-rea inspect-managed-artifact /absolute/path/Assembly.dll --json
-rea inspect-managed-members /absolute/path/Assembly.dll --json
+xtna inspect-managed-artifact /absolute/path/Assembly.dll --json
+xtna inspect-managed-members /absolute/path/Assembly.dll --json
 ```
 
 Use the artifact result to identify the assembly and its metadata coverage.
@@ -128,7 +128,7 @@ new Evidence bundle destination so its original complete parent remains
 available after the command exits:
 
 ```bash
-rea inspect-managed-members /absolute/path/Assembly.dll --type Namespace.Type \
+xtna inspect-managed-members /absolute/path/Assembly.dll --type Namespace.Type \
   --detail summary --evidence-bundle /absolute/path/evidence/members.json --json
 ```
 
@@ -149,7 +149,7 @@ Copy `normalized_result.parent_evidence_id` from the summary into the
 small request as `members-page.json` and run:
 
 ```bash
-rea inspect-analysis-view /absolute/path/evidence/members-page.json \
+xtna inspect-analysis-view /absolute/path/evidence/members-page.json \
   --evidence-bundle /absolute/path/evidence/members.json --json
 ```
 
@@ -242,7 +242,7 @@ Use the returned `types[].full_name` values to select declaring types before
 their signatures and CIL bodies are decoded:
 
 ```bash
-rea inspect-managed-members /absolute/path/Assembly.dll --type Example.Parser
+xtna inspect-managed-members /absolute/path/Assembly.dll --type Example.Parser
 ```
 
 MCP uses `inspect_managed_members` with

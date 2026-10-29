@@ -8,7 +8,7 @@ required. REA does not install tools or fetch artifacts and does not execute WAS
 returns `target_unavailable` with category `unsupported_target` and constraint
 `wasm_requires_static_inspection`, including the selected path in a valid
 `inspect_wasm_artifact` call. Use that target-free tool or
-`rea inspect-wasm-artifact <path> --format json` with the toolchain below.
+`xtna inspect-wasm-artifact <path> --format json` with the toolchain below.
 Check `binary_session` for configured capability availability. A recognized
 header is not validation of the complete module; missing WABT is reported
 separately as an unavailable capability, not as missing native engine support.
@@ -38,7 +38,7 @@ exporting a variable in a different shell does not update a running server.
 REA never installs tools or relaxes version admission to recover.
 
 ```bash
-REA_WABT_BIN_DIRECTORY=/absolute/wabt/bin rea inspect-wasm-artifact \
+REA_WABT_BIN_DIRECTORY=/absolute/wabt/bin xtna inspect-wasm-artifact \
   /artifacts/module.wasm --glue_paths /artifacts/glue.js \
   --candidate_paths /artifacts/other/module.wasm --format json
 ```
@@ -121,7 +121,7 @@ correct that argument if it caused the timeout. Runtime defaults do not insert
 omitted arguments into Evidence parameters. See the
 [settings design](design/limits-and-recovery.md#precedence-and-lifetime).
 
-For example, `rea inspect-wasm-artifact /artifacts/module.wasm
+For example, `xtna inspect-wasm-artifact /artifacts/module.wasm
 --command-timeout-ms 60000 --format json` uses a 60-second per-command deadline;
 the equivalent MCP input is `{"path":"/artifacts/module.wasm",
 "command_timeout_ms":60000,"detail":"summary"}`. Summary delivery retains the

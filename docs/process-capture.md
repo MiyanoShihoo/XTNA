@@ -651,7 +651,7 @@ export SDKROOT="$(xcrun --show-sdk-path)"
 export REA_DARWIN_MODULE_CACHE_PATH="$PWD/rea-cache/modules"
 export TMPDIR="$PWD/rea-cache/tmp"
 mkdir -p "$TMPDIR"
-rea analyze-javascript-application ./fixture --artifact-format directory
+xtna analyze-javascript-application ./fixture --artifact-format directory
 ```
 
 Keep the selected compiler and SDK paired. Permit REA's evidence/output paths

@@ -7,7 +7,7 @@ embedded ASAR integrity validation, and loading application code only from
 launch the app, modify fuse bytes, or use the network.
 
 ```bash
-rea inspect-electron-fuses /Applications/Example.app --json
+xtna inspect-electron-fuses /Applications/Example.app --json
 ```
 
 The CLI resolves a relative path against the caller's working directory. MCP

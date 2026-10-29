@@ -16,8 +16,8 @@ SDK-layout-specific snapshot parsers applicable.
 
 ```sh
 rea identify-flutter-build /targets/Example.apk
-rea inspect-dart-aot /targets/Example.apk
-rea inspect-dart-aot /targets/Example.apk --abi armeabi-v7a
+xtna inspect-dart-aot /targets/Example.apk
+xtna inspect-dart-aot /targets/Example.apk --abi armeabi-v7a
 ```
 
 The equivalent MCP methods are `identify_flutter_build` (with `path`) and

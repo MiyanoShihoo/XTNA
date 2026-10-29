@@ -95,6 +95,19 @@ variables are unchanged.
   upstream REA text pointing at `rea.tools`, `npm rea-agents` and the upstream Discord.
 - `docs:check`'s documentation-fact check passes again: the README carries the tool-catalog
   badge and the installation / registry / catalog links the checker requires.
+- User-facing documentation now invokes the shipped commands: `xtna setup`, `xtna doctor`,
+  `xtna analyze`, `npx xtna@1.0.0 …` and `"xtna"` MCP server keys replace the upstream
+  `rea` / `rea-agents@…` names across 72 files. Prose that refers to the incorporated REA
+  analysis engine still says REA; that editorial pass is outstanding.
+- The tree is formatted with `oxfmt` and `npm run format:check` is now a CI step. The gate had
+  never run in CI, so 77 tracked files had drifted while the failure was being written off as
+  an environment artefact. Local run artifacts (`.fixtures`, `.tmp`, `.tmp-provider`,
+  `.verify`, `rea-ghidra-*`, `gateway/test-fixture`, `*.asar`) are excluded rather than
+  reformatted.
+- `npm run knip` passes: the manual verification scripts and release entry points that nothing
+  imports are declared as entries, and `SymbolOverlayRendering.ts` — consumed by
+  `scripts/overlay-render.mjs` through the compiled output — is listed as an intentional
+  non-imported module.
 
 ### Verification status on the authoring host
 

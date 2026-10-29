@@ -133,18 +133,18 @@ budget.
 ## CLI
 
 ```bash
-rea inspect-il2cpp-metadata /absolute/path/global-metadata.dat --json
+xtna inspect-il2cpp-metadata /absolute/path/global-metadata.dat --json
 ```
 
 The CLI defaults to complete Evidence. For compact delivery, explicitly preserve
 the full Evidence in a new file:
 
 ```bash
-rea inspect-il2cpp-metadata /absolute/path/global-metadata.dat \
+xtna inspect-il2cpp-metadata /absolute/path/global-metadata.dat \
   --detail summary --evidence_output /tmp/metadata-evidence.json --json
 jq -c '{source: {kind: "inline", evidence: .records[0]}, view: {kind: "il2cpp-metadata", collection: "methods", indices: [9785], fields: ["name", "declaring_type"]}}' \
   /tmp/metadata-evidence.json > /tmp/metadata-query.json
-rea inspect-analysis-view /tmp/metadata-query.json --json
+xtna inspect-analysis-view /tmp/metadata-query.json --json
 ```
 
 Use the exported Evidence with the CLI's inline Evidence source format described
@@ -486,7 +486,7 @@ The CLI can turn a linked report into a
 before auto-analysis:
 
 ```bash
-rea inspect-il2cpp-metadata global-metadata.dat --binary libil2cpp.so \
+xtna inspect-il2cpp-metadata global-metadata.dat --binary libil2cpp.so \
   --ghidra-seeds il2cpp-seeds.tsv --json > /dev/null
 export REA_GHIDRA_SEED_FILE="$PWD/il2cpp-seeds.tsv"
 ```

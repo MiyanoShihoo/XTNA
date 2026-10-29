@@ -7,7 +7,7 @@ ABI-tag fields those notes carry. It reads the file without executing it and
 does not require a disassembler, debug package, or package catalog.
 
 ```bash
-rea inspect-elf-notes /absolute/path/to/program --json
+xtna inspect-elf-notes /absolute/path/to/program --json
 ```
 
 The CLI resolves relative paths against the caller's working directory. MCP

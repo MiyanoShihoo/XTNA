@@ -17,7 +17,7 @@ pyelftools 0.33 and Unicorn 2.1.2:
 
 ```sh
 REA_PWNTOOLS_PYTHON=/absolute/isolated-env/bin/python \
-  rea inspect-binary-layout ./selected.elf --json
+  xtna inspect-binary-layout ./selected.elf --json
 ```
 
 ```json
@@ -192,7 +192,7 @@ the session until release succeeds.
 A kernel or container OOM killer ends Ghidra with `SIGKILL` and prints no
 `OutOfMemoryError`. When a process or protocol failure records
 `exit_signal: "SIGKILL"` and no `stop_requested`, REA reports the signal
-instead of generic `rea doctor` advice. The process supervisor records
+instead of generic `xtna doctor` advice. The process supervisor records
 `stop_requested: true` once REA begins stopping Ghidra, before it sends any
 signal, so REA's own SIGKILL is never reported as an outside kill.
 
@@ -220,7 +220,7 @@ out-of-memory kill.
 PE32+ file without an active target, native engine, Python, or Windows SDK:
 
 ```sh
-rea inspect-pe-resources ./selected.exe --json
+xtna inspect-pe-resources ./selected.exe --json
 ```
 
 ```json
@@ -274,8 +274,8 @@ regular files only and rejects symbolic links.
 without an analysis engine, execution, extraction or network access.
 
 ```sh
-rea inspect-byte-entropy ./firmware.bin --block-size 4096 --json
-rea inspect-byte-entropy ./firmware.bin --offset 4096 --length 65536 --json
+xtna inspect-byte-entropy ./firmware.bin --block-size 4096 --json
+xtna inspect-byte-entropy ./firmware.bin --offset 4096 --length 65536 --json
 ```
 
 ```json
@@ -359,7 +359,7 @@ explicit PE or ELF image on any supported host, without an active target,
 native engine, `objdump` or Windows SDK:
 
 ```sh
-rea inspect-native-exports ./runtimes/linux-x64/native/libexample.so --json
+xtna inspect-native-exports ./runtimes/linux-x64/native/libexample.so --json
 ```
 
 ```json
@@ -408,7 +408,7 @@ does not make a partial source complete. Retained views never reopen the file.
 The CLI uses the same projector and requires a durable bundle for a summary:
 
 ```sh
-rea inspect-native-exports ./libexample.so --detail summary --evidence_output ./exports.bundle.json --json
+xtna inspect-native-exports ./libexample.so --detail summary --evidence_output ./exports.bundle.json --json
 # Pass the summary's parent ID and the same view as JSON to inspect-analysis-view,
 # together with --evidence-bundle ./exports.bundle.json.
 ```

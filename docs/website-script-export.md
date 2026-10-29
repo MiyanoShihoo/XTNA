@@ -18,7 +18,7 @@ bytes or creating output.
 
 ```sh
 rea export-web-scripts /analysis/capture.json /analysis/exported-scripts --json
-rea analyze-javascript-application /analysis/exported-scripts/files --json
+xtna analyze-javascript-application /analysis/exported-scripts/files --json
 ```
 
 MCP uses `export_web_scripts` with `capture_path` and `output_directory` absolute

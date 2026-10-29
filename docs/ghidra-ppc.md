@@ -45,8 +45,8 @@ implicitly gain PowerPC support. Windows Ghidra P0 remains PE x86/x86-64 only.
 With a caller-installed Ghidra and compatible JDK on a supported Linux/macOS host:
 
 ```bash
-rea analyze /absolute/path/to/ppc.elf --provider ghidra --json
-rea function /absolute/path/to/ppc.elf function_name --provider ghidra --json
+xtna analyze /absolute/path/to/ppc.elf --provider ghidra --json
+xtna function /absolute/path/to/ppc.elf function_name --provider ghidra --json
 ```
 
 MCP uses the existing tools, including `open_binary` with an absolute path and

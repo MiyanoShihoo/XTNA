@@ -12,8 +12,8 @@ export REA_TSHARK_COMMAND=/absolute/path/tshark
 export REA_CAPINFOS_COMMAND=/absolute/path/capinfos
 # Linux only; default /usr/bin/prlimit
 export REA_TSHARK_PRLIMIT_COMMAND=/absolute/path/prlimit
-rea inspect-pcap-client
-rea inspect-pcap-capture /captures/session.pcapng --json
+xtna inspect-pcap-client
+xtna inspect-pcap-capture /captures/session.pcapng --json
 ```
 
 Without explicit tool commands, this family resolves them through PATH and

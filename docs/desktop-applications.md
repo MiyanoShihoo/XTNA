@@ -78,7 +78,7 @@ The one-shot CLI returns complete Evidence by default. For compact output,
 explicitly retain it in a bundle:
 
 ```bash
-rea inspect-desktop-application /artifacts/MyApplication \
+xtna inspect-desktop-application /artifacts/MyApplication \
   --detail summary --evidence_output /reports/application.evidence.json --json
 ```
 

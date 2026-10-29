@@ -90,9 +90,9 @@ The built-in CLI path uses a MethodTable address returned by the parser or
 another observation:
 
 ```sh
-rea inspect-native-load-image ./NativeAotFixture --provider ghidra --json
-rea inspect-native-data-type ./NativeAotFixture --address 0xMETHODTABLE_ADDRESS --provider ghidra --json
-rea function ./NativeAotFixture 0xADDRESS --provider ghidra --json
+xtna inspect-native-load-image ./NativeAotFixture --provider ghidra --json
+xtna inspect-native-data-type ./NativeAotFixture --address 0xMETHODTABLE_ADDRESS --provider ghidra --json
+xtna function ./NativeAotFixture 0xADDRESS --provider ghidra --json
 ```
 
 The generated `/NativeAOT/...` category path belongs to the optional headless

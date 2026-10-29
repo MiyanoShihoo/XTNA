@@ -180,7 +180,7 @@ truncated embedded bundle header.
 The CLI uses the same service and contracts:
 
 ```sh
-rea inspect-gpu-code-objects /artifacts/library.so --analysis kernels \
+xtna inspect-gpu-code-objects /artifacts/library.so --analysis kernels \
   --targets '["sm_100"]' --detail summary \
   --view '{"collection":"kernels","names":["kernel_name"]}' \
   --evidence_output /analysis/library-gpu.evidence.json --json
