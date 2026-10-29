@@ -787,9 +787,10 @@ it("projects late stderr tails with completeness from the actual selection point
         {
           onSpawn: ({ process: child }) => {
             if (abortAfterExit)
-              child.once("exit", () =>
-                setTimeout(() => controller.abort(reason), 150),
-              );
+              child.stderr?.on("data", (chunk) => {
+                if (String(chunk).includes("late tail marker"))
+                  queueMicrotask(() => controller.abort(reason));
+              });
           },
         },
       ),
