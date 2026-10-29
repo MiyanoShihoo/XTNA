@@ -62,22 +62,36 @@ the same SHA-256 (be50fccfe374235c62b335ab7d54b1dd499b78ec64535fa7479826e94dc35b
 The first attempt, which ran `function` and `instructions` in one background job, stalled for
 over 20 minutes with ~48 s of CPU. Running one command per process is what made it work.
 
-## Still unverified
+## Procedure info and call graph (MCP session)
 
-`function` was retried twice, each time alone in its own process:
+The CLI `function` command stalls, but the same data is reachable through the MCP server.
+A persistent session was driven with `initialize` → `open_binary` → tool call:
 
-- `0x40100b`: ~15 min, CPU 37 s → 80 s, no output, cancelled
-- `0x40102d`: ~15 min, CPU 16 s → 52 s, no output, cancelled
+```
+procedure_info {"procedure":"0x40100b"}
+  name            FUN_0040100b
+  entrypoint      0x40100b
+  basicblock_count 3
+  length          33
+  signature       undefined FUN_0040100b()
+  locals          []
+  classification  function, not external, not thunk
+  body            0x40100b-0x401025 + 0x401027-0x40102c, non_contiguous
 
-The command never returns for this binary. Two different addresses rule out a single bad
-function; the pattern is a wait, not computation.
+get_call_graph {"address":"0x40100b","direction":"forward","detail":"summary"}
+  normalized_result.summary.observations = 97
+```
 
-A call-graph attempt over a persistent MCP session (`open_binary` then `get_call_graph`)
-returned a tool-level error during `open_binary` in 23 ms. The captured log was truncated by the
-host shell, so the error code is not recorded here; the attempt produced no call-graph evidence.
+`open_binary` returns the artifact identity immediately and analysis starts on the first tool call
+that needs it (~3 minutes for this 5.3 MB PE).
+
+## CLI caveat
+
+`function` via the CLI was retried twice on two different addresses and stalled both times
+(>15 min, CPU 37→80 s and 16→52 s, no output). Use the MCP tool path for procedure info; do not
+batch Ghidra CLI calls.
 
 ## Verdict
 
-Verified: analysis open, procedure inventory (7,516), real decompilation, instruction listing.
-Unverified: procedure-info payload and call-graph traversal. Ghidra CLI calls must run one per
-process; `function` is unusable on this target.
+Verified on this binary: analysis open, procedure inventory (7,516), real decompilation,
+instruction listing, procedure info, and a forward call-graph traversal.
