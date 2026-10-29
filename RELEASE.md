@@ -1,13 +1,24 @@
 # Release readiness — 1.0.0
 
-Snapshot: 2026-10-29. All checks below were run with TEMP/TMP/USERPROFILE/HOME/APPDATA/
-LOCALAPPDATA redirected to `E:\deepseek project\XTNA\.tmp-provider`.
+Snapshot: 2026-10-29. Published on `main` at `MiyanoShihoo/XTNA`.
+
+## Published
+
+| Item | Value |
+|---|---|
+| Version | 1.0.0 (`package.json`, `package-lock.json`, `gateway/package.json`, generated metadata, Windows native manifest) |
+| Head | `7ec857b` — single README with English and Chinese sections and anchor links |
+| Remote version | `1.0.0`, confirmed from `raw.githubusercontent.com` |
+| CI | success on `80259ae` and `7ec857b` |
 
 ## Green
 
 | Check | Command | Result |
 |---|---|---|
-| Types | `npm run typecheck` | pass |
+| Types | `npm run typecheck` | 0 |
+| Lint | `npm run lint:details` | 0 errors, 2,966 pre-existing warnings |
+| Module boundaries | `npm run verify:module-boundaries` | 3,269 source files |
+| Package metadata | `npm run metadata:check` | pass |
 | Build | `npm run compile` | pass |
 | Distribution self-check | `npm run verify:xtna` | 8/8 |
 | Gateway protocol | `npm run vault:test` | 12/12 |
@@ -18,40 +29,36 @@ LOCALAPPDATA redirected to `E:\deepseek project\XTNA\.tmp-provider`.
 | JavaScript analysis | `analyze-javascript-application` | verified on a Vite build and a self-authored Electron asar |
 | Symbol overlay rendering | real Ghidra pseudocode | 1 replacement, evidence hash unchanged |
 
-## Not green / not run
+## Environment notes
 
-- `npm run check:fast` fails before linting: turbo reports **"Global config path not found"**
-  because the redirected, empty HOME has no turbo global config. This is an environment
-  artefact of the C:-free run, not a source failure.
-- `npm run check:pr` (full suite) has not been executed.
-- MCP JSON Schema flattening is deliberately deferred until the full suite can run.
-- IDA and Hopper were not exercised on this host.
+- `turbo` 2.11.7 needs a resolvable global config. The empty, redirected `HOME` used by the
+  C:-free run produced *"Global config path not found"*; that is an artefact of the redirect,
+  not a source failure. With a normal `USERPROFILE` the task graph runs.
+- `scripts/ci/static-check-report.mjs` spawns its child with piped stdio. A process sandbox
+  that forbids pipe creation fails it with `spawnSync … EPERM` before any linting starts.
+  Run `npm run typecheck` and `npm run lint:details` directly in such a session; both pass.
 
-## Not pushed yet
+## Not run
 
-Seven local commits are waiting for a GitHub token with `repo` + `workflow`:
+- `npm run check:pr` (the complete local gate, including Vitest).
+- IDA and Hopper providers.
+- A real vendor Electron application — only the self-authored asar was analysed.
 
-```
-8a831b3 test: verify Electron analysis on a self-authored asar fixture
-02c8335 docs: mark the full Ghidra verification set in the roadmap
-0d3bd50 docs: procedure info and call graph verified through the MCP session
-7e5997d docs: second procedure-info stall and failed call-graph attempt recorded
-8fb0c6f docs: record instruction listing as verified, keep procedure-info unverified
-45bcfb3 docs: record Ghidra and JavaScript end-to-end verification
-b9eb57d feat: single-file offline investigation panel
-```
+## Known red (inherited from the fork)
 
-Push command (OpenSSL backend required on this host):
-
-```
-git -c http.sslBackend=openssl push https://x-access-token:<TOKEN>@github.com/MiyanoShihoo/XTNA.git main:main
-```
-
-Revoke the token immediately after the push.
+- `npm run docs:check` fails in `scripts/check-doc-facts.mjs`. It requires an
+  `MCP-tool_catalog` badge plus `docs/installation.md#supported-agents`,
+  `docs/installation.md#mcp-registry` and `docs/mcp-contracts.md#generated-catalog` links in
+  `README.md`, and requires each of the 26 `docs/readme/README_*.md` files to carry the same
+  local link set. Those files are still upstream REA text, so every one of them differs from
+  the rewritten `README.md`. Fixing it means either localizing all 26 files or dropping them.
+- `npm run docs:check:built` additionally wants the generated skill bundle and
+  `docs/public/product-catalog.json`, which `npm run docs:generate` produces; both are
+  gitignored outputs.
+- `npm run format:check` (`oxfmt --check .`) exits 2 on this host even on a pristine tree.
+  Markdown edits here were matched to the surrounding file style by hand instead.
 
 ## Release gate
 
-`0.1.0-beta.1` can be tagged once:
-
-1. the seven commits are pushed and CI is green on the pushed head;
-2. one command from `XTNA_CHANGELOG.md`'s verified list is re-run on the release checkout.
+Tag `1.0.0` on `7ec857b`. Before tagging, re-run one command from the verified list above on
+the release checkout, per `XTNA_CHANGELOG.md`.

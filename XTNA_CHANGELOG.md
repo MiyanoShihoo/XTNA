@@ -86,26 +86,27 @@ variables are unchanged.
 - MCP `serverInfo.name` is `xtna`.
 - Root `README.md` rewritten for this distribution.
 
-### Not yet verified in a clean environment
+### Verification status on the authoring host
 
-- The full upstream test suite (`npm run check:pr`) has not been executed for this
-  distribution; its Vitest pipeline could not start under the authoring host's process
-  sandbox (`spawn EPERM` in Vite's config bundler). `npm run typecheck`, `npm run compile`,
+- The full test suite (`npm run check:pr`) has not been executed for this distribution; its
+  Vitest pipeline could not start under the authoring host's process sandbox (`spawn EPERM`
+  in Vite's config bundler). `npm run typecheck`, `npm run lint:details`, `npm run compile`,
   and `npm run verify:xtna` pass.
 - End-to-end `analyze-javascript-application` is now verified on a real Vite build and on a self-authored Electron asar (2 IPC channels paired) with the
   host temp, HOME and APPDATA redirected to E:. Result: 2 parsed files, 4 findings, 555
   retained data-flow relations, application coverage complete.
 - Ghidra 12.2 verification: `analyze` opened a 5.3 MB PE in 197 s with 7,516 procedures;
-  `search --kind procedures` and `decompile 0x40100b` completed and returned real
-  pseudocode. `function` and `instructions` stalled (>20 min, ~48 s CPU) and are recorded
-  as unverified in `reports/ghidra-verification.md`.
+  `search --kind procedures`, `decompile 0x40100b`, `instructions 0x40100b`,
+  `procedure_info` and a forward `get_call_graph` traversal all returned real data.
+  Batching Ghidra CLI calls still stalls — the combined `function` + `instructions` run hung
+  for over 20 minutes, while one command per process and the MCP tool path both work. See
+  `reports/ghidra-verification.md`.
 - IDA and Hopper were not exercised on this host.
 
 ### Known gaps carried over
 
-- The gateway has no single-flight coalescing: two identical read-only calls issued
-  concurrently both miss and both reach the upstream. Sequential clients (the normal MCP
-  pattern) are unaffected.
+- Coalescing and caching cover cacheable read-only calls only; a write-capable tool always
+  reaches the upstream.
 - Modern bundler (Vite/Webpack) chunk resolution still needs explicit asset mapping in some
   layouts.
 - Windows x64 remains narrower than macOS for provider coverage.

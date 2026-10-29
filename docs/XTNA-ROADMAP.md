@@ -16,7 +16,7 @@ not implemented here.
 | Content-addressed cache for read-only results | shipped | `gateway/` + single-flight coalescing |
 | Streaming cursor pagination for every large result | partial | paging exists per tool; not one global scheduler |
 | Process-lifecycle RAII pool for all providers | partial | `src/process/ProviderProcess.ts` already owns kill/dispose; not unified across every adapter |
-| MCP JSON Schema flattening for strict hosts | planned | — |
+| MCP JSON Schema flattening for strict hosts | **shipped** (root unions) | `src/contracts/inputSchemaPresentation.ts`: root `anyOf`/`oneOf`/`allOf` presented as one object with self-contained property schemas and inline descriptions; nested unions untouched |
 | Sandboxed dynamic execution (container / Windows Sandbox) | planned | — |
 | Local model pre-filtering (Ollama / vLLM) | planned | — |
 | Ghidra provider verification (analyze / search / decompile / instructions / procedure info / call graph) | **verified** | reports/ghidra-verification.md; CLI function stalls, MCP tool path works |
