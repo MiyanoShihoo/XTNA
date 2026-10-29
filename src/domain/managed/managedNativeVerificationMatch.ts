@@ -227,12 +227,12 @@ const moduleCompatibility = (
   const observedValues = isAbsoluteModulePath(scope, format)
     ? [symbol.module_path]
     : [symbol.module_name, symbol.module_path];
-  const values = observedValues.filter(
-    (value): value is string =>
-      value !== null && moduleFilename(value, false, format).length > 0,
-  );
+  const values = observedValues.filter((value): value is string => value !== null);
   if (values.length === 0) return "unknown";
   const results = values.map((value) =>
+    moduleFilename(value, false, format).length === 0
+      ? "unknown"
+      :
     moduleValueCompatibility(scope, value, format),
   );
   if (results.includes("match")) return "match";
