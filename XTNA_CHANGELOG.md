@@ -74,6 +74,10 @@ variables are unchanged.
   client for TypeScript (global `fetch`) and Python (standard library only). Requests sharing a
   method and path template merge into one operation with path and query parameters, request
   bodies and merged response shapes. See `docs/XTNA-CLIENT-SDK.md`.
+- `npm run mock:gen -- --in <capture> --out <server.mjs>` generates a dependency-free local
+  server with list/read/create/update/delete over the collections the capture seeded, plus
+  verbatim replay for other recorded requests and optional JSON persistence.
+  See `docs/XTNA-MOCK-SERVER.md`.
 
 ### Added (gateway)
 
