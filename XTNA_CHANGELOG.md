@@ -1,6 +1,6 @@
 # XTNA changelog
 
-## 0.1.0 — first XTNA distribution
+## 1.0.0 — first XTNA release
 
 Baseline: REA 6.8.0 (MIT-licensed upstream; this distribution is Apache-2.0). Engine evidence contracts, tool names, and `REA_*` environment
 variables are unchanged.

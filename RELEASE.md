@@ -1,4 +1,4 @@
-# Release readiness — 0.1.0-beta.1
+# Release readiness — 1.0.0
 
 Snapshot: 2026-10-29. All checks below were run with TEMP/TMP/USERPROFILE/HOME/APPDATA/
 LOCALAPPDATA redirected to `E:\deepseek project\XTNA\.tmp-provider`.

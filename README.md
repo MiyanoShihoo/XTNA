@@ -5,198 +5,181 @@
 # XTNA
 
 **Reverse engineer anything — from your terminal or your agent.**
-
-An evidence-first reverse-engineering toolkit: one CLI, one MCP server, and a shared
-evidence model across native binaries, managed code, JavaScript and Electron applications,
-browser pages, Android packages, firmware, and captured traffic.
+**在终端里、在 Agent 里，反向工程任何东西。**
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](package.json)
-[![Status](https://img.shields.io/badge/status-0.1.0--beta-orange?style=flat-square)](#status)
+[![Release](https://img.shields.io/badge/release-1.0.0-brightgreen?style=flat-square)]()
 [![MCP](https://img.shields.io/badge/MCP-stdio-5c4ee5?style=flat-square)](https://modelcontextprotocol.io)
-
-[English](README.md) · [简体中文](README.zh-CN.md)
 
 </div>
 
 ---
 
-## Design principles
+## Overview · 概述
 
-- **Evidence over assertion.** Every result separates observation, derivation, inference and unknown, and carries the coverage and limitations that produced it.
-- **Predictable resources.** Budgets follow measured memory, truncation is reported, and a large target degrades into named gaps instead of a silent partial answer.
-- **Bounded by default.** Paging, hop ceilings and retained Evidence keep a query inside the context you actually have.
-- **Local first.** No telemetry, no upload; analysis runs against local artifacts with the tools you already installed.
-- **Provider-agnostic.** XTNA drives Ghidra, IDA, Hopper, Rizin, objdump, apktool, JADX and browser runtimes through one evidence model.
+**EN** — XTNA is an evidence-first reverse-engineering toolkit: one CLI, one MCP server, and a
+shared evidence model across native binaries, managed code, JavaScript and Electron
+applications, browser pages, Android packages, firmware, and captured traffic. Every result
+carries its authority, coverage, limitations and unknowns; observations stay separate from
+inferences.
 
-## What you get
+**中文** — XTNA 是一个以证据为核心的逆向工具箱：一个 CLI、一个 MCP 服务器，以及一套贯穿
+原生二进制、托管代码、JavaScript/Electron 应用、浏览器页面、Android 包、固件与流量抓包的
+统一证据模型。每个结果都携带来源权威、覆盖度、限制与未知项；观察与推断始终分开。
 
-- **231 MCP tools** over one CLI and one MCP server: native binaries (Ghidra / IDA / Hopper /
-  Rizin / objdump), managed PE/CLI, JavaScript and Electron application graphs, browser
-  capture, Android, Apple bundles, firmware, WASM, EVM, packet captures, and more.
-- **Evidence ledger**: every result carries authority, coverage, limitations and unknowns.
-  Observations stay separate from inferences.
-- **Bounded queries**: paging, `max_hops`, retained Evidence, and summaries that fit a
-  context window.
-- **Optional gateway (`xtna-vault`)**: bidirectional secret redaction and a content-addressed
-  cache for read-only tool results, outside the evidence path so digests stay verifiable.
-- **APK audit**: DEX inventory plus ad, analytics and tracking SDK fingerprinting.
+## Design principles · 设计原则
 
-## Quick start
+- **Evidence over assertion · 证据优先** — observations, derivations, inferences and unknowns never collapse into one field.
+- **Predictable resources · 资源可预测** — budgets follow measured memory; truncation is reported, never silent.
+- **Bounded by default · 默认有界** — paging, hop ceilings and retained Evidence keep answers inside your context.
+- **Local first · 本地优先** — no telemetry, no upload; analysis runs against local artifacts.
+- **Provider-agnostic · 与 provider 无关** — Ghidra, IDA, Hopper, Rizin, objdump, apktool and JADX feed one model.
+
+## What you get · 包含什么
+
+**EN**
+
+- **231 MCP tools** over one CLI and one MCP server: native binaries, managed PE/CLI,
+  JavaScript/Electron application graphs, browser capture, Android, Apple bundles, firmware,
+  WASM, EVM and packet captures.
+- **Evidence ledger** with per-record authority, confidence, coverage and limitations.
+- **Optional gateway** (`xtna-vault`) for bidirectional secret redaction and content-addressed
+  caching of read-only results — outside the evidence path, so digests stay verifiable.
+- **Analysis utilities**: symbol overlay, dossier exporter, checkpoints, taint path search,
+  graph export, constant radar, schema synthesis, hypothesis board, offline panel and APK audit.
+
+**中文**
+
+- **231 个 MCP 工具**，一个 CLI + 一个 MCP 服务器：原生二进制、托管 PE/CLI、
+  JavaScript/Electron 应用图、浏览器捕获、Android、Apple bundle、固件、WASM、EVM 与抓包。
+- **证据账本**：每个记录都带来源权威、置信度、覆盖度与限制。
+- **可选网关**（`xtna-vault`）：双向密钥脱敏 + 只读结果的内容寻址缓存，位于证据链之外，
+  digest 依然可验证。
+- **分析工具集**：符号覆盖层、档案导出、检查点、污点路径查询、图导出、常量雷达、
+  Schema 推导、假设看板、离线面板与 APK 审计。
+
+## Quick start · 快速开始
 
 ```bash
-git clone https://github.com/MiyanoShihoo/xtna.git
-cd xtna
+git clone https://github.com/MiyanoShihoo/XTNA.git
+cd XTNA
 npm ci --ignore-scripts
 npm run compile
 npm run verify:xtna
 node scripts/rea.mjs --help
 ```
 
-Requirements: Node ≥ 22.5 (24.x recommended). Deep analysis drives tools you already have —
-XTNA never installs or upgrades Ghidra, IDA, Hopper, apktool or JADX.
+**EN** — Node ≥ 22.5 (24.x recommended). XTNA never installs or upgrades Ghidra, IDA, Hopper,
+apktool or JADX; it drives the tools you already have.
 
-### Run the MCP server
+**中文** — 要求 Node ≥ 22.5（推荐 24.x）。XTNA 不会安装或升级 Ghidra、IDA、Hopper、apktool、
+JADX，只调用你本机已有的工具。
+
+### MCP server · MCP 服务器
 
 ```bash
 node scripts/rea.mjs mcp
 ```
-
-Register it with any MCP client:
 
 ```json
 {
   "mcpServers": {
     "xtna": {
       "command": "node",
-      "args": ["/absolute/path/to/xtna/scripts/rea.mjs", "mcp"]
+      "args": ["/absolute/path/to/XTNA/scripts/rea.mjs", "mcp"]
     }
   }
 }
 ```
 
-### Windows: wire the optional providers
+### Windows providers · Windows provider 接入
 
 ```bat
 scripts\xtna-env.cmd --version
 scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format json
 ```
 
-## The optional gateway
+**EN** — One console session wires JDK, Ghidra, apktool, jadx-headless-mcp and aapt2. Every
+value can be overridden; nothing is downloaded.
 
-`gateway/` is a standalone stdio MCP server that sits in front of XTNA (or any MCP server):
+**中文** — 一条命令为当前控制台接好 JDK、Ghidra、apktool、jadx-headless-mcp 与 aapt2。
+每一项都可覆盖，不下载任何东西。
 
-- **Bidirectional redaction** — credentials in tool output become session placeholders such
-  as `<vault:1:ab12cd>`; pass one back as an argument and the real value is restored before
-  the call reaches the provider. The model never holds the plaintext.
-- **Content-addressed cache** — only results annotated `readOnlyHint: true` (plus resource
-  and prompt reads) are replayed, keyed by canonical request hash.
+## Toolbox · 工具箱
+
+| Command · 命令 | EN | 中文 |
+|---|---|---|
+| `npm run audit:apk -- <apk>` | DEX inventory + ad/analytics/tracking SDK fingerprints | DEX 盘点 + 广告/统计/追踪 SDK 指纹 |
+| `npm run overlay -- …` | Symbol overlay store, Ghidra/IDA export, text rendering | 符号覆盖层存储、导出与渲染 |
+| `npm run dossier -- …` | Evidence bundle → reviewable Markdown | 证据包 → 可评审 Markdown |
+| `npm run checkpoint -- …` | Hash-verified snapshots of evidence and overlays | 证据与覆盖层的哈希校验快照 |
+| `npm run graph:export` / `npm run taint` | Application graph → taint path search | 应用图 → 污点路径查询 |
+| `npm run crypto:radar -- <file>` | Algorithm constant signatures with offsets | 算法常量特征与偏移 |
+| `npm run schema:synth -- …` | JSON samples → TypeScript / Pydantic / OpenAPI | JSON 样本 → 类型定义 |
+| `npm run hypothesis -- …` | Claims with confidence, status and contradictions | 假设、置信度、状态与反证 |
+| `npm run panel -- …` | Single-file offline investigation panel | 单文件离线调查面板 |
+
+Reference: [APK audit](docs/XTNA-APK-AUDIT.md) · [Symbol overlay](docs/XTNA-SYMBOL-OVERLAY.md) ·
+[Dossier](docs/XTNA-DOSSIER.md) · [Checkpoints](docs/XTNA-CHECKPOINTS.md) ·
+[Taint](docs/XTNA-TAINT-PATH.md) · [Panel](docs/XTNA-PANEL.md)
+
+## The gateway · 网关
+
+**EN** — `gateway/` is a standalone stdio MCP server that sits in front of XTNA or any MCP
+server. Credentials in tool output become session placeholders such as `<vault:1:ab12cd>`; pass
+one back as an argument and the real value is restored before the call reaches the upstream.
+Only results annotated `readOnlyHint: true` are cached, keyed by canonical request hash.
+
+**中文** — `gateway/` 是独立的 stdio MCP 服务器，可挡在 XTNA 或任意 MCP 服务器前面。工具输出
+里的密钥会变成会话占位符 `<vault:1:ab12cd>`；把占位符当参数传回，网关在请求到达上游前还原
+真值。只有带 `readOnlyHint: true` 的结果会按规范请求哈希缓存。
 
 ```bash
 npm --prefix gateway install
 npm run vault:build
-npm run vault:test        # 12 protocol checks, in-memory transport
-npm run vault:test:e2e    # 6 process-level checks, real HTTP upstream + real stdio
+npm run vault:test        # 12 protocol checks · 12 项协议检查
+npm run vault:test:e2e    # 6 process-level checks · 6 项进程级检查
 ```
 
-## APK audit
+## Verification · 验证
 
-```bash
-npm run audit:apk -- sample.apk
-npm run audit:apk -- sample.apk --json --markdown report.md
-```
+| Check · 检查 | Result · 结果 |
+|---|---|
+| `npm run typecheck` | pass · 通过 |
+| `npm run compile` | pass · 通过 |
+| `npm run verify:xtna` | 8/8 |
+| `npm run vault:test` | 12/12 |
+| `npm run vault:test:e2e` | 6/6 |
+| Ghidra (analyze / search / decompile / instructions / procedure info / call graph) | verified on a 5.3 MB PE · 已在 5.3MB PE 上验证 |
+| JavaScript analysis | Vite build + self-authored Electron asar, 2 IPC channels paired · 已验证 |
+| APK audit | 38 MB signed APK · 38MB 签名包 |
+| PE probes | 5.3 MB 32-bit executable · 5.3MB 32 位可执行文件 |
 
-Presence-only DEX scanning across ~38 ad/analytics/tracking SDK families. Set
-`REA_AAPT2_COMMAND` to add package identity, SDK range and declared permissions.
+**EN** — `npm run check:pr` (the full upstream suite) is not runnable on the authoring host:
+turbo cannot resolve a global configuration path without writing outside the allowed scope.
+Details and the exact unverified list are in [RELEASE.md](RELEASE.md) and
+[XTNA_CHANGELOG.md](XTNA_CHANGELOG.md).
 
-Reference: [English](docs/XTNA-APK-AUDIT.md) · [中文](docs/XTNA-APK-AUDIT.zh-CN.md)
+**中文** — `npm run check:pr`（上游完整测试套件）在作者机器上无法运行：turbo 需要在允许范围之外
+写全局配置才能解析路径。详细情况与完整"未验证"清单见 [RELEASE.md](RELEASE.md) 与
+[XTNA_CHANGELOG.md](XTNA_CHANGELOG.md)。
 
-## Symbol overlay
+## Documentation · 文档
 
-`npm run overlay -- add --binary ./target.exe --address 0x401000 --name WinMain_candidate --confidence inferred`
-keeps analyst-proposed names, types and comments outside the evidence ledger, keyed by the
-binary digest, and exports rename-only scripts for Ghidra or IDA.
+- [Roadmap and delivery status · 路线图与交付状态](docs/XTNA-ROADMAP.md)
+- [Changelog · 变更记录](XTNA_CHANGELOG.md)
+- [Release readiness · 发布就绪清单](RELEASE.md)
+- [Security policy · 安全策略](SECURITY.md)
+- [Contributing · 贡献指南](CONTRIBUTING.md)
 
-[English](docs/XTNA-SYMBOL-OVERLAY.md) · [中文](docs/XTNA-SYMBOL-OVERLAY.zh-CN.md)
+## License · 许可
 
-## Dossier and roadmap
+**EN** — Apache License 2.0 (see [LICENSE](LICENSE)). XTNA incorporates the REA analysis engine,
+Copyright (c) 2026 morluto, licensed under MIT; that text is kept verbatim in
+[LICENSE-REA-MIT](LICENSE-REA-MIT) and attribution is in [NOTICE](NOTICE).
 
-`npm run dossier -- --evidence evidence.json --out report.md` projects a stored Evidence
-bundle into a reviewable Markdown document without adding observations. The delivery status of
-every roadmap module is tracked in [docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md).
-
-[English](docs/XTNA-DOSSIER.md)
-
-## Taint path search
-
-`npm run taint -- --graph g.json --source source --sink sink --sanitizer sanitizer`
-enumerates simple paths over an explicit property graph, treats sanitizers as barriers, and
-reports truncation instead of returning a short list.
-
-[Reference](docs/XTNA-TAINT-PATH.md)
-
-
-`npm run overlay:render` rewrites a copy of stored pseudocode with overlay names for review; the evidence bundle stays byte-identical.
-
-## Checkpoints
-
-`npm run checkpoint -- create --name session --evidence evidence.json --overlay-dir ~/.xtna/overlays`
-freezes Evidence bundles and overlay files with a hash manifest; restore verifies every hash
-before writing.
-
-[Reference](docs/XTNA-CHECKPOINTS.md)
-
-## Analysis utilities
-
-Three self-contained commands: crypto:radar (constant signatures with offsets),
-schema:synth (JSON samples to TypeScript, Pydantic or OpenAPI) and hypothesis
-(claims with confidence, status and contradicting evidence).
-
-[Reference](docs/XTNA-ANALYSIS-UTILITIES.md)
-
-## Offline panel
-
-`npm run panel -- --evidence bundle.json --out panel.html` builds a single-file HTML view of
-the investigation with no network access: evidence, limitations, unknowns, symbols, hypotheses
-and checkpoints.
-
-[Reference](docs/XTNA-PANEL.md)
-
-## Verification
-
-| Check | Command | Status |
-|---|---|---|
-| Types | `npm run typecheck` | passing |
-| Build | `npm run compile` | passing |
-| Distribution self-check | `npm run verify:xtna` | 6/6 |
-| Gateway protocol | `npm run vault:test` | 11/11 |
-| Gateway process-level | `npm run vault:test:e2e` | 6/6 |
-| Real APK audit | `npm run audit:apk -- sample.apk` | verified on a 38 MB signed APK |
-| Real PE probes | `inspect-pe-*` on a 5 MB 32-bit game executable | imports, resources, certificates, objdump |
-
-`npm run check:pr` (the full upstream suite) has **not** been run against this distribution.
-See [XTNA_CHANGELOG.md](XTNA_CHANGELOG.md) for the exact verified / unverified split.
-
-## Status
-
-`0.1.0-beta`. Source is ready; the npm package is **not published yet**. Public release is
-gated on the full test suite and one end-to-end analysis on a real target outside a
-restricted process sandbox.
-
-## Documentation
-
-- [Changelog](XTNA_CHANGELOG.md) — every fix, and every unverified claim
-- [APK audit](docs/XTNA-APK-AUDIT.md)
-- [Security policy](SECURITY.md)
-- [Contributing](CONTRIBUTING.md)
-- Engine reference: `docs/`
-
-## License and attribution
-
-XTNA is licensed under the **Apache License 2.0** (see [LICENSE](LICENSE)).
-
-It incorporates the REA analysis engine, Copyright (c) 2026 morluto, which is licensed under
-the MIT License. That upstream text is reproduced in [LICENSE-REA-MIT](LICENSE-REA-MIT) and the
-original notice is retained; see [NOTICE](NOTICE) for the combined attribution. The upstream
-project is not affiliated with this distribution. Third-party notices are in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and `licenses/`.
+**中文** — 采用 Apache License 2.0（见 [LICENSE](LICENSE)）。XTNA 包含 REA 分析引擎，
+Copyright (c) 2026 morluto，以 MIT 授权；原文完整保留在 [LICENSE-REA-MIT](LICENSE-REA-MIT)，
+归属声明见 [NOTICE](NOTICE)。第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+与 `licenses/`。

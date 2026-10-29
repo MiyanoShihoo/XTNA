@@ -1,6 +1,6 @@
 {
   "name": "xtna-vault",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "XTNA optional gateway: bidirectional secret redaction and content-addressed cache for MCP servers",
   "type": "module",
   "bin": {
