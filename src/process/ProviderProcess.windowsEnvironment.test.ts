@@ -21,5 +21,8 @@ it("retains the Windows system root with a minimal explicit host environment", a
     child.process.once("close", () => resolve()),
   );
   expect(stdout).toBe(process.env.SystemRoot ?? process.env.SYSTEMROOT);
-  expect((await child.cleanup()).cleaned).toBe(true);
+  const cleanup = child.cleanup;
+  if (cleanup === undefined) throw new Error("Expected owned process cleanup");
+  const result = await cleanup();
+  expect(result.cleaned).toBe(true);
 });
