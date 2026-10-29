@@ -93,6 +93,7 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 | `npm run mock:gen -- <har>`              | Recorded traffic to a stateful local CRUD mock server       |
 | `npm run probe:gen -- <addr>`            | Frida / LLDB probe skeleton for one address                 |
 | `npm run heap:query -- <snap>`           | V8 heap snapshot summary and instance lookup                |
+| `npm run trace:causal -- <streams>`      | Merge UI / IPC / probe streams into one timeline            |
 | `npm run overlay -- …`                   | Symbol overlay store, Ghidra/IDA export, text rendering     |
 | `npm run dossier -- …`                   | Evidence bundle → reviewable Markdown                       |
 | `npm run checkpoint -- …`                | Hash-verified snapshots of evidence and overlays            |
@@ -222,6 +223,7 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 | `npm run mock:gen -- <har>`              | 录制流量生成有状态的本地 CRUD 模拟服务          |
 | `npm run probe:gen -- <addr>`            | 为单个地址生成 Frida / LLDB 探针骨架            |
 | `npm run heap:query -- <snap>`           | V8 堆快照汇总与实例查询                         |
+| `npm run trace:causal -- <streams>`      | 把 UI / IPC / 探针事件流合并成时间轴            |
 | `npm run overlay -- …`                   | 符号覆盖层存储、Ghidra/IDA 导出、文本渲染       |
 | `npm run dossier -- …`                   | 证据包 → 可评审 Markdown                        |
 | `npm run checkpoint -- …`                | 证据与覆盖层的哈希校验快照                      |

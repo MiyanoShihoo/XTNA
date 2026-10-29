@@ -339,6 +339,7 @@
     "mock:gen": "node scripts/mock-server.mjs",
     "probe:gen": "node scripts/probe-gen.mjs",
     "heap:query": "node scripts/heap-query.mjs",
+    "trace:causal": "node scripts/causal-trace.mjs",
     "overlay": "node scripts/symbol-overlay.mjs",
     "dossier": "node scripts/dossier.mjs",
     "taint": "node scripts/taint-path.mjs",

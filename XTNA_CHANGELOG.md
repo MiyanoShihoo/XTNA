@@ -85,6 +85,10 @@ variables are unchanged.
   declared record layout and answers two questions: which constructors hold the most shallow
   memory, and which instances of one exact name exist with their incoming-reference counts.
   No inspector, no execution. See `docs/XTNA-HEAP-QUERY.md`.
+- `npm run trace:causal -- --browser … --ipc … --probe …` merges those streams onto one
+  ordered timeline and groups them into candidate chains by explicit `traceId` or by a bounded
+  time window. Ordering is evidence; causation stays an inference.
+  See `docs/XTNA-CAUSAL-TRACING.md`.
 
 ### Added (gateway)
 
