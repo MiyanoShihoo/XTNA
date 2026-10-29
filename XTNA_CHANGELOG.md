@@ -93,6 +93,12 @@ variables are unchanged.
   export sections, reads the glue's import object and `.exports.<name>` accesses, and reports
   the static bridge: js→wasm calls, wasm→js providers, unresolved imports and unused exports.
   Nothing is instantiated. See `docs/XTNA-WASM-BRIDGE.md`.
+- `npm run ast:normalize` now propagates `const` bindings whose initializer is a literal and
+  whose name is never assigned, shadowed by a parameter, or declared twice. `const t = 60;
+  const ms = t * 1000` folds to `60000`; a reassigned or captured name is left alone.
+- `npm run stability:smoke` generates fixtures and runs every analysis utility as a child
+  process, failing on a non-zero exit or a missing output marker (9 checks).
+  See `docs/XTNA-STABILITY.md`.
 
 ### Added (gateway)
 

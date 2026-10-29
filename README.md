@@ -95,6 +95,7 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 | `npm run heap:query -- <snap>`           | V8 heap snapshot summary and instance lookup                |
 | `npm run trace:causal -- <streams>`      | Merge UI / IPC / probe streams into one timeline            |
 | `npm run wasm:link -- <wasm> <js>`       | Static Wasm ↔ JavaScript bridge graph                       |
+| `npm run stability:smoke`                | End-to-end smoke over every analysis utility                |
 | `npm run overlay -- …`                   | Symbol overlay store, Ghidra/IDA export, text rendering     |
 | `npm run dossier -- …`                   | Evidence bundle → reviewable Markdown                       |
 | `npm run checkpoint -- …`                | Hash-verified snapshots of evidence and overlays            |
@@ -226,6 +227,7 @@ scripts\xtna-env.cmd analyze "C:\path\target.exe" --provider ghidra --format jso
 | `npm run heap:query -- <snap>`           | V8 堆快照汇总与实例查询                         |
 | `npm run trace:causal -- <streams>`      | 把 UI / IPC / 探针事件流合并成时间轴            |
 | `npm run wasm:link -- <wasm> <js>`       | 静态 Wasm ↔ JavaScript 桥接图                   |
+| `npm run stability:smoke`                | 全部分析工具的端到端冒烟检查                    |
 | `npm run overlay -- …`                   | 符号覆盖层存储、Ghidra/IDA 导出、文本渲染       |
 | `npm run dossier -- …`                   | 证据包 → 可评审 Markdown                        |
 | `npm run checkpoint -- …`                | 证据与覆盖层的哈希校验快照                      |

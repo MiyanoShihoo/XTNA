@@ -90,3 +90,33 @@ describe("safety", () => {
     expect(result.stats.passes).toBeGreaterThan(0);
   });
 });
+describe("constant propagation", () => {
+  it("folds reads of an immutable literal binding", () => {
+    expect(normalize("const t = 60; const ms = t * 1000;")).toBe(
+      "const t = 60; const ms = 60000;",
+    );
+  });
+
+  it("uses a literal binding as a branch test", () => {
+    expect(
+      normalize("const FLAG = false; if (FLAG) { a(); } else { b(); }"),
+    ).toBe("const FLAG = false; { b(); }");
+  });
+
+  it("refuses a name that is assigned anywhere", () => {
+    expect(normalize("let t = 60; t = 1; const x = t * 2;")).toBe(
+      "let t = 60; t = 1; const x = t * 2;",
+    );
+  });
+
+  it("refuses a name shadowed by a parameter", () => {
+    expect(normalize("const t = 60; function f(t) { return t * 2; }")).toBe(
+      "const t = 60; function f(t) { return t * 2; }",
+    );
+  });
+
+  it("refuses a name declared twice", () => {
+    const source = "const a = 1; { const a = 2; } const x = a * 3;";
+    expect(normalize(source)).toBe(source);
+  });
+});

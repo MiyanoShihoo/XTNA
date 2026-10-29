@@ -341,6 +341,7 @@
     "heap:query": "node scripts/heap-query.mjs",
     "trace:causal": "node scripts/causal-trace.mjs",
     "wasm:link": "node scripts/wasm-link.mjs",
+    "stability:smoke": "node scripts/stability-smoke.mjs",
     "overlay": "node scripts/symbol-overlay.mjs",
     "dossier": "node scripts/dossier.mjs",
     "taint": "node scripts/taint-path.mjs",

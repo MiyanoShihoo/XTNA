@@ -46,6 +46,65 @@ export interface AstNormalizationOptions {
 
 type Literal = string | number | boolean | null;
 
+/**
+ * Collect `const` bindings whose initializer is a literal and whose name is
+ * never written or shadowed anywhere in the file. Anything less provable stays
+ * out: propagation must not change behaviour for a reassigned or captured name.
+ */
+const collectConstants = (program: Node): Map<string, Literal> => {
+  const declarations = new Map<string, Literal[]>();
+  const blocked = new Set<string>();
+  const walk = (node: Node): void => {
+    if (node.type === "VariableDeclaration" && node.kind === "const") {
+      for (const declarator of node.declarations) {
+        if (declarator.id.type !== "Identifier") continue;
+        const init = declarator.init;
+        const value =
+          init === null || init === undefined ? undefined : literalOf(init);
+        const list = declarations.get(declarator.id.name) ?? [];
+        if (value === undefined) blocked.add(declarator.id.name);
+        else list.push(value);
+        declarations.set(declarator.id.name, list);
+      }
+    }
+    if (node.type === "AssignmentExpression" && node.left.type === "Identifier")
+      blocked.add(node.left.name);
+    if (node.type === "UpdateExpression" && node.argument.type === "Identifier")
+      blocked.add(node.argument.name);
+    if (node.type === "VariableDeclarator" && node.id.type !== "Identifier")
+      for (const name of Object.keys(node.id))
+        if (name === "name")
+          blocked.add((node.id as unknown as { name: string }).name);
+    if (
+      (node.type === "FunctionDeclaration" ||
+        node.type === "FunctionExpression" ||
+        node.type === "ArrowFunctionExpression") &&
+      Array.isArray(node.params)
+    )
+      for (const parameter of node.params)
+        if (parameter.type === "Identifier") blocked.add(parameter.name);
+    for (const value of Object.values(
+      node as unknown as Record<string, unknown>,
+    )) {
+      if (Array.isArray(value)) {
+        for (const item of value)
+          if (item !== null && typeof item === "object" && "type" in item)
+            walk(item as Node);
+        continue;
+      }
+      if (value !== null && typeof value === "object" && "type" in value)
+        walk(value as Node);
+    }
+  };
+  walk(program);
+  const constants = new Map<string, Literal>();
+  for (const [name, values] of declarations) {
+    if (blocked.has(name) || values.length !== 1) continue;
+    constants.set(name, values[0] as Literal);
+  }
+  return constants;
+};
+
 interface Edit {
   readonly start: number;
   readonly end: number;
@@ -53,7 +112,14 @@ interface Edit {
   readonly kind: "constant" | "branch" | "string";
 }
 
-const literalOf = (node: Node): Literal | undefined => {
+const literalOf = (
+  node: Node,
+  constants?: ReadonlyMap<string, Literal>,
+): Literal | undefined => {
+  if (node.type === "Identifier" && constants !== undefined) {
+    const resolved = constants.get(node.name);
+    if (resolved !== undefined) return resolved;
+  }
   if (isNumericLiteral(node)) return node.value;
   if (isStringLiteral(node)) return node.value;
   if (isBooleanLiteral(node)) return node.value;
@@ -139,10 +205,13 @@ const arithmetic = (
   }
 };
 
-const foldUnary = (node: Node): Literal | undefined => {
+const foldUnary = (
+  node: Node,
+  constants?: ReadonlyMap<string, Literal>,
+): Literal | undefined => {
   if (!isUnaryExpression(node)) return undefined;
   if (node.operator === "void") return undefined;
-  const value = literalOf(node.argument);
+  const value = literalOf(node.argument, constants);
   if (value === undefined) return undefined;
   switch (node.operator) {
     case "!":
@@ -201,6 +270,7 @@ const rewritePass = (
     ranges: false,
   });
   const edits: Edit[] = [];
+  const constants = collectConstants(ast.program as unknown as Node);
   const visit = (node: Node): void => {
     let touched = false;
     for (const child of childNodes(node)) {
@@ -213,7 +283,7 @@ const rewritePass = (
     if (span === undefined) return;
 
     if (isIfStatement(node)) {
-      const test = literalOf(node.test);
+      const test = literalOf(node.test, constants);
       if (test === undefined) return;
       const chosen = test ? node.consequent : node.alternate;
       if (chosen === undefined || chosen === null) {
@@ -231,7 +301,7 @@ const rewritePass = (
     }
 
     if (isConditionalExpression(node)) {
-      const test = literalOf(node.test);
+      const test = literalOf(node.test, constants);
       if (test === undefined) return;
       const chosen = test ? node.consequent : node.alternate;
       const chosenSpan = range(chosen);
@@ -245,7 +315,7 @@ const rewritePass = (
     }
 
     if (isLogicalExpression(node)) {
-      const left = literalOf(node.left);
+      const left = literalOf(node.left, constants);
       if (left === undefined) return;
       const rightSpan = range(node.right);
       if (rightSpan === undefined) return;
@@ -284,8 +354,8 @@ const rewritePass = (
     }
 
     if (isBinaryExpression(node)) {
-      const left = literalOf(node.left);
-      const right = literalOf(node.right);
+      const left = literalOf(node.left, constants);
+      const right = literalOf(node.right, constants);
       if (left === undefined || right === undefined) return;
       const value = arithmetic(node.operator, left, right);
       if (value === undefined) return;
@@ -297,7 +367,7 @@ const rewritePass = (
       return;
     }
 
-    const folded = foldUnary(node);
+    const folded = foldUnary(node, constants);
     if (folded !== undefined) {
       pushEdit(edits, {
         ...span,
