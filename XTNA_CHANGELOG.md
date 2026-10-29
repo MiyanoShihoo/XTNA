@@ -65,6 +65,11 @@ variables are unchanged.
 - `npm run overlay:render -- --procedure <selector>` renders a fresh `decompile` through the
   stored symbol overlay, so analysis text can carry analyst names without exporting a bundle
   first. The existing `--evidence` file mode is unchanged; both remain display-only.
+- `npm run ast:normalize -- --in <file>` folds literal-only expressions (`!0`, `60 * 1000`,
+  `"ab" + "cd"`), collapses branches whose test is a literal, and decodes escaped string
+  literals. Every rule requires literal operands, so calls, getters and identifiers are never
+  evaluated; untouched ranges keep their original bytes. `--json` reports what changed.
+  See `docs/XTNA-AST-NORMALIZATION.md`.
 
 ### Added (gateway)
 
