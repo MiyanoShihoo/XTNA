@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -124,4 +124,68 @@ describe("live server", () => {
       child.kill();
     }
   }, 30_000);
+});
+
+describe("real artefact schemas", () => {
+  it("reads the hypotheses board's items/statement shape", async () => {
+    const { evidencePath } = await writeFixture();
+    const directory = await mkdtemp(join(tmpdir(), "xtna-hyp-"));
+    const hypothesesPath = join(directory, "hypotheses.json");
+    await writeFile(
+      hypothesesPath,
+      JSON.stringify({
+        schema: "xtna.hypotheses/1",
+        items: [
+          {
+            id: "hyp_1",
+            statement: "Module A handles reconnect",
+            confidence: "inferred",
+            status: "contradicted",
+          },
+        ],
+      }),
+      "utf8",
+    );
+    const snapshot = await loadInvestigationState({
+      evidencePath,
+      hypothesesPath,
+    });
+    expect(snapshot.hypotheses).toEqual([
+      {
+        id: "hyp_1",
+        claim: "Module A handles reconnect",
+        status: "contradicted",
+        confidence: "inferred",
+      },
+    ]);
+  });
+
+  it("counts a checkpoint directory through its manifest", async () => {
+    const { evidencePath, directory } = await writeFixture();
+    const checkpointsDir = join(directory, "checkpoints");
+    const cpDir = join(checkpointsDir, "cp_1");
+    await mkdir(cpDir, { recursive: true });
+    await writeFile(
+      join(cpDir, "manifest.json"),
+      JSON.stringify({
+        schema: "xtna.checkpoint/1",
+        id: "cp_1",
+        name: "demo",
+        created_at: "2026-10-28T17:00:07.446Z",
+        files: [{ stored: "a.json", bytes: 100 }],
+        overlays: [{ stored: "b.json", bytes: 20 }],
+      }),
+      "utf8",
+    );
+    const snapshot = await loadInvestigationState({
+      evidencePath,
+      checkpointsDir,
+    });
+    expect(snapshot.counts.checkpoints).toBe(1);
+    expect(snapshot.checkpoints[0]).toEqual({
+      name: "demo",
+      bytes: 120,
+      modifiedAt: "2026-10-28T17:00:07.446Z",
+    });
+  });
 });

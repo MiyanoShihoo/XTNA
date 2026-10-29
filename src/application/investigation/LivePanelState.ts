@@ -161,25 +161,28 @@ export async function loadInvestigationState(
   if (inputs.hypothesesPath !== undefined) {
     const document = await readJson(resolve(inputs.hypothesesPath));
     hypothesesSource = resolve(inputs.hypothesesPath);
-    hypotheses = asArray(
-      isRecord(document) ? document.hypotheses : document,
-    ).flatMap((item) =>
-      isRecord(item) &&
-      typeof item.id === "string" &&
-      typeof item.claim === "string"
-        ? [
-            {
-              id: item.id,
-              claim: item.claim,
-              status: typeof item.status === "string" ? item.status : "unknown",
-              confidence:
-                typeof item.confidence === "string"
-                  ? item.confidence
-                  : "unknown",
-            },
-          ]
-        : [],
-    );
+    const list = isRecord(document)
+      ? (document.hypotheses ?? document.items ?? document.claims)
+      : document;
+    hypotheses = asArray(list).flatMap((item) => {
+      if (!isRecord(item) || typeof item.id !== "string") return [];
+      const claim =
+        typeof item.claim === "string"
+          ? item.claim
+          : typeof item.statement === "string"
+            ? item.statement
+            : undefined;
+      if (claim === undefined) return [];
+      return [
+        {
+          id: item.id,
+          claim,
+          status: typeof item.status === "string" ? item.status : "unknown",
+          confidence:
+            typeof item.confidence === "string" ? item.confidence : "unknown",
+        },
+      ];
+    });
   }
 
   let checkpoints: PanelCheckpoint[] = [];
@@ -189,7 +192,34 @@ export async function loadInvestigationState(
     checkpointsSource = directory;
     const names = await readdir(directory).catch(() => [] as string[]);
     for (const name of names.sort()) {
-      const info = await stat(join(directory, name)).catch(() => null);
+      const entry = join(directory, name);
+      const manifest = await readJson(join(entry, "manifest.json")).catch(
+        () => null,
+      );
+      if (isRecord(manifest)) {
+        const bytes = [
+          ...asArray(manifest.files),
+          ...asArray(manifest.overlays),
+        ].reduce<number>(
+          (sum, file) =>
+            sum +
+            (isRecord(file) && typeof file.bytes === "number" ? file.bytes : 0),
+          0,
+        );
+        checkpoints.push({
+          name:
+            typeof manifest.name === "string" && manifest.name.length > 0
+              ? manifest.name
+              : name,
+          bytes,
+          modifiedAt:
+            typeof manifest.created_at === "string"
+              ? manifest.created_at
+              : new Date().toISOString(),
+        });
+        continue;
+      }
+      const info = await stat(entry).catch(() => null);
       if (info === null || !info.isFile()) continue;
       checkpoints.push({
         name,
