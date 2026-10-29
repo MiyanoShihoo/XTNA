@@ -79,9 +79,9 @@ const runChild = (
   );
 
 const exitsAfterHoldingOutput =
-  'const {spawn}=require("node:child_process"); spawn(process.execPath,["-e","setTimeout(()=>{},400)"],{stdio:["ignore","inherit","inherit"]}); process.stderr.write("physical exit 7"); process.exit(7)';
+  'const {spawn}=require("node:child_process"); const child=spawn(process.execPath,["-e","setTimeout(()=>{},400)"],{detached:process.platform==="win32",stdio:["ignore","inherit","inherit"]}); child.once("spawn",()=>{process.stderr.write("physical exit 7"); process.exit(7)})';
 const exitsThenDescendantExceedsStderrBudget =
-  'const {spawn}=require("node:child_process"); spawn(process.execPath,["-e",`setTimeout(()=>{process.stderr.write("x".repeat(1024*1024+64)); setInterval(()=>{},1000)},25)`],{stdio:["ignore","inherit","inherit"]}); process.stderr.write("physical exit 7"); process.exit(7)';
+  'const {spawn}=require("node:child_process"); const child=spawn(process.execPath,["-e",`setTimeout(()=>{process.stderr.write("x".repeat(1024*1024+64)); setInterval(()=>{},1000)},25)`],{detached:process.platform==="win32",stdio:["ignore","inherit","inherit"]}); child.once("spawn",()=>{process.stderr.write("physical exit 7"); process.exit(7)})';
 
 it("preserves the exact object reason for an already-aborted caller", async () => {
   const reason = { caller: "opaque source-map request" };
@@ -303,7 +303,7 @@ it("preserves an observed process-memory limit over the codec exit status", asyn
             ...options,
             arguments: [
               "-e",
-              'const {spawn}=require("node:child_process"); spawn(process.execPath,["-e","setTimeout(()=>{},400)"],{stdio:["ignore","inherit","inherit"]}); process.stderr.write("memory limit reached"); process.exit(3)',
+              'const {spawn}=require("node:child_process"); const child=spawn(process.execPath,["-e","setTimeout(()=>{},400)"],{detached:process.platform==="win32",stdio:["ignore","inherit","inherit"]}); child.once("spawn",()=>{process.stderr.write("memory limit reached"); process.exit(3)})',
             ],
           });
           let exited = false;
