@@ -1,12 +1,9 @@
 # Roadmap and delivery status
-
 This page maps the architecture roadmap to what this distribution actually ships. Status is
 deliberately conservative: **shipped** means implemented and covered by a check that runs
 without a vendor tool; **partial** means a working slice with a named gap; **planned** means
 not implemented here.
-
 ## Stability and platform (P0–P2)
-
 | Theme | Status | Where |
 |---|---|---|
 | Result-budget accounting from measured heap growth instead of a fixed multiplier | shipped | `src/javascript/analysis/JavaScriptAnalysisWorker.ts`; `verify:xtna` |
@@ -22,11 +19,9 @@ not implemented here.
 | MCP JSON Schema flattening for strict hosts | planned | — |
 | Sandboxed dynamic execution (container / Windows Sandbox) | planned | — |
 | Local model pre-filtering (Ollama / vLLM) | planned | — |
-| Ghidra provider verification (analyze / search / decompile) | **verified** | eports/ghidra-verification.md; function/instructions/call-graph still unverified |
+| Ghidra provider verification (analyze / search / decompile / instructions / procedure info / call graph) | **verified** | reports/ghidra-verification.md; CLI function stalls, MCP tool path works |
 | JavaScript analysis end-to-end on a real build | **verified** | Vite dist: 2 files, 4 findings, 555 data-flow relations |
-
 ## Feature modules
-
 | # | Module | Status | Notes |
 |---:|---|---|---|
 | 1 | Wasm end-to-end + JS bridge | partial | `inspect_wasm_artifact` covers imports/exports/WAT; JS↔Wasm call edges not built |
@@ -47,17 +42,13 @@ not implemented here.
 | 16 | Live web investigation UI | **partial** | scripts/panel.mjs: single-file offline panel (evidence, limitations, unknowns, symbols, hypotheses, checkpoints); no live server or topology graph |
 | 17 | Investigation checkpoints | **shipped** (file-level) | scripts/checkpoint.mjs: hash-verified snapshots of Evidence bundles and overlay files; no process state, no branching |
 | 18 | Dossier exporter | **shipped** | `scripts/dossier.mjs`, Markdown from an Evidence bundle |
-
 ## Agent architecture (Plan-and-Execute, sandbox tiers)
-
 | Theme | Status |
 |---|---|
 | DAG planner / concurrent read-only execution | planned (server side); the gateway already coalesces duplicate reads |
 | Three-tier command safety with dry-run | planned |
 | Observation windowing into CAS with cursors | partial — Evidence bundles are already file-backed; no automatic summary+cursor gateway |
-
 ## Sequencing used here
-
 1. Ship the failures that cost analysis time and can be verified offline.
 2. Ship the two modules that need no vendor tool and no new dependency (symbol overlay,
    dossier).
