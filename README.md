@@ -13,6 +13,7 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](package.json)
 [![Release](https://img.shields.io/badge/release-1.0.0-brightgreen?style=flat-square)]()
 [![MCP](https://img.shields.io/badge/MCP-stdio-5c4ee5?style=flat-square)](https://modelcontextprotocol.io)
+[![MCP tool catalog](https://img.shields.io/badge/MCP-tool_catalog-5c4ee5?style=flat-square)](docs/mcp-contracts.md#generated-catalog)
 
 </div>
 
@@ -129,6 +130,9 @@ configuration path without writing outside the allowed scope. See [RELEASE.md](R
 
 ### Documentation
 
+- [Installation](docs/installation.md#supported-agents) — supported agents, provider setup
+- [MCP registry entry](docs/installation.md#mcp-registry) — register the server with a client
+- [MCP tool catalog](docs/mcp-contracts.md#generated-catalog) — every tool and its contract
 - [Roadmap and delivery status](docs/XTNA-ROADMAP.md)
 - [Changelog](XTNA_CHANGELOG.md) · [Release readiness](RELEASE.md)
 - [Security policy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
@@ -248,6 +252,9 @@ npm run vault:test:e2e    # 6 项进程级检查
 
 ### 文档
 
+- [安装](docs/installation.md#supported-agents) —— 支持的 agent 与 provider 配置
+- [MCP 注册项](docs/installation.md#mcp-registry) —— 把服务器注册进客户端
+- [MCP 工具目录](docs/mcp-contracts.md#generated-catalog) —— 全部工具及其契约
 - [路线图与交付状态](docs/XTNA-ROADMAP.md)
 - [变更记录](XTNA_CHANGELOG.md) · [发布就绪清单](RELEASE.md)
 - [安全策略](SECURITY.md) · [贡献指南](CONTRIBUTING.md)

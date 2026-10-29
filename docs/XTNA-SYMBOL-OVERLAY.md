@@ -72,17 +72,29 @@ symbol updates it instead of duplicating.
 
 Both are rename-only. Neither modifies bytes, and both can be re-run safely.
 
-## Rendering stored analysis text
+## Rendering analysis text
 
-`npm run overlay:render -- --binary ./target.exe --evidence bundle.json --out rendered.md`
+Two sources feed the same renderer:
+
+```bash
+# an Evidence bundle you already exported
+npm run overlay:render -- --binary ./target.exe --evidence bundle.json --out rendered.md
+
+# a fresh decompile, without exporting a bundle first
+npm run overlay:render -- --binary ./target.exe --procedure 0x40100b --provider ghidra
+```
 
 It rewrites address-derived identifiers (`sub_401000`, `FUN_401000`, `nullsub_*`, `loc_*`) in a
 copy of pseudocode or disassembly text, writes Markdown, and states how many replacements it made.
-The bundle on disk stays byte-identical; nothing is written back to Evidence.
+The evidence bundle on disk stays byte-identical; nothing is written back to Evidence.
+
+Live mode runs `decompile` through the CLI entry point and renders the JSON it prints, so it
+needs a configured provider. File mode needs only the bundle.
 
 ## Limits
 
-- The overlay does not feed back into `xtna` analysis output yet; it is a store plus exports.
+- The overlay is a display projection. Stored Evidence and MCP tool results keep the
+  decompiler's own names; render the text, or export the overlay into Ghidra/IDA.
 - No automatic type inference: `type` is whatever the analyst writes.
 - Confidence is a label, not a proof; nothing here upgrades a guess into an observation.
 

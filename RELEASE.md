@@ -44,21 +44,20 @@ Snapshot: 2026-10-29. Published on `main` at `MiyanoShihoo/XTNA`.
 - IDA and Hopper providers.
 - A real vendor Electron application — only the self-authored asar was analysed.
 
-## Known red (inherited from the fork)
+## Docs checks
 
-- `npm run docs:check` fails in `scripts/check-doc-facts.mjs`. It requires an
-  `MCP-tool_catalog` badge plus `docs/installation.md#supported-agents`,
-  `docs/installation.md#mcp-registry` and `docs/mcp-contracts.md#generated-catalog` links in
-  `README.md`, and requires each of the 26 `docs/readme/README_*.md` files to carry the same
-  local link set. Those files are still upstream REA text, so every one of them differs from
-  the rewritten `README.md`. Fixing it means either localizing all 26 files or dropping them.
-- `npm run docs:check:built` additionally wants the generated skill bundle and
-  `docs/public/product-catalog.json`, which `npm run docs:generate` produces; both are
-  gitignored outputs.
+- `node scripts/check-doc-facts.mjs` passes. The README carries the `MCP-tool_catalog` badge and
+  the installation / registry / catalog links; the 23 stale upstream translations under
+  `docs/readme/` are gone, and `website/locales/languages.json` lists only the shipped edition.
+- `node scripts/generate-skill-metadata.mjs --check` and
+  `node scripts/generate-product-catalog.mjs --check` pass after one generation run; both
+  outputs are gitignored.
+- `generate-completion-ledger.mjs` and the Vitest conformance suite cannot run in this session:
+  both spawn children with piped stdio, which the process sandbox refuses (`EPERM`).
 - `npm run format:check` (`oxfmt --check .`) exits 2 on this host even on a pristine tree.
-  Markdown edits here were matched to the surrounding file style by hand instead.
+  Markdown edits were matched to the surrounding file style by hand instead.
 
 ## Release gate
 
-Tag `1.0.0` on `7ec857b`. Before tagging, re-run one command from the verified list above on
-the release checkout, per `XTNA_CHANGELOG.md`.
+Tag `1.0.0` on the head that contains this file. Before tagging, re-run one command from the
+verified list above on the release checkout, per `XTNA_CHANGELOG.md`.

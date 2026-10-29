@@ -32,7 +32,7 @@ not implemented here.
 | 5 | Cross-boundary causal tracing | planned | — |
 | 6 | Heap snapshot query | planned | — |
 | 7 | AST normalization pipeline | partial | attribute/alias recovery exists; no constant folding / unflattening |
-| 8 | Symbol overlay | **shipped** | `scripts/symbol-overlay.mjs` + Ghidra/IDA export; not yet projected into analysis output |
+| 8 | Symbol overlay | **shipped** (display projection) | `scripts/symbol-overlay.mjs` + `overlay:render` (Evidence bundle or live decompile); MCP tool results still carry the decompiler's own names |
 | 9 | Algorithm/protocol fingerprinting | **shipped** (constant signatures) | scripts/crypto-radar.mjs: AES/SHA/CRC tables, compression magics, Base64 alphabets, PEM headers with offsets |
 | 10 | Schema synthesis (OpenAPI/proto/TS) | **partial** | scripts/schema-synth.mjs: JSON samples to TypeScript, Pydantic or OpenAPI 3.1; no wire-format inference |
 | 11 | Standalone client SDK generation | planned | — |

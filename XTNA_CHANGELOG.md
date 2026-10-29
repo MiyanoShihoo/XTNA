@@ -61,6 +61,9 @@ variables are unchanged.
 - `npm run vault:build`, `npm run vault:test`, `npm run vault`.
 - `scripts/probe-vite-resolution.mjs`: resolves the specifiers of a real Vite build
   against the production resolver without running the analyzer.
+- `npm run overlay:render -- --procedure <selector>` renders a fresh `decompile` through the
+  stored symbol overlay, so analysis text can carry analyst names without exporting a bundle
+  first. The existing `--evidence` file mode is unchanged; both remain display-only.
 
 ### Added (gateway)
 
@@ -85,6 +88,12 @@ variables are unchanged.
   config file `xtna.json`, package `xtna`.
 - MCP `serverInfo.name` is `xtna`.
 - Root `README.md` rewritten for this distribution.
+- Separate translated editions under `docs/readme/` are gone. The distribution ships one
+  bilingual `README.md` with `#english` / `#chinese` anchors, and
+  `website/locales/languages.json` lists only the shipped edition. Those 23 files were still
+  upstream REA text pointing at `rea.tools`, `npm rea-agents` and the upstream Discord.
+- `docs:check`'s documentation-fact check passes again: the README carries the tool-catalog
+  badge and the installation / registry / catalog links the checker requires.
 
 ### Verification status on the authoring host
 
@@ -102,6 +111,10 @@ variables are unchanged.
   for over 20 minutes, while one command per process and the MCP tool path both work. See
   `reports/ghidra-verification.md`.
 - IDA and Hopper were not exercised on this host.
+- `overlay:render` file mode was re-verified against the stored PlantsVsZombies Evidence
+  (1 replacement, source unchanged). Its live `--procedure` mode could not be exercised here
+  because no analysis provider is configured on this host; the provider-unavailable path does
+  exit non-zero with the CLI's own error document.
 
 ### Known gaps carried over
 
