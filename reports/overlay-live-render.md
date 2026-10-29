@@ -5,7 +5,7 @@ SHA-256: `868f8e2bab0d6a7ef8afc4c5960c608eccef82bd086bd6e0c0e2670199a5ca45`
 
 ## Toolchain
 
-Installed under `E:\xtna-verify` for this verification only; nothing in the distribution,
+Installed under `<verify-dir>` for this verification only; nothing in the distribution,
 the repository or the user configuration depends on those paths.
 
 | Tool   | Version                                                                                    |
@@ -19,7 +19,7 @@ the repository or the user configuration depends on those paths.
 npm run overlay:render -- \
   --binary 868f8e2bab0d6a7ef8afc4c5960c608eccef82bd086bd6e0c0e2670199a5ca45 \
   --procedure 0x40100b \
-  --path "E:\SteamLibrary\steamapps\common\Plants Vs Zombies\PlantsVsZombies.exe" \
+  --path "<game>\PlantsVsZombies.exe" \
   --provider ghidra
 ```
 

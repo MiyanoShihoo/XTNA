@@ -4,7 +4,7 @@ Binary: PlantsVsZombies.exe (5,296,312 bytes)
 SHA-256: 868f8e2bab0d6a7ef8afc4c5960c608eccef82bd086bd6e0c0e2670199a5ca45
 
 All runs used E-drive-only temp, HOME, APPDATA and LOCALAPPDATA redirection:
-E:\deepseek project\XTNA\.tmp-provider. Nothing was written to C:.
+<repo>\.tmp-provider. Nothing was written to C:.
 
 ## Verified
 

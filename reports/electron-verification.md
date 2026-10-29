@@ -42,7 +42,7 @@ side, paired.
 
 ## Notes
 
-- Temp, HOME, APPDATA and LOCALAPPDATA were redirected to `E:\deepseek project\XTNA\.tmp-provider`.
+- Temp, HOME, APPDATA and LOCALAPPDATA were redirected to `<repo>\.tmp-provider`.
   No C: writes.
 - Analysis completed in one pass; the evidence bundle was written next to the fixture.
 - This is a synthetic application, not a shipped product. It proves the pipeline, not the

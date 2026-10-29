@@ -99,4 +99,6 @@ website/.i18n-*/
 
 # Local scratch (turbo temp, ad-hoc runs)
 .tmp/
-
+.tmp-provider/
+.verify/
+rea-ghidra-*/
