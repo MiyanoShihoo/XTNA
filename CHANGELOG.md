@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0] (2026-10-29)
+
+### Highlights
+
+- First XTNA release, based on upstream REA 6.8.0. See [XTNA_CHANGELOG.md](XTNA_CHANGELOG.md) for the distribution changes.
+
 ## [6.8.0](https://github.com/morluto/rea/compare/rea-agents-6.7.0...rea-agents-6.8.0) (2026-10-25)
 
 ### Highlights

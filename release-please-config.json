@@ -15,22 +15,12 @@
   ],
   "packages": {
     ".": {
-      "package-name": "rea-agents",
+      "package-name": "xtna",
       "extra-files": [
         { "type": "generic", "path": "docs/installation.md" },
         {
           "type": "generic",
           "path": "src/generatedPackageMetadata.ts"
-        },
-        {
-          "type": "json",
-          "path": "server.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "server.json",
-          "jsonpath": "$.packages[0].version"
         }
       ]
     }

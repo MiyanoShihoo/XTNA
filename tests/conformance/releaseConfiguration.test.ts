@@ -23,6 +23,7 @@ describe("release configuration", () => {
       versioning: "always-bump-minor",
       packages: {
         ".": {
+          "package-name": "xtna",
           "extra-files": [
             ...versionedDocumentation.map((path) => ({
               type: "generic",
@@ -31,16 +32,6 @@ describe("release configuration", () => {
             {
               type: "generic",
               path: "src/generatedPackageMetadata.ts",
-            },
-            {
-              type: "json",
-              path: "server.json",
-              jsonpath: "$.version",
-            },
-            {
-              type: "json",
-              path: "server.json",
-              jsonpath: "$.packages[0].version",
             },
           ],
         },
@@ -60,7 +51,7 @@ describe("release configuration", () => {
           content,
         )?.[0];
 
-      expect(versionBlock).toContain(`rea-agents@${packageJson.version}`);
+      expect(versionBlock).toContain(`xtna@${packageJson.version}`);
     },
   );
 
@@ -79,7 +70,7 @@ describe("release configuration", () => {
     expect(/^## \[([^\]]+)\]/mu.exec(changelog)?.[1]).toBe(packageJson.version);
   });
 
-  it("keeps the npm package and MCP Registry metadata aligned", async () => {
+  it("keeps the XTNA package identity separate from upstream REA registry provenance", async () => {
     const packageJson = (await readJson("package.json")) as {
       name: string;
       version: string;
@@ -88,6 +79,7 @@ describe("release configuration", () => {
     const serverJson = (await readJson("server.json")) as {
       name: string;
       version: string;
+      repository: { url: string; source: string };
       packages: Array<{
         registryType: string;
         registryBaseUrl: string;
@@ -100,18 +92,28 @@ describe("release configuration", () => {
     };
 
     expect(packageJson).toMatchObject({
-      name: "rea-agents",
-      mcpName: "io.github.morluto/rea",
+      name: "xtna",
+      mcpName: "io.github.xtna/xtna",
     });
-    expect(serverJson).toMatchObject({
-      name: packageJson.mcpName,
-      version: packageJson.version,
+    expect(serverJson).toEqual({
+      $schema:
+        "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+      name: "io.github.morluto/rea",
+      title: "REA",
+      description:
+        "Reverse engineer anything from your terminal or agent with one CLI and MCP server.",
+      websiteUrl: "https://github.com/morluto/rea",
+      repository: {
+        url: "https://github.com/morluto/rea",
+        source: "github",
+      },
+      version: "6.8.0",
       packages: [
         {
           registryType: "npm",
           registryBaseUrl: "https://registry.npmjs.org",
-          identifier: packageJson.name,
-          version: packageJson.version,
+          identifier: "rea-agents",
+          version: "6.8.0",
           runtimeHint: "npx",
           transport: { type: "stdio" },
           packageArguments: [{ type: "positional", value: "mcp" }],

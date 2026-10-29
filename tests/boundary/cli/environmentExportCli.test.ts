@@ -177,7 +177,7 @@ cliTest(
       `FROM node:${pinnedNodeVersion}-bookworm-slim`,
     );
     expect(dockerfile).toContain(
-      'CMD ["rea","environment-serve","/env/manifest.json","--evidence","/env/evidence.json"]',
+      'CMD ["xtna","environment-serve","/env/manifest.json","--evidence","/env/evidence.json"]',
     );
     const verifier = await readFile(
       join(directory, "artifacts/check_grafana-example/verify.py"),

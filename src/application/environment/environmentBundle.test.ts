@@ -12,6 +12,7 @@ import {
 } from "../../../tests/fixtures/environmentServe.js";
 import { projectAnalysisError } from "../../domain/analysisErrorProjection.js";
 import { PACKAGE_METADATA } from "../../generatedPackageMetadata.js";
+import { PRODUCT_IDENTITY } from "../../identity.js";
 import {
   BUNDLE_BASE_IMAGE,
   bundleDockerfile,
@@ -125,14 +126,14 @@ describe("planEnvironmentBundle", () => {
       "RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*",
     );
     expect(lines).toContain(
-      `RUN npm install -g --ignore-scripts --no-fund --no-audit rea-agents@${PACKAGE_METADATA.version}`,
+      `RUN npm install -g --ignore-scripts --no-fund --no-audit xtna@${PACKAGE_METADATA.version}`,
     );
     expect(lines).toContain(
       "COPY --chown=node:node manifest.json evidence.json /env/",
     );
     expect(lines).toContain("USER node");
     expect(lines.at(-1)).toBe(
-      'CMD ["rea","environment-serve","/env/manifest.json","--evidence","/env/evidence.json"]',
+      `CMD ["${PRODUCT_IDENTITY.cliBinary}","environment-serve","/env/manifest.json","--evidence","/env/evidence.json"]`,
     );
     expect(dockerfile).not.toContain("rea-agents.tgz");
     expect(dockerfile.indexOf("RUN npm install")).toBeLessThan(
@@ -148,7 +149,7 @@ describe("planEnvironmentBundle", () => {
     expect(dockerfile).toContain(
       "RUN npm install -g --ignore-scripts --no-fund --no-audit /tmp/rea-agents.tgz && rm /tmp/rea-agents.tgz\n",
     );
-    expect(dockerfile).not.toContain(`rea-agents@${PACKAGE_METADATA.version}`);
+    expect(dockerfile).not.toContain(`xtna@${PACKAGE_METADATA.version}`);
     expect(bundleDockerfile(registryPackageSource())).not.toBe(dockerfile);
   });
 
@@ -217,7 +218,7 @@ describe("planEnvironmentBundle", () => {
     expect(readme).toContain(
       `- State: \`${served.state?.evidenceId ?? ""}\`, derived from the capture`,
     );
-    expect(readme).toContain(`rea-agents@${PACKAGE_METADATA.version}`);
+    expect(readme).toContain(`xtna@${PACKAGE_METADATA.version}`);
     expect(readme).toContain("```sh\nagent-env run .\n```");
     expect(readme).not.toContain("agent-env run grafana-example");
     expect(readme).toContain("## What the environment serves");
@@ -226,7 +227,7 @@ describe("planEnvironmentBundle", () => {
       "write tools are served only where the capture's later reads confirmed\ntheir effect",
     );
     expect(readme).toContain(
-      "`rea environment-serve --replay-only` serves pure replay",
+      `\`${PRODUCT_IDENTITY.cliBinary} environment-serve --replay-only\` serves pure replay`,
     );
     expect(readme).toContain("This bundle serves from the state");
     expect(readme).toContain("serves 14 of the manifest's\n19 tools");
