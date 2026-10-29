@@ -40,25 +40,28 @@ describe("real Hopper fixture binding", () => {
     );
   });
 
-  it("rejects digest drift and artifacts escaping the manifest root", async () => {
-    const manifest = await fixtureManifest();
-    await writeFile(join(root ?? "", "c"), "changed");
-    await expect(loadRealHopperFixtureTargets(manifest)).rejects.toThrow(
-      /digest/u,
-    );
-
-    const outside = await createTestTempDirectory("rea-hopper-outside-");
-    try {
-      await writeFile(join(outside, "c"), "primary");
-      await rm(join(root ?? "", "c"));
-      await symlink(join(outside, "c"), join(root ?? "", "c"));
+  it.skipIf(process.platform === "win32")(
+    "rejects digest drift and artifacts escaping the manifest root",
+    async () => {
+      const manifest = await fixtureManifest();
+      await writeFile(join(root ?? "", "c"), "changed");
       await expect(loadRealHopperFixtureTargets(manifest)).rejects.toThrow(
-        /escapes/u,
+        /digest/u,
       );
-    } finally {
-      await rm(outside, { recursive: true, force: true });
-    }
-  });
+
+      const outside = await createTestTempDirectory("rea-hopper-outside-");
+      try {
+        await writeFile(join(outside, "c"), "primary");
+        await rm(join(root ?? "", "c"));
+        await symlink(join(outside, "c"), join(root ?? "", "c"));
+        await expect(loadRealHopperFixtureTargets(manifest)).rejects.toThrow(
+          /escapes/u,
+        );
+      } finally {
+        await rm(outside, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("rejects manifest entries that alias the same artifact", async () => {
     const manifest = await fixtureManifest();

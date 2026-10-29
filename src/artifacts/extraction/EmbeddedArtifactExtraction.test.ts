@@ -250,7 +250,7 @@ it.each(
   },
 );
 
-it.each(cases)(
+it.skipIf(process.platform === "win32").each(cases)(
   "rejects a retargeted selected path before publishing $format extraction",
   async ({ inputFormat, reader, bytes }) => {
     const directory = await createTestTempDirectory(
@@ -301,7 +301,7 @@ it.each(cases)(
   },
 );
 
-it.each(cases)(
+it.skipIf(process.platform === "win32").each(cases)(
   "rejects a replacement at the admitted $format pathname",
   async ({ inputFormat, reader, bytes }) => {
     const directory = await createTestTempDirectory(

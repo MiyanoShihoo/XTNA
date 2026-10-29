@@ -31,32 +31,35 @@ const target = {
   format: "plist",
 } satisfies BinaryTarget;
 
-it("resolves resource roots without requiring or hashing CFBundleExecutable", async () => {
-  const temp = await mkdtemp(join(tmpdir(), "rea-app-resource-root-"));
-  try {
-    const bundle = join(temp, "Fixture.app");
-    const contents = join(bundle, "Contents");
-    const alias = join(temp, "Selected.app");
-    await mkdir(contents, { recursive: true });
-    await writeFile(join(contents, "Info.plist"), "<plist><dict/></plist>");
-    await symlink(bundle, alias);
+it.skipIf(process.platform === "win32")(
+  "resolves resource roots without requiring or hashing CFBundleExecutable",
+  async () => {
+    const temp = await mkdtemp(join(tmpdir(), "rea-app-resource-root-"));
+    try {
+      const bundle = join(temp, "Fixture.app");
+      const contents = join(bundle, "Contents");
+      const alias = join(temp, "Selected.app");
+      await mkdir(contents, { recursive: true });
+      await writeFile(join(contents, "Info.plist"), "<plist><dict/></plist>");
+      await symlink(bundle, alias);
 
-    const resolved = await resolveAppBundleResourceRoot(alias);
+      const resolved = await resolveAppBundleResourceRoot(alias);
 
-    expect(resolved).toEqual({
-      ok: true,
-      value: {
-        callerPath: alias,
-        canonicalPath: bundle,
-        infoPlistPath: join(bundle, "Contents", "Info.plist"),
-        layout: "contents",
-        executableSha256: null,
-      },
-    });
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
-});
+      expect(resolved).toEqual({
+        ok: true,
+        value: {
+          callerPath: alias,
+          canonicalPath: bundle,
+          infoPlistPath: join(bundle, "Contents", "Info.plist"),
+          layout: "contents",
+          executableSha256: null,
+        },
+      });
+    } finally {
+      await rm(temp, { recursive: true, force: true });
+    }
+  },
+);
 
 it.skipIf(process.platform === "win32")(
   "preserves valid symlink-parent traversal when selecting resource roots",

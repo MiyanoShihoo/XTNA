@@ -46,22 +46,25 @@ describe("Apple asset catalog traversal coverage", () => {
     },
   );
 
-  it("keeps represented symlinks distinct from catalog-target inspection", async () => {
-    const bundle = await createTestTempDirectory("rea-asset-subtree-");
-    await symlink("unexamined", join(bundle, "Resources"));
-    const result = await analyzeAppleAssetCatalogs({
-      bundlePath: bundle,
-      targetSha256: "a".repeat(64),
-      environment: {},
-      runAssetUtil: async () => "[]",
-    });
-    expect(result.inventory_coverage.status).toBe("complete");
-    expect(result.catalog_coverage).toMatchObject({ status: "unknown" });
-    expect(result.resource_key_coverage).toMatchObject({ status: "unknown" });
-    expect(result.limitations).toContainEqual(
-      expect.stringContaining("catalogs beneath them may remain uninspected"),
-    );
-  });
+  it.skipIf(process.platform === "win32")(
+    "keeps represented symlinks distinct from catalog-target inspection",
+    async () => {
+      const bundle = await createTestTempDirectory("rea-asset-subtree-");
+      await symlink("unexamined", join(bundle, "Resources"));
+      const result = await analyzeAppleAssetCatalogs({
+        bundlePath: bundle,
+        targetSha256: "a".repeat(64),
+        environment: {},
+        runAssetUtil: async () => "[]",
+      });
+      expect(result.inventory_coverage.status).toBe("complete");
+      expect(result.catalog_coverage).toMatchObject({ status: "unknown" });
+      expect(result.resource_key_coverage).toMatchObject({ status: "unknown" });
+      expect(result.limitations).toContainEqual(
+        expect.stringContaining("catalogs beneath them may remain uninspected"),
+      );
+    },
+  );
 });
 
 describe("Apple asset catalog application workflow", () => {
@@ -152,54 +155,62 @@ describe("Apple asset catalog application workflow", () => {
     },
   );
 
-  it("does not report absence when the only catalog entry is a symlink", async () => {
-    const bundle = await createTestTempDirectory("rea-asset-catalog-link-");
-    const resources = join(bundle, "Contents", "Resources");
-    await mkdir(resources, { recursive: true });
-    await writeFile(join(bundle, "outside.car"), "catalog");
-    await symlink("../../outside.car", join(resources, "Assets.car"));
-    const rejected = await analyzeAppleAssetCatalogs({
-      environment: {},
-      bundlePath: bundle,
-      targetSha256: "a".repeat(64),
-      runAssetUtil: () => Promise.resolve("[]"),
-    }).catch((cause: unknown) => cause);
-    expect(rejected).toBeInstanceOf(ArtifactReaderFailure);
-    expect(rejected).toMatchObject({
-      reason: "path",
-      message: expect.stringContaining(
-        "Contents/Resources/Assets.car (symlink)",
-      ),
-    });
-  });
+  it.skipIf(process.platform === "win32")(
+    "does not report absence when the only catalog entry is a symlink",
+    async () => {
+      const bundle = await createTestTempDirectory("rea-asset-catalog-link-");
+      const resources = join(bundle, "Contents", "Resources");
+      await mkdir(resources, { recursive: true });
+      await writeFile(join(bundle, "outside.car"), "catalog");
+      await symlink("../../outside.car", join(resources, "Assets.car"));
+      const rejected = await analyzeAppleAssetCatalogs({
+        environment: {},
+        bundlePath: bundle,
+        targetSha256: "a".repeat(64),
+        runAssetUtil: () => Promise.resolve("[]"),
+      }).catch((cause: unknown) => cause);
+      expect(rejected).toBeInstanceOf(ArtifactReaderFailure);
+      expect(rejected).toMatchObject({
+        reason: "path",
+        message: expect.stringContaining(
+          "Contents/Resources/Assets.car (symlink)",
+        ),
+      });
+    },
+  );
 
-  it("discloses skipped catalog entries beside inspected catalogs", async () => {
-    const bundle = await createTestTempDirectory("rea-asset-catalog-mixed-");
-    const resources = join(bundle, "Contents", "Resources");
-    await mkdir(join(resources, "Nested"), { recursive: true });
-    await writeFile(join(resources, "Assets.car"), "catalog");
-    await symlink("../Assets.car", join(resources, "Nested", "Assets.car"));
-    const result = await analyzeAppleAssetCatalogs({
-      environment: {},
-      bundlePath: bundle,
-      targetSha256: "a".repeat(64),
-      runAssetUtil: () => Promise.resolve("[]"),
-    });
-    expect(result.catalogs.map(({ path }) => path)).toEqual([
-      "Contents/Resources/Assets.car",
-    ]);
-    expect(result.catalog_coverage).toEqual({
-      status: "partial",
-      reason: "catalog_entries_uninspected",
-    });
-    expect(result.resource_key_coverage.status).toBe("partial");
-    expect(result.limitations).toContainEqual(
-      expect.stringContaining("Contents/Resources/Nested/Assets.car (symlink)"),
-    );
-    expect(result.limitations).not.toContainEqual(
-      expect.stringContaining("No compiled Assets.car catalog"),
-    );
-  });
+  it.skipIf(process.platform === "win32")(
+    "discloses skipped catalog entries beside inspected catalogs",
+    async () => {
+      const bundle = await createTestTempDirectory("rea-asset-catalog-mixed-");
+      const resources = join(bundle, "Contents", "Resources");
+      await mkdir(join(resources, "Nested"), { recursive: true });
+      await writeFile(join(resources, "Assets.car"), "catalog");
+      await symlink("../Assets.car", join(resources, "Nested", "Assets.car"));
+      const result = await analyzeAppleAssetCatalogs({
+        environment: {},
+        bundlePath: bundle,
+        targetSha256: "a".repeat(64),
+        runAssetUtil: () => Promise.resolve("[]"),
+      });
+      expect(result.catalogs.map(({ path }) => path)).toEqual([
+        "Contents/Resources/Assets.car",
+      ]);
+      expect(result.catalog_coverage).toEqual({
+        status: "partial",
+        reason: "catalog_entries_uninspected",
+      });
+      expect(result.resource_key_coverage.status).toBe("partial");
+      expect(result.limitations).toContainEqual(
+        expect.stringContaining(
+          "Contents/Resources/Nested/Assets.car (symlink)",
+        ),
+      );
+      expect(result.limitations).not.toContainEqual(
+        expect.stringContaining("No compiled Assets.car catalog"),
+      );
+    },
+  );
 });
 
 it.skipIf(process.platform === "win32")(

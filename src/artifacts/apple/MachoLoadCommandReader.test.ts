@@ -414,7 +414,7 @@ it.each([false, true] as const)(
 );
 
 describe("absolute dyld candidate paths at the filesystem reader boundary", () => {
-  it.each(["install-name", "rpath"] as const)(
+  it.skipIf(process.platform === "win32").each(["install-name", "rpath"] as const)(
     "resolves an absolute in-root %s while preserving its source path",
     async (kind) => {
       const root = await createTestTempDirectory("rea-dylib-absolute-in-root-");
@@ -489,7 +489,9 @@ describe("absolute dyld candidate paths at the filesystem reader boundary", () =
     },
   );
 
-  it("keeps a genuinely external absolute candidate outside the analyzed root", async () => {
+  it.skipIf(process.platform === "win32")(
+    "keeps a genuinely external absolute candidate outside the analyzed root",
+    async () => {
     const root = await createTestTempDirectory("rea-dylib-absolute-outside-");
     const canonicalRoot = await realpath(root);
     const executable = machoImage({
@@ -542,48 +544,51 @@ describe("absolute dyld candidate paths at the filesystem reader boundary", () =
 });
 
 describe("absolute dyld candidate traversal", () => {
-  it("maps an absolute candidate spelled through the selected root symlink", async () => {
-    const root = await createTestTempDirectory(
-      "rea-dylib-absolute-root-alias-",
-    );
-    const aliasRoot = join(root, "bundle-alias");
-    const bridgePath = "Frameworks/libBridge.dylib";
-    const bridgeAbsolute = `${aliasRoot}/${bridgePath}`;
-    const executable = machoImage({
-      commands: [
-        buildVersionCommand(1),
-        dylibCommand(LC.LOAD_DYLIB, bridgeAbsolute),
-      ],
-    });
-    const bridge = machoImage({
-      fileType: FILE_TYPE.dylib,
-      commands: [buildVersionCommand(1)],
-    });
-    await symlink(".", aliasRoot);
-    await mkdir(join(root, "Frameworks"), { recursive: true });
-    await writeFile(join(root, "App"), executable);
-    await writeFile(join(root, bridgePath), bridge);
+  it.skipIf(process.platform === "win32")(
+    "maps an absolute candidate spelled through the selected root symlink",
+    async () => {
+      const root = await createTestTempDirectory(
+        "rea-dylib-absolute-root-alias-",
+      );
+      const aliasRoot = join(root, "bundle-alias");
+      const bridgePath = "Frameworks/libBridge.dylib";
+      const bridgeAbsolute = `${aliasRoot}/${bridgePath}`;
+      const executable = machoImage({
+        commands: [
+          buildVersionCommand(1),
+          dylibCommand(LC.LOAD_DYLIB, bridgeAbsolute),
+        ],
+      });
+      const bridge = machoImage({
+        fileType: FILE_TYPE.dylib,
+        commands: [buildVersionCommand(1)],
+      });
+      await symlink(".", aliasRoot);
+      await mkdir(join(root, "Frameworks"), { recursive: true });
+      await writeFile(join(root, "App"), executable);
+      await writeFile(join(root, bridgePath), bridge);
 
-    const trace = await traceDylibResolution({
-      rootPath: aliasRoot,
-      targetPath: `${aliasRoot}/App`,
-      targetSha256: createHash("sha256").update(executable).digest("hex"),
-      enumerateRoots: false,
-      parameters: { roots: ["App"] },
-    });
+      const trace = await traceDylibResolution({
+        rootPath: aliasRoot,
+        targetPath: `${aliasRoot}/App`,
+        targetSha256: createHash("sha256").update(executable).digest("hex"),
+        enumerateRoots: false,
+        parameters: { roots: ["App"] },
+      });
 
-    expect(trace.edges[0]).toMatchObject({
-      install_name: bridgeAbsolute,
-      candidates: [
-        {
-          path: bridgeAbsolute,
-          outcome: "resolved",
-          resolved_path: bridgePath,
-        },
-      ],
-      resolution: { status: "resolved", image: bridgePath },
-    });
-  });
+      expect(trace.edges[0]).toMatchObject({
+        install_name: bridgeAbsolute,
+        candidates: [
+          {
+            path: bridgeAbsolute,
+            outcome: "resolved",
+            resolved_path: bridgePath,
+          },
+        ],
+        resolution: { status: "resolved", image: bridgePath },
+      });
+    },
+  );
 
   it.skipIf(process.platform === "win32")(
     "preserves symlink-then-parent traversal for an absolute in-root path",
