@@ -63,6 +63,7 @@ not implemented here.
 - `npm run typecheck`: passed.
 - `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.
+- `npm run lint`: 0 errors, 3,013 warnings (2026-10-30, after splitting the long Electron fuse suites).
 - `npm run verify:xtna`: 8/8 checks passed.
 - `npm run test:local` focused lifecycle: `SourceMapCommand.test.ts` 11/11 and `WebBundleAnalysisWorker.test.ts` 25/25.
 - Real Ghidra verification (2026-10-30): Ghidra 12.2 headless on `C:\Windows\System32\notepad.exe` (SHA-256 `49f096cb…`) reported 915 procedures / 635 strings; `decompile 0x140001008` returned real pseudocode (`FUN_140001008`, ETW write transfer).

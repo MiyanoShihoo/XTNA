@@ -473,7 +473,9 @@ describe("Electron fuse path and container admission", () => {
         expect(result.error._tag).toBe("AnalysisUnsupportedTargetError");
     }
   });
+});
 
+describe("Electron fuse slice boundaries", () => {
   it("does not invent a sentinel from bytes that only straddle two slices", async () => {
     const root = await createTestTempDirectory("rea-electron-fuses-span-");
     const left = thinMacho(0x01000007, Buffer.alloc(16));
@@ -500,20 +502,20 @@ describe("Electron fuse path and container admission", () => {
   });
 });
 
-describe("direct Electron Framework binary selection", () => {
-  const frameworkFixture = async (prefix: string) => {
-    const root = await createTestTempDirectory(prefix);
-    const app = join(root, "Fixture.app");
-    const framework = join(
-      app,
-      "Contents",
-      "Frameworks",
-      "Electron Framework.framework",
-    );
-    await mkdir(join(framework, "Versions"), { recursive: true });
-    return { app, framework };
-  };
+const frameworkFixture = async (prefix: string) => {
+  const root = await createTestTempDirectory(prefix);
+  const app = join(root, "Fixture.app");
+  const framework = join(
+    app,
+    "Contents",
+    "Frameworks",
+    "Electron Framework.framework",
+  );
+  await mkdir(join(framework, "Versions"), { recursive: true });
+  return { app, framework };
+};
 
+describe("direct Electron Framework binary selection", () => {
   it.skipIf(process.platform === "win32")(
     "resolves a binary selected through Versions/Current to its target",
     async () => {
@@ -561,7 +563,9 @@ describe("direct Electron Framework binary selection", () => {
       expect(report.slices[0]?.sentinel_count).toBe(1);
     },
   );
+});
 
+describe("direct Electron Framework selection escapes", () => {
   it.skipIf(process.platform === "win32")(
     "rejects a binary selected through a Versions/Current link that leaves the framework",
     async () => {
