@@ -167,3 +167,105 @@ it("walks paginated responses with the generated Python client", async () => {
     await rm(directory, { recursive: true, force: true, maxRetries: 5 });
   }
 });
+
+it("authenticates with a captured OAuth token request", async () => {
+  const { createServer } = await import("node:http");
+  const directory = await mkdtemp(join(tmpdir(), "rea-sdk-oauth-"));
+  const server = createServer((request, response) => {
+    if (request.method === "POST" && request.url === "/oauth/token") {
+      let body = "";
+      request.on("data", (chunk) => (body += chunk));
+      request.on("end", () => {
+        if (!body.includes("grant_type=client_credentials")) {
+          response.writeHead(400).end(JSON.stringify({ error: "grant" }));
+          return;
+        }
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify({ access_token: "tok-123" }));
+      });
+      return;
+    }
+    if (
+      request.url === "/me" &&
+      request.headers.authorization === "Bearer tok-123"
+    ) {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+    response.writeHead(401, { "content-type": "application/json" });
+    response.end(JSON.stringify({ error: "unauthorized" }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  const port =
+    typeof address === "object" && address !== null ? address.port : 0;
+  try {
+    const capture = join(directory, "capture.har");
+    await writeFile(
+      capture,
+      JSON.stringify({
+        log: {
+          entries: [
+            {
+              request: {
+                method: "POST",
+                url: "https://api.test/oauth/token",
+                postData: {
+                  mimeType: "application/x-www-form-urlencoded",
+                  text: "grant_type=client_credentials&client_id=demo",
+                },
+              },
+              response: {
+                status: 200,
+                content: { text: JSON.stringify({ access_token: "tok-123" }) },
+              },
+            },
+            {
+              request: {
+                method: "GET",
+                url: "https://api.test/me",
+                headers: [{ name: "Authorization", value: "Bearer tok-123" }],
+              },
+              response: {
+                status: 200,
+                content: { text: JSON.stringify({ ok: true }) },
+              },
+            },
+          ],
+        },
+      }),
+    );
+    const output = join(directory, "client");
+    await run(
+      process.execPath,
+      [
+        script,
+        "--in",
+        capture,
+        "--out",
+        output,
+        "--lang",
+        "py",
+        "--base-url",
+        `http://127.0.0.1:${String(port)}`,
+      ],
+      { env: process.env },
+    );
+    const tested = await run(
+      "python",
+      [
+        "-c",
+        "from client import ApiClient\n" +
+          "client = ApiClient()\n" +
+          "client.authenticate({'client_id': 'demo'})\n" +
+          "print(client.get_me()['ok'])",
+      ],
+      { cwd: output, env: process.env },
+    );
+    expect(tested.stdout).toContain("True");
+  } finally {
+    server.close();
+    await rm(directory, { recursive: true, force: true, maxRetries: 5 });
+  }
+});

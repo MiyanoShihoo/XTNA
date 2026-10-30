@@ -57,12 +57,20 @@ export interface SdkOperation {
   readonly pagination: SdkPagination | undefined;
 }
 
+/** A captured OAuth-style token request. */
+export interface SdkOAuth {
+  readonly path: string;
+  readonly grantType: string;
+  readonly fields: readonly string[];
+}
+
 export interface ClientSdk {
   readonly operations: readonly SdkOperation[];
   readonly typescript: string;
   readonly python: string;
   readonly typescriptTest: string;
   readonly pythonTest: string;
+  readonly oauth: SdkOAuth | undefined;
 }
 
 export interface SdkOptions {
@@ -339,8 +347,14 @@ const paginationOf = (
   };
 };
 
-const collect = (document: unknown): Map<string, Sampled> => {
+const collect = (
+  document: unknown,
+): {
+  readonly operations: Map<string, Sampled>;
+  readonly oauth: SdkOAuth | undefined;
+} => {
   const operations = new Map<string, Sampled>();
+  let oauth: SdkOAuth | undefined;
   for (const entry of entriesOf(document)) {
     if (!isRecord(entry) || !isRecord(entry.request)) continue;
     const request = entry.request;
@@ -385,6 +399,25 @@ const collect = (document: unknown): Map<string, Sampled> => {
     const bodyText = isRecord(request.postData)
       ? request.postData.text
       : undefined;
+    const mimeType = isRecord(request.postData)
+      ? String(request.postData.mimeType ?? "")
+      : "";
+    const formBody =
+      typeof bodyText === "string" &&
+      (mimeType.includes("application/x-www-form-urlencoded") ||
+        bodyText.includes("grant_type="))
+        ? new URLSearchParams(bodyText)
+        : undefined;
+    if (
+      oauth === undefined &&
+      formBody?.has("grant_type") === true &&
+      method === "POST"
+    )
+      oauth = {
+        path: template,
+        grantType: formBody.get("grant_type") ?? "",
+        fields: [...new Set(formBody.keys())],
+      };
     const bodyJson = parseJson(bodyText);
     if (bodyJson !== undefined) existing.bodies.push(shapeOf(bodyJson));
     if (response !== undefined) {
@@ -407,7 +440,7 @@ const collect = (document: unknown): Map<string, Sampled> => {
       }
     operations.set(key, existing);
   }
-  return operations;
+  return { operations, oauth };
 };
 
 const renderTypeScript = (
@@ -415,6 +448,7 @@ const renderTypeScript = (
   className: string,
   baseUrl: string,
   header: string | undefined,
+  oauth: SdkOAuth | undefined,
 ): string => {
   const lines: string[] = [];
   if (header !== undefined) lines.push(`// ${header}`, "");
@@ -449,6 +483,7 @@ const renderTypeScript = (
     "  private readonly baseUrl: string;",
     "  private readonly headers: Record<string, string>;",
     "  private readonly auth: AuthOptions | undefined;",
+    "  private bearerToken: string | undefined;",
     `  private readonly retryAttempts = ${String(attempts)};`,
     "",
     "  constructor(options: ClientOptions = {}) {",
@@ -458,6 +493,8 @@ const renderTypeScript = (
     "  }",
     "",
     "  private authHeaders(): Record<string, string> {",
+    "    if (this.bearerToken !== undefined)",
+    "      return { authorization: `Bearer ${this.bearerToken}` };",
     "    const auth = this.auth;",
     "    if (auth === undefined) return {};",
     '    if (auth.kind === "bearer")',
@@ -584,6 +621,25 @@ const renderTypeScript = (
       );
     }
   }
+  if (oauth !== undefined) {
+    lines.push(
+      "  async authenticate(credentials: Record<string, string> = {}): Promise<void> {",
+      `    const body = new URLSearchParams({ grant_type: ${JSON.stringify(oauth.grantType)}, ...credentials });`,
+      `    const response = await fetch(new URL(this.baseUrl + ${JSON.stringify(oauth.path)}), {`,
+      '      method: "POST",',
+      '      headers: { "content-type": "application/x-www-form-urlencoded" },',
+      "      body,",
+      "    });",
+      "    if (!response.ok)",
+      "      throw new Error(`token request failed: ${response.status}`);",
+      "    const payload = (await response.json()) as { access_token?: string };",
+      '    if (typeof payload.access_token !== "string")',
+      '      throw new Error("token response has no access_token");',
+      "    this.bearerToken = payload.access_token;",
+      "  }",
+      "",
+    );
+  }
   lines.push("}", "");
   return lines.join("\n");
 };
@@ -593,6 +649,7 @@ const renderPython = (
   className: string,
   baseUrl: string,
   header: string | undefined,
+  oauth: SdkOAuth | undefined,
 ): string => {
   const lines: string[] = [];
   if (header !== undefined) lines.push(`# ${header}`, "");
@@ -617,9 +674,12 @@ const renderPython = (
     "        self.base_url = base_url.rstrip('/')",
     "        self.headers = headers or {}",
     "        self.auth = auth or {}",
+    "        self.bearer_token = None",
     `        self.retry_attempts = ${String(attempts)}`,
     "",
     "    def _auth_headers(self) -> Dict[str, str]:",
+    "        if self.bearer_token is not None:",
+    "            return {'authorization': 'Bearer ' + self.bearer_token}",
     "        auth = self.auth",
     "        if not auth:",
     "            return {}",
@@ -717,6 +777,31 @@ const renderPython = (
         "",
       );
     }
+  }
+  if (oauth !== undefined) {
+    const method = "authenticate";
+    lines.push(
+      `    def ${method}(self, credentials: Optional[Dict[str, str]] = None) -> None:`,
+      `        fields = {'grant_type': ${JSON.stringify(oauth.grantType)}}`,
+      "        fields.update(credentials or {})",
+      "        data = urllib.parse.urlencode(fields).encode('utf-8')",
+      "        request = urllib.request.Request(",
+      `            self.base_url + ${JSON.stringify(oauth.path)},`,
+      "            data=data,",
+      "            headers={'content-type': 'application/x-www-form-urlencoded'},",
+      "            method='POST',",
+      "        )",
+      "        try:",
+      "            with urllib.request.urlopen(request) as response:",
+      "                payload = json.loads(response.read().decode('utf-8'))",
+      "        except urllib.error.HTTPError as error:",
+      "            raise RuntimeError(f'token request failed: {error.code}') from error",
+      "        token = payload.get('access_token') if isinstance(payload, dict) else None",
+      "        if not isinstance(token, str):",
+      "            raise RuntimeError('token response has no access_token')",
+      "        self.bearer_token = token",
+      "",
+    );
   }
   return lines.join("\n");
 };
@@ -822,7 +907,9 @@ export function generateClientSdk(
 ): ClientSdk {
   const className = options.clientName ?? "ApiClient";
   const baseUrl = options.baseUrl ?? "http://localhost:8080";
-  const sampled = [...collect(document).values()].sort((left, right) =>
+  const collected = collect(document);
+  const oauth = collected.oauth;
+  const sampled = [...collected.operations.values()].sort((left, right) =>
     `${left.method} ${left.pathTemplate}`.localeCompare(
       `${right.method} ${right.pathTemplate}`,
     ),
@@ -866,9 +953,11 @@ export function generateClientSdk(
       className,
       baseUrl,
       options.header,
+      oauth,
     ),
-    python: renderPython(operations, className, baseUrl, options.header),
+    python: renderPython(operations, className, baseUrl, options.header, oauth),
     typescriptTest: renderTypeScriptTest(operations, className, options.header),
     pythonTest: renderPythonTest(operations, className, options.header),
+    oauth,
   };
 }

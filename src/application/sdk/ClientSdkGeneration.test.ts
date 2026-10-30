@@ -327,3 +327,69 @@ describe("pagination inference", () => {
     ).toBeUndefined();
   });
 });
+
+describe("oauth inference", () => {
+  const tokenHar = {
+    log: {
+      entries: [
+        {
+          request: {
+            method: "POST",
+            url: "https://api.test/oauth/token",
+            postData: {
+              mimeType: "application/x-www-form-urlencoded",
+              text: "grant_type=client_credentials&client_id=demo",
+            },
+          },
+          response: {
+            status: 200,
+            content: { text: JSON.stringify({ access_token: "tok" }) },
+          },
+        },
+        {
+          request: {
+            method: "GET",
+            url: "https://api.test/me",
+            headers: [{ name: "Authorization", value: "Bearer tok" }],
+          },
+          response: {
+            status: 200,
+            content: { text: JSON.stringify({ id: 1 }) },
+          },
+        },
+      ],
+    },
+  };
+
+  it("detects a captured token request", () => {
+    const sdk = generateClientSdk(tokenHar);
+    expect(sdk.oauth).toEqual({
+      path: "/oauth/token",
+      grantType: "client_credentials",
+      fields: ["grant_type", "client_id"],
+    });
+    expect(sdk.oauth).toBe(
+      generateClientSdk(har).oauth === undefined ? sdk.oauth : sdk.oauth,
+    );
+    expect(generateClientSdk(har).oauth).toBeUndefined();
+  });
+
+  it("emits authenticate in both languages", () => {
+    const sdk = generateClientSdk(tokenHar);
+    expect(sdk.typescript).toContain("async authenticate(");
+    expect(sdk.typescript).toContain("application/x-www-form-urlencoded");
+    expect(sdk.typescript).toContain("bearerToken");
+    expect(sdk.python).toContain("def authenticate(");
+    expect(sdk.python).toContain("self.bearer_token");
+    const source = ts.createSourceFile(
+      "client.ts",
+      sdk.typescript,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    expect(
+      (source as unknown as { parseDiagnostics?: readonly unknown[] })
+        .parseDiagnostics ?? [],
+    ).toEqual([]);
+  });
+});

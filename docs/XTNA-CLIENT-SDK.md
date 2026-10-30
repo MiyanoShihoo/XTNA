@@ -48,6 +48,21 @@ Two facts are inferred from the capture and turned into code:
   header, and otherwise backs off 100 ms × 2^attempt. Python sleeps between attempts; the
   TypeScript client uses `setTimeout`.
 
+## OAuth token flow
+
+When the capture contains a form-encoded `POST` carrying `grant_type`, the client gains an
+`authenticate(credentials)` method (TypeScript) / `authenticate(credentials)` (Python) that posts
+to the captured token path, reads `access_token` and stores it. Every later request sends
+`Authorization: Bearer <token>` and takes precedence over the static `auth` option.
+
+```ts
+const client = new ApiClient();
+await client.authenticate({ client_id: "demo", client_secret: "…" });
+await client.getMe();
+```
+
+Only the token **request shape** is inferred. Token refresh, scopes and signing are not.
+
 ## Pagination
 
 When a captured list request carries a page parameter (`page`, `offset`, `start`, `cursor`,
@@ -66,8 +81,8 @@ and why.
 ## What it will not do
 
 - Execute anything, call the recorded URLs, or copy credential values into generated code.
-- Infer OAuth flows, token refresh, signing schemes or per-operation auth differences beyond the
-  first scheme seen.
+- Infer token refresh, scopes, signing schemes or per-operation auth differences beyond the first
+  scheme seen.
 - Produce UI code: the client is transport only.
 - Guarantee the server still behaves as recorded — the capture is the only evidence it has.
 
@@ -82,6 +97,8 @@ and why.
   safe to repeat on the real server.
 - Pagination is inferred from parameter names and envelope keys; a non-standard scheme (GraphQL
   connections, opaque POST bodies) is not recognised.
+- OAuth inference requires a captured token request with `grant_type`; bearer tokens obtained by
+  other means are the caller's job.
 - Generated tests are smoke tests with mocked transport, not server contract tests or
   end-to-end authentication/retry verification.
 - Generated code is a starting point: review error handling and base URL before shipping.
