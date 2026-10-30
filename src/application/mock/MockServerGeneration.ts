@@ -4,9 +4,16 @@
  * The capture decides which resources exist: a `GET /users` response that is an
  * array seeds the collection, and `GET /users/{id}` seeds individual records.
  * The generated server implements list/read/create/update/delete over that seed
- * and replays any other recorded request verbatim. It is a single file with no
- * dependencies beyond `node:http` and `node:fs`.
+ * and replays any other recorded request verbatim. State lives in an in-memory
+ * or file-backed SQLite database when `node:sqlite` is available, and falls back
+ * to a plain in-memory map otherwise.
+ *
+ * A captured paged envelope (`{ items: [...], next_cursor: "..." }`) keeps its
+ * envelope keys and gains working cursor pagination; a captured create response
+ * that returns server-generated timestamps gets those timestamps synthesized.
  */
+import { MOCK_SERVER_RUNTIME } from "./MockServerRuntime.js";
+
 export type JsonValue =
   | string
   | number
@@ -24,16 +31,35 @@ export interface MockRoute {
   readonly body: JsonValue | undefined;
 }
 
+/** Envelope keys a captured list response used for paging. */
+export interface MockPageShape {
+  readonly itemsKey: string;
+  readonly cursorKey: string | undefined;
+  readonly hasMoreKey: string | undefined;
+  readonly defaultLimit: number | undefined;
+}
+
 export interface MockModel {
   readonly routes: readonly MockRoute[];
   readonly seed: Readonly<Record<string, readonly JsonValue[]>>;
+  /** Paged list envelopes keyed by `METHOD template`. */
+  readonly pages: Readonly<Record<string, MockPageShape>>;
+  /** Server-generated timestamp fields per collection, observed on create. */
+  readonly timestamps: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface MockServerOptions {
   /** Default port written into the generated file. */
   readonly port?: number;
-  /** Optional JSON state file the generated server loads and rewrites. */
+  /** Optional JSON state file the generated memory backend loads and rewrites. */
   readonly persist?: string;
+  /**
+   * `sqlite` (default) prefers the built-in SQLite backend and falls back to
+   * memory when `node:sqlite` is unavailable; `memory` never imports it.
+   */
+  readonly backend?: "sqlite" | "memory";
+  /** SQLite file path; `:memory:` keeps state for the process lifetime. */
+  readonly sqlite?: string;
   /** Header comment. */
   readonly header?: string;
 }
@@ -79,79 +105,178 @@ const collectionOf = (template: string): string | undefined => {
   return first === undefined || first === "{id}" ? undefined : first;
 };
 
-/** Extract the routes and the seed state a capture implies. */
-export function buildMockModel(document: unknown): MockModel {
-  const routes = new Map<string, MockRoute>();
-  const seed: Record<string, JsonValue[]> = {};
-  for (const entry of entriesOf(document)) {
-    if (!isRecord(entry) || !isRecord(entry.request)) continue;
-    const request = entry.request;
-    const response = isRecord(entry.response) ? entry.response : undefined;
-    const method =
-      typeof request.method === "string" ? request.method.toUpperCase() : "GET";
-    const rawUrl = typeof request.url === "string" ? request.url : "";
-    let pathname = "/";
-    try {
-      pathname = new URL(rawUrl).pathname;
-    } catch {
-      pathname = rawUrl.split("?")[0] || "/";
-    }
-    const template = templateOf(pathname);
-    const collection = collectionOf(template);
-    const status = typeof response?.status === "number" ? response.status : 200;
-    const body = isRecord(response?.content)
-      ? parseJsonText(response.content.text)
-      : undefined;
-    const itemRoute = template.endsWith("/{id}");
-    const kind: MockRoute["kind"] =
-      method === "GET" && itemRoute
-        ? "read"
-        : method === "GET"
-          ? "list"
-          : method === "POST"
-            ? "create"
-            : method === "PUT" || method === "PATCH"
-              ? "update"
-              : method === "DELETE"
-                ? "delete"
-                : "replay";
-    routes.set(`${method} ${template}`, {
+const PAGE_ITEM_KEYS = [
+  "items",
+  "data",
+  "results",
+  "records",
+  "rows",
+  "list",
+] as const;
+
+const PAGE_CURSOR_KEYS = [
+  "next_cursor",
+  "nextCursor",
+  "next_page_token",
+  "nextPageToken",
+  "cursor",
+  "next",
+] as const;
+
+const PAGE_MORE_KEYS = [
+  "has_more",
+  "hasMore",
+  "more",
+  "has_next",
+  "hasNext",
+] as const;
+
+const pageShapeOf = (
+  body: JsonValue | undefined,
+): MockPageShape | undefined => {
+  if (!isRecord(body)) return undefined;
+  const itemsKey = PAGE_ITEM_KEYS.find((key) => Array.isArray(body[key]));
+  if (itemsKey === undefined) return undefined;
+  const cursorKey = PAGE_CURSOR_KEYS.find((key) => key in body);
+  const hasMoreKey = PAGE_MORE_KEYS.find((key) => key in body);
+  if (cursorKey === undefined && hasMoreKey === undefined) return undefined;
+  const items = body[itemsKey];
+  return {
+    itemsKey,
+    cursorKey,
+    hasMoreKey,
+    defaultLimit:
+      Array.isArray(items) && items.length > 0 ? items.length : undefined,
+  };
+};
+
+const itemsOf = (body: JsonValue | undefined): readonly JsonValue[] => {
+  if (Array.isArray(body)) return body;
+  const page = pageShapeOf(body);
+  if (page === undefined || !isRecord(body)) return [];
+  const items = body[page.itemsKey];
+  return Array.isArray(items) ? items : [];
+};
+
+const requestBodyOf = (request: Record<string, unknown>): unknown => {
+  const postData = request.postData;
+  if (!isRecord(postData)) return undefined;
+  return parseJsonText(postData.text);
+};
+
+const ISO_TIMESTAMP =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u;
+
+/**
+ * Fields the server generated: present in the recorded create response but
+ * absent from the recorded request, and shaped like an ISO timestamp.
+ */
+const generatedTimestampFields = (
+  request: unknown,
+  response: JsonValue | undefined,
+): readonly string[] => {
+  if (!isRecord(response)) return [];
+  const sent = isRecord(request) ? request : {};
+  return Object.entries(response)
+    .filter(
+      ([key, value]) =>
+        !(key in sent) &&
+        typeof value === "string" &&
+        ISO_TIMESTAMP.test(value),
+    )
+    .map(([key]) => key);
+};
+
+const kindOf = (method: string, itemRoute: boolean): MockRoute["kind"] => {
+  if (method === "GET") return itemRoute ? "read" : "list";
+  if (method === "POST") return "create";
+  if (method === "PUT" || method === "PATCH") return "update";
+  if (method === "DELETE") return "delete";
+  return "replay";
+};
+
+const pathnameOf = (rawUrl: string): string => {
+  try {
+    return new URL(rawUrl).pathname;
+  } catch {
+    return rawUrl.split("?")[0] || "/";
+  }
+};
+
+interface CapturedEntry {
+  readonly key: string;
+  readonly request: Record<string, unknown>;
+  readonly route: MockRoute;
+}
+
+const entryOf = (entry: unknown): CapturedEntry | undefined => {
+  if (!isRecord(entry) || !isRecord(entry.request)) return undefined;
+  const request = entry.request;
+  const response = isRecord(entry.response) ? entry.response : undefined;
+  const method =
+    typeof request.method === "string" ? request.method.toUpperCase() : "GET";
+  const rawUrl = typeof request.url === "string" ? request.url : "";
+  const template = templateOf(pathnameOf(rawUrl));
+  const collection = collectionOf(template);
+  const body = isRecord(response?.content)
+    ? parseJsonText(response.content.text)
+    : undefined;
+  return {
+    key: `${method} ${template}`,
+    request,
+    route: {
       method,
       template,
-      kind,
+      kind: kindOf(method, template.endsWith("/{id}")),
       collection,
-      status,
+      status: typeof response?.status === "number" ? response.status : 200,
       body,
-    });
-    if (collection !== undefined && method === "GET") {
-      const list = (seed[collection] ??= []);
-      if (Array.isArray(body))
-        for (const item of body)
-          if (isRecord(item)) {
-            const id = item.id;
-            const index =
-              id === undefined
-                ? -1
-                : list.findIndex(
-                    (candidate) =>
-                      isRecord(candidate) &&
-                      String(candidate.id) === String(id),
-                  );
-            if (index >= 0) list[index] = item as JsonValue;
-            else list.push(item as JsonValue);
-          }
-      if (isRecord(body) && body.id !== undefined) {
-        const id = String(body.id);
-        const index = list.findIndex(
-          (candidate) => isRecord(candidate) && String(candidate.id) === id,
+    },
+  };
+};
+
+const mergeRecord = (
+  list: JsonValue[],
+  item: Record<string, unknown>,
+): void => {
+  const index =
+    item.id === undefined
+      ? -1
+      : list.findIndex(
+          (candidate) =>
+            isRecord(candidate) && String(candidate.id) === String(item.id),
         );
-        if (index >= 0) list[index] = body as JsonValue;
-        else list.push(body as JsonValue);
-      }
-    }
-  }
-  // A recorded collection implies the rest of CRUD: the capture rarely shows
-  // every verb, but a mock that cannot update or delete is not useful.
+  if (index >= 0) list[index] = item as JsonValue;
+  else list.push(item as JsonValue);
+};
+
+const seedCollection = (
+  seed: Record<string, JsonValue[]>,
+  collection: string,
+  body: JsonValue | undefined,
+): void => {
+  const list = (seed[collection] ??= []);
+  for (const item of itemsOf(body)) if (isRecord(item)) mergeRecord(list, item);
+};
+
+const noteTimestamps = (
+  timestamps: Record<string, string[]>,
+  collection: string,
+  request: Record<string, unknown>,
+  body: JsonValue | undefined,
+): void => {
+  const generated = generatedTimestampFields(requestBodyOf(request), body);
+  if (generated.length === 0) return;
+  const known = new Set(timestamps[collection] ?? []);
+  for (const field of generated) known.add(field);
+  timestamps[collection] = [...known];
+};
+
+/**
+ * A recorded collection implies the rest of CRUD: the capture rarely shows
+ * every verb, but a mock that cannot update or delete is not useful.
+ */
+const synthesizeCrud = (routes: Map<string, MockRoute>): void => {
   const collections = new Set(
     [...routes.values()]
       .filter((route) => route.kind === "list")
@@ -160,7 +285,7 @@ export function buildMockModel(document: unknown): MockModel {
       ),
   );
   for (const collection of collections) {
-    const synthesize = (
+    const add = (
       method: string,
       template: string,
       kind: MockRoute["kind"],
@@ -177,11 +302,34 @@ export function buildMockModel(document: unknown): MockModel {
           body: undefined,
         });
     };
-    synthesize("POST", `/${collection}`, "create", 201);
-    synthesize("PUT", `/${collection}/{id}`, "update", 200);
-    synthesize("PATCH", `/${collection}/{id}`, "update", 200);
-    synthesize("DELETE", `/${collection}/{id}`, "delete", 204);
+    add("POST", `/${collection}`, "create", 201);
+    add("PUT", `/${collection}/{id}`, "update", 200);
+    add("PATCH", `/${collection}/{id}`, "update", 200);
+    add("DELETE", `/${collection}/{id}`, "delete", 204);
   }
+};
+
+/** Extract the routes and the seed state a capture implies. */
+export function buildMockModel(document: unknown): MockModel {
+  const routes = new Map<string, MockRoute>();
+  const seed: Record<string, JsonValue[]> = {};
+  const pages: Record<string, MockPageShape> = {};
+  const timestamps: Record<string, string[]> = {};
+  for (const entry of entriesOf(document)) {
+    const captured = entryOf(entry);
+    if (captured === undefined) continue;
+    const { key, request, route } = captured;
+    routes.set(key, route);
+    if (route.collection === undefined) continue;
+    if (route.kind === "list") {
+      const page = pageShapeOf(route.body);
+      if (page !== undefined) pages[key] = page;
+      seedCollection(seed, route.collection, route.body);
+    }
+    if (route.kind === "create")
+      noteTimestamps(timestamps, route.collection, request, route.body);
+  }
+  synthesizeCrud(routes);
   return {
     routes: [...routes.values()].sort((left, right) =>
       `${left.method} ${left.template}`.localeCompare(
@@ -189,111 +337,10 @@ export function buildMockModel(document: unknown): MockModel {
       ),
     ),
     seed,
+    pages,
+    timestamps,
   };
 }
-
-const RUNTIME = String.raw`
-import { createServer } from "node:http";
-import { readFileSync, writeFileSync } from "node:fs";
-
-const model = __MODEL__;
-const state = new Map(Object.entries(model.seed ?? {}).map(([key, value]) => [key, [...value]]));
-const persist = __STATE__;
-if (persist !== undefined && persist !== null) {
-  try {
-    const saved = JSON.parse(readFileSync(persist, "utf8"));
-    for (const [key, value] of Object.entries(saved)) state.set(key, value);
-  } catch {}
-}
-const save = () => {
-  if (persist === undefined || persist === null) return;
-  writeFileSync(persist, JSON.stringify(Object.fromEntries(state)), "utf8");
-};
-
-const send = (response, status, body) => {
-  const text = body === undefined ? "" : JSON.stringify(body);
-  response.writeHead(status, { "content-type": "application/json" });
-  response.end(text);
-};
-
-const matchRoute = (method, pathname) => {
-  const segments = pathname.split("/").filter(Boolean);
-  for (const route of model.routes) {
-    if (route.method !== method) continue;
-    const expected = route.template.split("/").filter(Boolean);
-    if (expected.length !== segments.length) continue;
-    const id = expected.reduce((found, segment, index) => {
-      if (found !== undefined) return found;
-      return segment === "{id}" ? segments[index] : undefined;
-    }, undefined);
-    const matches = expected.every(
-      (segment, index) => segment === "{id}" || segment === segments[index],
-    );
-    if (matches) return { route, id };
-  }
-  return undefined;
-};
-
-const body = async (request) =>
-  new Promise((resolve) => {
-    let raw = "";
-    request.on("data", (chunk) => (raw += chunk));
-    request.on("end", () => {
-      try { resolve(raw === "" ? undefined : JSON.parse(raw)); } catch { resolve(undefined); }
-    });
-  });
-
-const server = createServer(async (request, response) => {
-  const url = new URL(request.url ?? "/", "http://localhost");
-  const found = matchRoute(request.method ?? "GET", url.pathname);
-  if (found === undefined) return send(response, 404, { error: "no recorded route" });
-  const { route, id } = found;
-  const collection = route.collection;
-  if (collection === undefined) return send(response, route.status, route.body);
-
-  if (route.kind === "list") {
-    const items = state.get(collection) ?? [];
-    const limit = Number(url.searchParams.get("limit"));
-    return send(response, 200, Number.isFinite(limit) && limit > 0 ? items.slice(0, limit) : items);
-  }
-  if (route.kind === "read") {
-    const item = (state.get(collection) ?? []).find((candidate) => String(candidate.id) === String(id));
-    return item === undefined ? send(response, 404, { error: "not found" }) : send(response, 200, item);
-  }
-  const items = state.get(collection) ?? [];
-  if (route.kind === "create") {
-    const payload = (await body(request)) ?? {};
-    const nextId = items.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
-    const created = { ...payload, id: payload.id ?? nextId };
-    items.push(created);
-    state.set(collection, items);
-    save();
-    return send(response, 201, created);
-  }
-  if (route.kind === "update") {
-    const payload = (await body(request)) ?? {};
-    const index = items.findIndex((candidate) => String(candidate.id) === String(id));
-    if (index < 0) return send(response, 404, { error: "not found" });
-    items[index] = { ...items[index], ...payload, id: items[index].id };
-    state.set(collection, items);
-    save();
-    return send(response, 200, items[index]);
-  }
-  if (route.kind === "delete") {
-    const index = items.findIndex((candidate) => String(candidate.id) === String(id));
-    if (index < 0) return send(response, 404, { error: "not found" });
-    items.splice(index, 1);
-    state.set(collection, items);
-    save();
-    return send(response, 204, undefined);
-  }
-  return send(response, route.status, route.body);
-});
-server.listen(Number(process.env.PORT ?? __PORT__), () => {
-  const address = server.address();
-  process.stdout.write(JSON.stringify({ port: typeof address === "object" && address ? address.port : null }) + "\n");
-});
-`;
 
 /** Render the generated server source. */
 export function renderMockServer(
@@ -301,17 +348,22 @@ export function renderMockServer(
   options: MockServerOptions = {},
 ): string {
   const port = options.port ?? 8080;
+  const backend = options.backend ?? "sqlite";
+  const sqlite = options.sqlite ?? ":memory:";
+  const persisted = options.persist !== undefined && backend === "memory";
   const header =
     options.header ??
-    "Generated by XTNA from a recorded capture. State starts from the capture and lives in memory.";
-  const source = RUNTIME.replace("__MODEL__", JSON.stringify(model))
-    .replace("__STATE__", JSON.stringify(options.persist ?? null))
-    .replace("__PORT__", String(port));
-  return [
+    `Generated by XTNA from a recorded capture. State starts from the capture and lives in ${persisted ? "memory with a JSON state file" : backend === "sqlite" ? `SQLite (${sqlite})` : "memory"}.`;
+  const source = MOCK_SERVER_RUNTIME.replace("__MODEL__", () =>
+    JSON.stringify(model),
+  )
+    .replace("__STATE__", () => JSON.stringify(options.persist ?? null))
+    .replace("__SQLITE__", () => JSON.stringify(sqlite))
+    .replace("__BACKEND__", () => JSON.stringify(backend))
+    .replace("__PORT__", () => String(port));
+  const notes = [
     `// ${header}`,
-    ...(options.persist === undefined
-      ? []
-      : [`// State file: ${options.persist}`]),
-    source,
-  ].join("\n");
+    ...(persisted ? [`// State file: ${String(options.persist)}`] : []),
+  ];
+  return [...notes, source].join("\n");
 }
