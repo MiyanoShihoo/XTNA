@@ -27,11 +27,43 @@ subagent_task_start { id: "contract", role: "contract-worker", objective: "deriv
   `evidence_index` mapping Evidence ids to claiming task ids.
 - The board holds at most 32 tasks per server session; evidence ids are de-duplicated.
 
+## Scheduler
+
+`runWorkerPlan` (in-process) executes a plan of tasks over the same roles. It is the scheduling
+half; the board stays the ledger.
+
+```ts
+const result = await runWorkerPlan(plan, {
+  handlers: {
+    "static-worker": staticHandler,
+    "runtime-worker": runtimeHandler,
+  },
+  maxAttempts: 2,
+  timeoutMs: 15_000,
+  signal,
+});
+```
+
+- `planWaves` validates the graph (unknown dependency, self-dependency, duplicate id, cycle,
+  more than 32 tasks) and returns dependency waves; a wave runs in parallel.
+- Retries cover thrown errors and attempt timeouts; `maxAttempts` includes the first try.
+- **Cancellation delivery**: aborting `signal` aborts the attempt-level `AbortSignal` the handler
+  holds, marks the running task `cancelled`, and cancels later waves without starting them.
+- A failed task blocks every transitive dependent with the upstream id as its reason, while
+  independent branches keep running. A role with no registered handler is `blocked` at once.
+
+`replanAfterFailure(tasks, report, { retryRole })` builds the next plan: completed work is
+carried, a failed task is re-queued as `<id>:retry` under the fallback role, dependents are
+rewired to the retry, and a branch with no fallback is dropped together with everything
+downstream of it.
+
 ## Limits
 
 - No worker process, LLM, subprocess or remote session is started or controlled.
-- No cancellation signal is delivered to an external worker; the `cancelled` status is a ledger
-  fact only.
-- Dependency checks are task-board checks, not a scheduler that retries or re-plans.
-- Evidence ids are references supplied by the caller; the board does not verify that the
-  referenced Evidence exists or supports the summary.
+- Cancellation reaches an in-process handler through its `AbortSignal`; a handler that ignores
+  the signal still times out but cannot be force-killed. The task board itself never receives a
+  cancellation from outside; `cancelled` there remains a ledger fact.
+- Dependency checks are task-board checks; the scheduler is a bounded plan runner, not a
+  persistent orchestration service. Results stay in memory.
+- Evidence ids are references supplied by the caller; neither the board nor the scheduler
+  verifies that the referenced Evidence exists or supports the summary.
