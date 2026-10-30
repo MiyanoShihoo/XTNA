@@ -42,5 +42,8 @@ starts only after every dependency completed.
 - Each task output is a bounded JSON projection. Outputs over 64 KiB are replaced by a preview,
   byte count, and SHA-256 digest.
 - Maximum 64 tasks and concurrency 8.
-- No L1/L2/L3 sandbox, file-diff approval, or human-in-the-loop gate is implemented here; those
-  remain planned. This tool is an in-process DAG scheduler, not an autonomous agent runtime.
+- `CommandAuthority.ts` now classifies operations as L1 (read-only), L2 (sandbox-mutating) or
+  L3 (host-critical). L2 requires `sandboxed: true`; L3 requires explicit approval plus a
+  non-empty diff preview. This is a policy model, not a real container/sandbox or diff renderer.
+- `ObservationCas` now pages immutable windows with opaque cursor tokens and bounded limits.
+- This tool is an in-process DAG scheduler, not an autonomous agent runtime.

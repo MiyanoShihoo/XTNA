@@ -51,11 +51,11 @@ not implemented here.
 
 ## Agent architecture (Plan-and-Execute, sandbox tiers)
 
-| Theme                                        | Status                                                                                                                           |
-| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| DAG planner / concurrent read-only execution | **partial** — `run_plan` MCP runs the bounded DAG over a static-analysis allowlist; no worker roles, L2/L3 sandbox or re-planner |
-| Three-tier command safety with dry-run       | planned — only read/write/destructive plus an `approved` flag; no L1/L2/L3 policy or HITL                                        |
-| Observation windowing into CAS with cursors  | partial — `ObservationCas.ts` retains one whole-array blob and returns all items; no offset/limit or summary gateway             |
+| Theme                                        | Status                                                                                                                            |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| DAG planner / concurrent read-only execution | **partial** — `run_plan` MCP runs the bounded DAG over a static-analysis allowlist; no worker roles, L2/L3 sandbox or re-planner  |
+| Three-tier command safety with dry-run       | **partial** — L1/L2/L3 policy, sandbox admission and diff-preview requirements exist; no real container, diff renderer or HITL UI |
+| Observation windowing into CAS with cursors  | **partial** — immutable CAS windows page with opaque cursor/limit; no semantic summary gateway                                    |
 
 ## Verified baseline
 
