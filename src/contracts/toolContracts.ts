@@ -44,11 +44,17 @@ import { RIZIN_DEBUG_TOOL_CONTRACTS } from "./rizinDebugToolContracts.js";
 import { FRIDA_TOOL_CONTRACTS } from "./fridaToolContracts.js";
 import { ENVIRONMENT_TOOL_CONTRACTS } from "./environmentToolContracts.js";
 import { RUN_PLAN_CONTRACT } from "./executionToolContracts.js";
+import {
+  SUBAGENT_FINISH_CONTRACT,
+  SUBAGENT_START_CONTRACT,
+} from "./execution/subagentToolContracts.js";
 
 /** Complete ordered public inventory used by registration and verification. */
 export const TOOL_CONTRACTS = [
   ...ANALYSIS_SETTINGS_TOOL_CONTRACTS,
   RUN_PLAN_CONTRACT,
+  SUBAGENT_START_CONTRACT,
+  SUBAGENT_FINISH_CONTRACT,
   ...OFFICIAL_TOOL_CONTRACTS,
   ...ENHANCED_TOOL_CONTRACTS,
   ...NATIVE_TOOL_CONTRACTS,

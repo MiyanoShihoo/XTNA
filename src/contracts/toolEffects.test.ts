@@ -115,6 +115,10 @@ const EXECUTION_WORDING_EXCEPTIONS: Readonly<Record<string, string>> = {
   inspect_apk_signature: "states that no Android code executes",
   run_plan:
     "states that foreign-code execution and device mutation are excluded",
+  subagent_task_start:
+    "registers session task state without launching an external worker",
+  subagent_task_finish:
+    "finishes session task state without controlling an external worker",
 };
 
 const declaresForeignAuthority = (name: string): boolean => {

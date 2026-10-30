@@ -1,6 +1,10 @@
 import { ANALYSIS_SETTINGS_TOOL_CONTRACTS } from "./analysisSettingsContracts.js";
 import { ENVIRONMENT_TOOL_CONTRACTS } from "./environmentToolContracts.js";
 import { RUN_PLAN_CONTRACT } from "./executionToolContracts.js";
+import {
+  SUBAGENT_FINISH_CONTRACT,
+  SUBAGENT_START_CONTRACT,
+} from "./execution/subagentToolContracts.js";
 import { CAPTURE_TOOL_CONTRACTS } from "./captures/captureToolContracts.js";
 import { SIGNAL_TOOL_CONTRACTS } from "./signals/signalToolContracts.js";
 import { WASM_TOOL_CONTRACTS } from "./wasm/wasmToolContracts.js";
@@ -157,6 +161,8 @@ export const TOOL_FAMILY_DEFINITIONS = [
     contracts: [
       ...APPLICATION_TOOL_CONTRACTS,
       RUN_PLAN_CONTRACT,
+      SUBAGENT_START_CONTRACT,
+      SUBAGENT_FINISH_CONTRACT,
       ...ANALYSIS_SETTINGS_TOOL_CONTRACTS,
       ...ENVIRONMENT_TOOL_CONTRACTS,
       ...ANALYSIS_VIEW_TOOL_CONTRACTS,
