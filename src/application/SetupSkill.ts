@@ -1,5 +1,5 @@
 import { copyFile, lstat, mkdir, readFile } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
+import { existsSync, constants as fsConstants } from "node:fs";
 import { dirname } from "node:path";
 import { appendCallerPath } from "../filesystem/callerPath.js";
 import { err, ok, type Result } from "../domain/result.js";
@@ -73,14 +73,34 @@ interface CanonicalSkillFile {
   readonly original: SkillFileSnapshot | undefined;
 }
 
-const canonicalSkillContent = (relativePath: string): Promise<string> =>
-  readFile(
-    new URL(
-      `../../skills/${PRODUCT_IDENTITY.skillName}/${relativePath}`,
-      import.meta.url,
-    ),
-    "utf8",
+/**
+ * A source checkout keeps the authored skill in `.agents/skills` and treats
+ * `skills/` as a generated, ignored output. A packed install ships only
+ * `skills/`. Prefer the source tree when it is present so a stale build output
+ * can never be validated as the canonical skill.
+ */
+export const selectCanonicalSkillRoot = (
+  sourcePresent: boolean,
+): "source" | "packaged" => (sourcePresent ? "source" : "packaged");
+
+const skillRootUrl = (kind: "source" | "packaged"): URL =>
+  new URL(
+    kind === "source"
+      ? `../../.agents/skills/${PRODUCT_IDENTITY.skillName}/`
+      : `../../skills/${PRODUCT_IDENTITY.skillName}/`,
+    import.meta.url,
   );
+
+/** Which tree the canonical skill is read from in this installation. */
+export const canonicalSkillRootKind = (): "source" | "packaged" =>
+  selectCanonicalSkillRoot(
+    existsSync(new URL("SKILL.md", skillRootUrl("source"))),
+  );
+
+const canonicalSkillRoot = (): URL => skillRootUrl(canonicalSkillRootKind());
+
+const canonicalSkillContent = (relativePath: string): Promise<string> =>
+  readFile(new URL(relativePath, canonicalSkillRoot()), "utf8");
 
 export interface SkillInstallFileOperations {
   readonly mkdir: (path: string) => Promise<void>;

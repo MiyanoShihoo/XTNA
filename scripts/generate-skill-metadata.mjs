@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -40,6 +40,13 @@ if (!generated.ok) throw generated.error;
 const source = generated.value.replaceAll(latestSpecifier, pinnedSpecifier);
 const paths = await filePaths(sourceRoot);
 // Rebuild this owned output directory so removed references cannot survive a build.
+// Refuse a link: deleting through a junction would delete the authored source
+// tree it points at (for example skills/ -> .agents/skills).
+const existing = await lstat(outputRoot).catch(() => null);
+if (existing?.isSymbolicLink())
+  throw new Error(
+    `Refusing to rebuild ${outputRoot}: it is a symbolic link or junction. Remove the link and let the generator create a real directory.`,
+  );
 if (!check) await rm(outputRoot, { recursive: true, force: true });
 for (const relativePath of paths) {
   const path = join(outputRoot, relativePath);
