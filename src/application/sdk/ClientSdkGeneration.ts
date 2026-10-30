@@ -15,6 +15,17 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+/** Auth scheme observed in the capture; the generated client sends it back. */
+export interface SdkAuth {
+  readonly kind: "bearer" | "basic" | "api-key";
+  readonly header: string;
+}
+
+export interface SdkRetry {
+  readonly attempts: number;
+  readonly statuses: readonly number[];
+}
+
 export interface SdkOperation {
   readonly name: string;
   readonly method: string;
@@ -28,6 +39,8 @@ export interface SdkOperation {
   readonly requestBody: string | undefined;
   readonly responseType: string;
   readonly statuses: readonly number[];
+  readonly auth: SdkAuth | undefined;
+  readonly retry: SdkRetry | undefined;
 }
 
 export interface ClientSdk {
@@ -190,6 +203,7 @@ interface Sampled {
   readonly bodies: Shape[];
   readonly statuses: Set<number>;
   readonly paramNames: string[];
+  auth: SdkAuth | undefined;
 }
 
 const parseJson = (text: unknown): unknown => {
@@ -206,6 +220,58 @@ const entriesOf = (document: unknown): unknown[] => {
   const log = document.log;
   if (isRecord(log)) return asArray(log.entries);
   return asArray(document.entries);
+};
+
+const AUTH_HEADERS = [
+  "authorization",
+  "x-api-key",
+  "api-key",
+  "x-auth-token",
+  "x-access-token",
+] as const;
+
+const authOf = (headers: ReadonlyMap<string, string>): SdkAuth | undefined => {
+  const authorization = headers.get("authorization");
+  if (authorization !== undefined) {
+    const lowered = authorization.toLowerCase();
+    if (lowered.startsWith("bearer "))
+      return { kind: "bearer", header: "authorization" };
+    if (lowered.startsWith("basic "))
+      return { kind: "basic", header: "authorization" };
+  }
+  for (const name of AUTH_HEADERS) {
+    if (name === "authorization") continue;
+    if (headers.has(name)) return { kind: "api-key", header: name };
+  }
+  return undefined;
+};
+
+const requestHeaders = (
+  request: Record<string, unknown>,
+): Map<string, string> => {
+  const headers = new Map<string, string>();
+  for (const raw of asArray(request.headers)) {
+    if (!isRecord(raw) || typeof raw.name !== "string") continue;
+    headers.set(raw.name.toLowerCase(), String(raw.value ?? ""));
+  }
+  return headers;
+};
+
+const IDEMPOTENT = new Set(["GET", "HEAD", "PUT", "DELETE", "OPTIONS"]);
+const RETRYABLE_STATUSES = [429, 500, 502, 503, 504];
+
+const retryOf = (
+  method: string,
+  statuses: ReadonlySet<number>,
+): SdkRetry | undefined => {
+  const transient = [...statuses].some(
+    (status) => status === 429 || status >= 500,
+  );
+  if (!IDEMPOTENT.has(method) && !transient) return undefined;
+  return {
+    attempts: IDEMPOTENT.has(method) || transient ? 3 : 1,
+    statuses: RETRYABLE_STATUSES,
+  };
 };
 
 const collect = (document: unknown): Map<string, Sampled> => {
@@ -238,7 +304,10 @@ const collect = (document: unknown): Map<string, Sampled> => {
       bodies: [],
       statuses: new Set<number>(),
       paramNames: [],
+      auth: undefined,
     };
+    if (existing.auth === undefined)
+      existing.auth = authOf(requestHeaders(request));
     for (const [name, value] of search)
       existing.query.set(
         name,
@@ -280,10 +349,24 @@ const renderTypeScript = (
 ): string => {
   const lines: string[] = [];
   if (header !== undefined) lines.push(`// ${header}`, "");
+  const attempts = Math.max(
+    1,
+    ...operations.map((operation) => operation.retry?.attempts ?? 1),
+  );
   lines.push(
+    "export interface AuthOptions {",
+    '  kind: "bearer" | "basic" | "api-key";',
+    "  token?: string;",
+    "  username?: string;",
+    "  password?: string;",
+    "  key?: string;",
+    "  header?: string;",
+    "}",
+    "",
     "export interface ClientOptions {",
     "  baseUrl?: string;",
     "  headers?: Record<string, string>;",
+    "  auth?: AuthOptions;",
     "}",
     "",
   );
@@ -296,10 +379,26 @@ const renderTypeScript = (
     `export class ${className} {`,
     "  private readonly baseUrl: string;",
     "  private readonly headers: Record<string, string>;",
+    "  private readonly auth: AuthOptions | undefined;",
+    `  private readonly retryAttempts = ${String(attempts)};`,
     "",
     "  constructor(options: ClientOptions = {}) {",
     `    this.baseUrl = options.baseUrl ?? ${JSON.stringify(baseUrl)};`,
     "    this.headers = options.headers ?? {};",
+    "    this.auth = options.auth;",
+    "  }",
+    "",
+    "  private authHeaders(): Record<string, string> {",
+    "    const auth = this.auth;",
+    "    if (auth === undefined) return {};",
+    '    if (auth.kind === "bearer")',
+    "      return auth.token === undefined ? {} : { authorization: `Bearer ${auth.token}` };",
+    '    if (auth.kind === "basic")',
+    "      return auth.username === undefined || auth.password === undefined",
+    "        ? {}",
+    "        : { authorization: `Basic ${btoa(`${auth.username}:${auth.password}`)}` };",
+    '    const header = auth.header ?? "x-api-key";',
+    "    return auth.key === undefined ? {} : { [header]: auth.key };",
     "  }",
     "",
     "  private async call<T>(",
@@ -313,18 +412,40 @@ const renderTypeScript = (
     "      if (value === undefined || value === null) continue;",
     "      url.searchParams.set(key, String(value));",
     "    }",
-    "    const response = await fetch(url, {",
-    "      method,",
-    "      headers: {",
-    '        "content-type": "application/json",',
-    "        ...this.headers,",
-    "      },",
-    "      ...(body === undefined ? {} : { body: JSON.stringify(body) }),",
-    "    });",
-    "    if (!response.ok)",
-    "      throw new Error(`${method} ${path} failed: ${response.status}`);",
-    "    const text = await response.text();",
-    '    return (text === "" ? undefined : JSON.parse(text)) as T;',
+    "    const attempts = this.retryAttempts;",
+    "    let lastError: unknown;",
+    "    for (let attempt = 0; attempt < attempts; attempt += 1) {",
+    "      try {",
+    "        const response = await fetch(url, {",
+    "          method,",
+    "          headers: {",
+    '            "content-type": "application/json",',
+    "            ...this.headers,",
+    "            ...this.authHeaders(),",
+    "          },",
+    "          ...(body === undefined ? {} : { body: JSON.stringify(body) }),",
+    "        });",
+    "        if (!response.ok) {",
+    "          const retryable = response.status === 429 || response.status >= 500;",
+    "          if (retryable && attempt + 1 < attempts) {",
+    '            const retryAfter = Number(response.headers.get("retry-after"));',
+    "            const delay = Number.isFinite(retryAfter) && retryAfter > 0",
+    "              ? retryAfter * 1000",
+    "              : 100 * 2 ** attempt;",
+    "            await new Promise((resolve) => setTimeout(resolve, delay));",
+    "            continue;",
+    "          }",
+    "          throw new Error(`${method} ${path} failed: ${response.status}`);",
+    "        }",
+    "        const text = await response.text();",
+    '        return (text === "" ? undefined : JSON.parse(text)) as T;',
+    "      } catch (error) {",
+    "        lastError = error;",
+    "        if (attempt + 1 >= attempts) throw error;",
+    "        await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt));",
+    "      }",
+    "    }",
+    '    throw lastError instanceof Error ? lastError : new Error("request failed");',
     "  }",
     "",
   );
@@ -366,10 +487,16 @@ const renderPython = (
 ): string => {
   const lines: string[] = [];
   if (header !== undefined) lines.push(`# ${header}`, "");
+  const attempts = Math.max(
+    1,
+    ...operations.map((operation) => operation.retry?.attempts ?? 1),
+  );
   lines.push(
     "from __future__ import annotations",
     "",
+    "import base64",
     "import json",
+    "import time",
     "import urllib.error",
     "import urllib.parse",
     "import urllib.request",
@@ -377,9 +504,25 @@ const renderPython = (
     "",
     "",
     `class ${className}:`,
-    `    def __init__(self, base_url: str = ${JSON.stringify(baseUrl)}, headers: Optional[Dict[str, str]] = None):`,
+    `    def __init__(self, base_url: str = ${JSON.stringify(baseUrl)}, headers: Optional[Dict[str, str]] = None, auth: Optional[Dict[str, str]] = None):`,
     "        self.base_url = base_url.rstrip('/')",
     "        self.headers = headers or {}",
+    "        self.auth = auth or {}",
+    `        self.retry_attempts = ${String(attempts)}`,
+    "",
+    "    def _auth_headers(self) -> Dict[str, str]:",
+    "        auth = self.auth",
+    "        if not auth:",
+    "            return {}",
+    "        kind = auth.get('kind')",
+    "        if kind == 'bearer' and auth.get('token'):",
+    "            return {'authorization': 'Bearer ' + str(auth['token'])}",
+    "        if kind == 'basic' and auth.get('username') is not None:",
+    "            raw = str(auth.get('username')) + ':' + str(auth.get('password', ''))",
+    "            return {'authorization': 'Basic ' + base64.b64encode(raw.encode()).decode()}",
+    "        if kind == 'api-key' and auth.get('key') is not None:",
+    "            return {auth.get('header', 'x-api-key'): str(auth['key'])}",
+    "        return {}",
     "",
     "    def _call(self, method: str, path: str, query: Dict[str, Any], body: Any) -> Any:",
     "        url = self.base_url + path",
@@ -387,14 +530,24 @@ const renderPython = (
     "        if encoded:",
     "            url += '?' + urllib.parse.urlencode(encoded)",
     "        data = None if body is None else json.dumps(body).encode('utf-8')",
-    "        headers = {'content-type': 'application/json', **self.headers}",
-    "        request = urllib.request.Request(url, data=data, headers=headers, method=method)",
-    "        try:",
-    "            with urllib.request.urlopen(request) as response:",
-    "                text = response.read().decode('utf-8')",
-    "        except urllib.error.HTTPError as error:",
-    "            raise RuntimeError(f'{method} {path} failed: {error.code}') from error",
-    "        return json.loads(text) if text else None",
+    "        headers = {'content-type': 'application/json', **self.headers, **self._auth_headers()}",
+    "        last_error: Any = None",
+    "        for attempt in range(max(1, self.retry_attempts)):",
+    "            request = urllib.request.Request(url, data=data, headers=headers, method=method)",
+    "            try:",
+    "                with urllib.request.urlopen(request) as response:",
+    "                    text = response.read().decode('utf-8')",
+    "                return json.loads(text) if text else None",
+    "            except urllib.error.HTTPError as error:",
+    "                last_error = error",
+    "                retryable = error.code == 429 or error.code >= 500",
+    "                if retryable and attempt + 1 < max(1, self.retry_attempts):",
+    "                    retry_after = error.headers.get('Retry-After') if error.headers else None",
+    "                    delay = float(retry_after) if retry_after and retry_after.isdigit() else 0.1 * (2 ** attempt)",
+    "                    time.sleep(delay)",
+    "                    continue",
+    "                raise RuntimeError(f'{method} {path} failed: {error.code}') from error",
+    "        raise RuntimeError(f'{method} {path} failed') from last_error",
     "",
   );
   for (const operation of operations) {
@@ -543,6 +696,8 @@ export function generateClientSdk(
       requestBody: bodyShape === undefined ? undefined : tsType(bodyShape),
       responseType: tsType(responseShape),
       statuses: [...item.statuses].sort((a, b) => a - b),
+      auth: item.auth,
+      retry: retryOf(item.method, item.statuses),
     };
   });
   return {

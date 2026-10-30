@@ -154,3 +154,94 @@ describe("empty input", () => {
     expect(sdk.typescript).toContain("export class ApiClient");
   });
 });
+
+describe("auth and retry inference", () => {
+  const authorized = {
+    log: {
+      entries: [
+        {
+          request: {
+            method: "GET",
+            url: "https://api.test/orders",
+            headers: [{ name: "Authorization", value: "Bearer abc123" }],
+          },
+          response: {
+            status: 503,
+            headers: [{ name: "Retry-After", value: "2" }],
+            content: { text: JSON.stringify({ error: "busy" }) },
+          },
+        },
+        {
+          request: {
+            method: "POST",
+            url: "https://api.test/orders",
+            headers: [{ name: "X-API-Key", value: "key-9" }],
+            postData: { text: JSON.stringify({ sku: "a" }) },
+          },
+          response: {
+            status: 201,
+            content: { text: JSON.stringify({ id: 1 }) },
+          },
+        },
+      ],
+    },
+  };
+
+  it("recognizes bearer and api-key headers", () => {
+    const sdk = generateClientSdk(authorized);
+    const get = sdk.operations.find((operation) => operation.method === "GET");
+    expect(get?.auth).toEqual({ kind: "bearer", header: "authorization" });
+    const post = sdk.operations.find(
+      (operation) => operation.method === "POST",
+    );
+    expect(post?.auth).toEqual({ kind: "api-key", header: "x-api-key" });
+
+    expect(sdk.typescript).toContain("AuthOptions");
+    expect(sdk.typescript).toContain("this.authHeaders()");
+    expect(sdk.typescript).toContain('"bearer"');
+    expect(sdk.python).toContain("def _auth_headers");
+    expect(sdk.python).toContain("base64.b64encode");
+  });
+
+  it("retries idempotent calls and transient failures only", () => {
+    const sdk = generateClientSdk(authorized);
+    const get = sdk.operations.find((operation) => operation.method === "GET");
+    expect(get?.retry).toEqual({
+      attempts: 3,
+      statuses: [429, 500, 502, 503, 504],
+    });
+    const post = sdk.operations.find(
+      (operation) => operation.method === "POST",
+    );
+    expect(post?.retry).toBeUndefined();
+
+    const alwaysFailing = generateClientSdk({
+      log: {
+        entries: [
+          {
+            request: { method: "POST", url: "https://api.test/orders" },
+            response: { status: 500, content: { text: "{}" } },
+          },
+        ],
+      },
+    });
+    expect(alwaysFailing.operations[0]?.retry?.attempts).toBe(3);
+    expect(sdk.typescript).toContain("retry-after");
+    expect(sdk.typescript).toContain("this.retryAttempts");
+    expect(sdk.python).toContain("self.retry_attempts");
+  });
+
+  it("keeps the generated TypeScript parseable", () => {
+    const sdk = generateClientSdk(authorized);
+    const source = ts.createSourceFile(
+      "client.ts",
+      sdk.typescript,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    expect(
+      (source as unknown as { parseDiagnostics?: readonly unknown[] })
+        .parseDiagnostics ?? [],
+    ).toEqual([]);
+  });
+});
