@@ -2,121 +2,134 @@ import { describe, expect, it } from "vitest";
 
 import { normalizeJavaScriptAst } from "./AstNormalization.js";
 
-const normalize = (source: string) => normalizeJavaScriptAst(source).text;
+const normalize = (source: string) => {
+  const result = normalizeJavaScriptAst(source);
+  if (!result.ok) throw new Error(result.error.message);
+  return result.value;
+};
+const transformed = (source: string) => normalize(source).transformed;
 
-describe("constant folding", () => {
-  it("folds negation of numeric literals into booleans", () => {
-    expect(normalize("const a = !0; const b = !1;")).toBe(
-      "const a = true; const b = false;",
+describe("AST normalization", () => {
+  it("folds only literal expressions", () => {
+    expect(
+      transformed("const a = !0; const t = 60 * 1000; const s = 'a' + 'b';"),
+    ).toBe('const a = true; const t = 60000; const s = "ab";');
+    const dynamic = "const a = foo() + 'x'; const b = x * 2;";
+    expect(transformed(dynamic)).toBe(dynamic);
+  });
+
+  it("removes unreachable branches without evaluating calls", () => {
+    expect(transformed("if (false) { a(); } else { b(); }")).toBe("{ b(); }");
+    expect(transformed("if (true) { a(); }")).toBe("{ a(); }");
+    expect(transformed("const x = false && sideEffect();")).toBe(
+      "const x = false;",
+    );
+    expect(transformed("const x = 0 || next();")).toBe("const x = next();");
+    expect(transformed("const x = null ?? next();")).toBe("const x = next();");
+  });
+
+  it("decodes escaped strings and preserves untouched ranges", () => {
+    expect(transformed('const s = "\\x41\\u4f60";\nconst t  =  "plain";')).toBe(
+      'const s = "A你";\nconst t  =  "plain";',
     );
   });
 
-  it("folds string concatenation", () => {
-    expect(normalize('const a = "ab" + "cd";')).toBe('const a = "abcd";');
-  });
-
-  it("folds numeric arithmetic", () => {
-    expect(normalize("const t = 60 * 1000;")).toBe("const t = 60000;");
-    expect(normalize("const t = 2 ** 10;")).toBe("const t = 1024;");
-  });
-
-  it("folds comparisons between literals", () => {
-    expect(normalize("const a = 1 < 2;")).toBe("const a = true;");
-  });
-
-  it("keeps expressions that contain identifiers or calls", () => {
-    expect(normalize('const a = foo() + "x";')).toBe('const a = foo() + "x";');
-    expect(normalize("const a = x + 1;")).toBe("const a = x + 1;");
-  });
-});
-
-describe("literal branches", () => {
-  it("collapses an if with a false literal test", () => {
-    expect(normalize("if (false) { a(); } else { b(); }")).toBe("{ b(); }");
-  });
-
-  it("removes an if whose literal test has no alternate", () => {
-    expect(normalize("if (true) { a(); }")).toBe("{ a(); }");
-    expect(normalize("if (false) { a(); }")).toBe("");
-  });
-
-  it("resolves a conditional expression with a literal test", () => {
-    expect(normalize("const v = true ? 1 : 2;")).toBe("const v = 1;");
-    expect(normalize("const v = false ? 1 : 2;")).toBe("const v = 2;");
-  });
-
-  it("applies short-circuit rules without evaluating the right operand", () => {
-    expect(normalize("const v = false && sideEffect();")).toBe(
-      "const v = false;",
+  it("returns source-located observations and accurate statistics", () => {
+    const result = normalize(
+      'if (false) { a(); } else { b(); }\nconst x = !0;\nconst s = "\\x41";',
     );
-    expect(normalize("const v = true || sideEffect();")).toBe(
-      "const v = true;",
-    );
-    expect(normalize("const v = 0 || next();")).toBe("const v = next();");
-  });
-});
-
-describe("string decoding", () => {
-  it("rewrites escaped literals to their decoded form", () => {
-    expect(normalize('const a = "\\x41\\x42";')).toBe('const a = "AB";');
-    expect(normalize('const a = "\\u4f60\\u597d";')).toBe('const a = "你好";');
-  });
-
-  it("leaves plain literals byte-identical", () => {
-    expect(normalize('const a = "plain";')).toBe('const a = "plain";');
-  });
-});
-
-describe("safety", () => {
-  it("does not touch code it cannot prove literal", () => {
-    const source = "function f(x) { return x ? g() : h(); }";
-    expect(normalize(source)).toBe(source);
+    expect(result.stats).toEqual({
+      foldedConstants: 1,
+      removedBranches: 1,
+      decodedStrings: 1,
+      passes: 1,
+    });
+    expect(result.observations).toHaveLength(3);
+    expect(result.observations.map((entry) => entry.kind)).toEqual([
+      "dead-branch-removed",
+      "constant-folded",
+      "string-decoded",
+    ]);
+    expect(result.coverage).toBe("complete");
+    expect(result.unknowns).toEqual([]);
   });
 
-  it("preserves formatting outside rewritten ranges", () => {
-    const source = "const a  =  1 + 1;\n\nfunction f() {\n  return 0;\n}\n";
-    expect(normalize(source)).toBe(
-      "const a  =  2;\n\nfunction f() {\n  return 0;\n}\n",
-    );
-  });
-
-  it("reports what it changed", () => {
-    const result = normalizeJavaScriptAst(
-      'if (false) { a(); } else { b(); }\nconst v = !0;\nconst s = "\\x41";',
-    );
-    expect(result.stats.removedBranches).toBeGreaterThan(0);
-    expect(result.stats.foldedConstants).toBeGreaterThan(0);
-    expect(result.stats.decodedStrings).toBeGreaterThan(0);
-    expect(result.stats.passes).toBeGreaterThan(0);
-  });
-});
-describe("constant propagation", () => {
-  it("folds reads of an immutable literal binding", () => {
-    expect(normalize("const t = 60; const ms = t * 1000;")).toBe(
+  it("propagates immutable top-level literals without crossing shadows or TDZ", () => {
+    expect(transformed("const t = 60; const ms = t * 1000;")).toBe(
       "const t = 60; const ms = 60000;",
     );
-  });
-
-  it("uses a literal binding as a branch test", () => {
     expect(
-      normalize("const FLAG = false; if (FLAG) { a(); } else { b(); }"),
+      transformed("const FLAG = false; if (FLAG) { a(); } else { b(); }"),
     ).toBe("const FLAG = false; { b(); }");
+    const shadowed =
+      "const t = 60; function f(t) { return t * 2; } const x = t * 2;";
+    expect(transformed(shadowed)).toBe(shadowed);
+    const tdz = "const x = t; const t = 1;";
+    expect(transformed(tdz)).toBe(tdz);
   });
 
-  it("refuses a name that is assigned anywhere", () => {
-    expect(normalize("let t = 60; t = 1; const x = t * 2;")).toBe(
-      "let t = 60; t = 1; const x = t * 2;",
+  it("retains valid exponentiation after folding negative numbers", () => {
+    expect(normalizeJavaScriptAst("const x = -1 ** 2;").ok).toBe(false);
+    expect(normalize("const x = 0 - 1;").transformed).toBe("const x = -1;");
+    expect(normalize("const x = (-1) ** 2;").transformed).toBe(
+      "const x = (-1) ** 2;",
+    );
+    expect(normalize("const x = 1 - 2 - 3;").transformed).toBe("const x = -4;");
+  });
+
+  it("reaches a stable fixed point without adding parentheses", () => {
+    const first = normalize("const x = 0 - 1; const y = (-1) ** 2;");
+    const second = normalize(first.transformed);
+    expect(second.transformed).toBe(first.transformed);
+  });
+
+  it("returns a typed parse error rather than silently returning source", () => {
+    const result = normalizeJavaScriptAst("const = ;");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("parse_failed");
+  });
+
+  it("bounds source size, node count, output size, and option values", () => {
+    expect(
+      normalizeJavaScriptAst("const x = 1;", { maxSourceBytes: 1 }).ok,
+    ).toBe(false);
+    expect(normalizeJavaScriptAst("const x = 1;", { maxNodes: 1 }).ok).toBe(
+      false,
+    );
+    expect(
+      normalizeJavaScriptAst(
+        "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';",
+        {
+          maxSourceBytes: 67,
+          maxOutputBytes: 67,
+        },
+      ).ok,
+    ).toBe(false);
+    expect(normalizeJavaScriptAst("const x = 1;", { maxPasses: 0 }).ok).toBe(
+      false,
     );
   });
 
-  it("refuses a name shadowed by a parameter", () => {
-    expect(normalize("const t = 60; function f(t) { return t * 2; }")).toBe(
-      "const t = 60; function f(t) { return t * 2; }",
-    );
+  it("marks an unfinished fixed point as partial", () => {
+    const result = normalize("const x = 1 + 2 + 3;");
+    expect(result.coverage).toBe("complete");
+    const limited = normalizeJavaScriptAst("const x = 1 + 2 + 3;", {
+      maxPasses: 1,
+    });
+    if (!limited.ok) throw new Error(limited.error.message);
+    expect(limited.value.coverage).toBe("partial");
+    expect(limited.value.unknowns[0]?.code).toBe("pass-limit-reached");
   });
 
-  it("refuses a name declared twice", () => {
-    const source = "const a = 1; { const a = 2; } const x = a * 3;";
-    expect(normalize(source)).toBe(source);
+  it("bounds retained observations without dropping transformations", () => {
+    const result = normalizeJavaScriptAst("const a = !0; const b = !1;", {
+      maxObservations: 1,
+    });
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.value.observations).toHaveLength(1);
+    expect(result.value.unknowns).toEqual([
+      expect.objectContaining({ code: "observations-truncated", omitted: 1 }),
+    ]);
+    expect(result.value.transformed).toBe("const a = true; const b = false;");
   });
 });

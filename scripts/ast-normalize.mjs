@@ -35,9 +35,16 @@ const { normalizeJavaScriptAst } = await import(
 );
 
 const source = await readFile(resolve(input), "utf8");
-const result = normalizeJavaScriptAst(source, {
+const normalized = normalizeJavaScriptAst(source, {
   ...(maxPasses === undefined ? {} : { maxPasses: Number(maxPasses) }),
 });
+if (!normalized.ok) {
+  process.stderr.write(
+    `${normalized.error.code}: ${normalized.error.message}\n`,
+  );
+  process.exit(1);
+}
+const result = normalized.value;
 
 if (asJson) {
   process.stdout.write(
@@ -46,17 +53,21 @@ if (asJson) {
         input: resolve(input),
         ...(output === undefined ? {} : { output: resolve(output) }),
         input_bytes: Buffer.byteLength(source),
-        output_bytes: Buffer.byteLength(result.text),
+        output_bytes: Buffer.byteLength(result.transformed),
         ...result.stats,
+        observations: result.observations,
+        unknowns: result.unknowns,
+        coverage: result.coverage,
+        limits: result.limits,
       },
       null,
       2,
     )}\n`,
   );
 } else if (output === undefined) {
-  process.stdout.write(result.text);
+  process.stdout.write(result.transformed);
 } else {
-  await writeFile(resolve(output), result.text, "utf8");
+  await writeFile(resolve(output), result.transformed, "utf8");
   process.stderr.write(
     `normalized ${String(result.stats.foldedConstants)} constants, ` +
       `${String(result.stats.removedBranches)} branches, ` +
