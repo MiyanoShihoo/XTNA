@@ -46,7 +46,12 @@ it("persists evidence-backed symbol hypotheses and renders immutable text", asyn
         .version,
     ).toBe(1);
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 20,
+    });
   }
 });
 
@@ -74,7 +79,12 @@ it("rejects unproven names, addresses, and persisted records", async () => {
     );
     expect((await SymbolOverlayStore.open(directory)).ok).toBe(false);
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 20,
+    });
   }
 });
 
@@ -98,6 +108,11 @@ it("sorts mappings by numeric address", async () => {
       "high",
     ]);
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 20,
+    });
   }
 });
