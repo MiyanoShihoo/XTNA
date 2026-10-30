@@ -1,6 +1,6 @@
 # Hermes bytecode inspection
 
-`npm run hermes:inspect -- --in <index.android.bundle|file.hbc> [--tables] [--disassemble] [--json]`
+`npm run hermes:inspect -- --in <index.android.bundle|file.hbc> [--tables] [--disassemble] [--ast] [--json]`
 reads a React Native Hermes bytecode file.
 
 ## Header
@@ -42,9 +42,16 @@ functions: global
 
 ## Disassembly (`--disassemble`, bytecode version 84)
 
-Every non-overflowed function body is decoded with the opcode table generated from the upstream
-`BytecodeList.def` (v0.8.0, 188 opcodes). A body must end exactly at `offset + bytecodeSize`;
-an unknown opcode, an operand overrun or a mismatched boundary marks that function undecoded.
+Every non-overflowed function body is decoded with the opcode table for **HBC 84**, generated from
+`BytecodeList.def` in Hermes **v0.11.0** (the release whose `BytecodeVersion.h` declares 84) by
+`scripts/hermes-opcodes.mjs`: 199 opcodes, with each jump macro expanded to its short `Addr8` form
+and the `Addr32` `...Long` variant. Jump operands and `Imm32` are signed, and a branch target is
+relative to the offset of the branch instruction itself.
+
+The release matters. The earlier table came from Hermes v0.8.0 (a different bytecode version) and
+mis-named opcodes; a body still "decoded to its boundary" because the loop simply read
+`bytecodeSize` bytes, so the boundary check did not catch it. The fix was to regenerate the table
+from the matching release, not to special-case individual files.
 
 ```text
 code: 1/1 functions decoded
@@ -55,20 +62,51 @@ code: 1/1 functions decoded
 
 Other bytecode versions are refused rather than decoded with the wrong opcode map.
 
+## Structured AST (`--ast`, bytecode version 84)
+
+`--ast` implies `--disassemble` and adds two layers:
+
+- **Structure.** Instructions are split into basic blocks at branch targets and after terminators,
+  then a linear structurer recovers the canonical `if`/`else` (branch over an else arm) and `while`
+  (header branch to the exit plus a back edge) shapes Hermes emits.
+- **Expressions.** Inside straight-line runs the register file is simulated: constants, property
+  loads, `PutById`/`PutByVal` assignments, binary and unary operators, `Call2`–`Call4`, closures and
+  returns become expression nodes. Any other opcode makes its destination an `unknown` expression
+  that names the opcode, and unresolved reads stay `rN`.
+
+```text
+ast: 1/1 functions structured
+  global (structured, 3 blocks)
+    global.password = "pas.";
+    if (("test".length > 0)) {
+      global.console.log(global.password);
+    }
+    return undefined;
+```
+
+Anything that does not match a known shape becomes an `unknown` statement and marks the function
+`structured: false`; the AST is never repaired by guessing.
+
 ## What it does not do
 
-- **No AST.** Instructions are decoded, but no structured control flow or expression tree is
-  recovered. Only bytecode version 84 has an opcode table here.
+- **No try/catch recovery.** Hermes keeps exception handlers in a function-level table, not in the
+  instruction stream; `Catch` is reported as an unmodelled control-flow statement.
+- **No `switch` recovery.** `SwitchImm` carries an unaligned jump table; it is reported as
+  unmodelled rather than decoded speculatively.
+- **No cross-block data flow.** Register values are tracked inside straight-line runs; a value that
+  crosses a branch renders as `rN`.
 - **No V8 startup snapshots.** A V8 snapshot has no stable magic to recognise; it is not parsed.
 - **No APK traversal.** Pass the extracted bundle; use `inspect_artifact`/`extract_artifact` first.
 
 ## Validation
 
 - Unit tests cover the 128-byte header (execution and delta forms), both function-header
-  generations, string resolution and a foreign magic.
+  generations, string resolution, a foreign magic, the HBC-84 opcode table, body boundaries,
+  if/else and while structuring, the `unknown` fallback and a CLI `--ast` round trip.
 - Real files: the [Zenodo Hermes benchmark](https://doi.org/10.5281/zenodo.8223659)
   (`HermesBench.zip`, CC-BY-4.0) provides 14 v84 modules with matching JS sources. All 14 parse;
-  string tables decode to their identifiers (`global`, `password`, `console`, `length`, …) and
-  function names resolve (`global`, `z`, `b`, `c` in the closure cases) and **20/20 functions
-  decode with the instruction stream ending exactly at the body boundary**. Samples are not
-  committed.
+  string tables decode to their identifiers (`global`, `password`, `console`, `length`, …), function
+  names resolve (`global`, `z`, `b`, `c` in the closure cases), **20/20 functions decode with the
+  instruction stream ending exactly at the body boundary**, and **20/20 recover a structured AST**
+  whose `if`/`while` shapes match the shipped sources (`If-Else`, `ForLoop`, `WhileLoop`).
+  Samples are not committed.
