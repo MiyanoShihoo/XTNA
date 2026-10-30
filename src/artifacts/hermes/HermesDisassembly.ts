@@ -49,6 +49,10 @@ export interface HermesDisassemblyError {
 
 const MAX_INSTRUCTIONS = 200_000;
 
+/**
+ * Read one operand. Branch targets and immediate integers are signed: a jump
+ * offset is relative to the jump instruction and may point backwards.
+ */
 const operandValue = (
   bytes: Uint8Array,
   view: DataView,
@@ -58,15 +62,18 @@ const operandValue = (
   switch (kind) {
     case "Reg8":
     case "UInt8":
-    case "Addr8":
       return bytes[offset] ?? 0;
+    case "Addr8":
+      return view.getInt8(offset);
     case "UInt16":
       return view.getUint16(offset, true);
     case "UInt32":
     case "Reg32":
-    case "Addr32":
-    case "Imm32":
       return view.getUint32(offset, true);
+    case "Addr32":
+      return view.getInt32(offset, true);
+    case "Imm32":
+      return view.getInt32(offset, true);
     case "Double":
       return view.getFloat64(offset, true);
   }

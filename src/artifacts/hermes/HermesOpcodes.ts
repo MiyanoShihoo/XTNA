@@ -1,4 +1,11 @@
-/** Hermes bytecode opcode table (v0.8.0, bytecode version 84). */
+/**
+ * Hermes bytecode opcode table (HBC version 84, Hermes v0.11.0).
+ *
+ * Generated from that release's `include/hermes/BCGen/HBC/BytecodeList.def`
+ * by `scripts/hermes-opcodes.mjs`; do not hand-edit. Jump macros expand to a
+ * short `Addr8` opcode plus its `Addr32` `...Long` variant, and every jump
+ * address is relative to the offset of the jump instruction itself.
+ */
 export type HermesOperandKind =
   | "Reg8"
   | "Reg32"
@@ -172,9 +179,6 @@ export const HERMES_OPCODES_V84: readonly HermesOpcode[] = [
   { name: "IteratorBegin", operands: ["Reg8", "Reg8"] },
   { name: "IteratorNext", operands: ["Reg8", "Reg8", "Reg8"] },
   { name: "IteratorClose", operands: ["Reg8", "UInt8"] },
-  { name: "name", operands: ["Addr8"] },
-  { name: "name", operands: ["Addr8", "Reg8"] },
-  { name: "name", operands: ["Addr8", "Reg8", "Reg8"] },
   { name: "Jmp", operands: ["Addr8"] },
   { name: "JmpLong", operands: ["Addr32"] },
   { name: "JmpTrue", operands: ["Addr8", "Reg8"] },
@@ -225,6 +229,20 @@ export const HERMES_OPCODES_V84: readonly HermesOpcode[] = [
   { name: "JStrictEqualLong", operands: ["Addr32", "Reg8", "Reg8"] },
   { name: "JStrictNotEqual", operands: ["Addr8", "Reg8", "Reg8"] },
   { name: "JStrictNotEqualLong", operands: ["Addr32", "Reg8", "Reg8"] },
+  { name: "Add32", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Sub32", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Mul32", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Divi32", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Divu32", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Loadi8", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Loadu8", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Loadi16", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Loadu16", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Loadi32", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Loadu32", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Store8", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Store16", operands: ["Reg8", "Reg8", "Reg8"] },
+  { name: "Store32", operands: ["Reg8", "Reg8", "Reg8"] },
 ];
 
 export const OPERAND_BYTES: Readonly<Record<HermesOperandKind, number>> = {
@@ -238,3 +256,5 @@ export const OPERAND_BYTES: Readonly<Record<HermesOperandKind, number>> = {
   Imm32: 4,
   Double: 8,
 };
+
+export const HERMES_OPCODE_COUNT_V84 = 199;
