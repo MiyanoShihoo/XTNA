@@ -18,6 +18,7 @@ import {
   type PromptCallback,
   type RequestId,
   type ScopeChallengeHandler,
+  type ServerContext,
   type StandardSchemaWithJSON,
   type ToolAnnotations,
   type ToolCallback,
@@ -190,6 +191,10 @@ export interface StandardToolRegistration {
 export class EvidenceMcpServerCore extends RequestTrackingMcpServer {
   analysisSettings: AnalysisSettings | undefined;
   private identity: ReturnType<typeof createCatalogIdentity> | undefined;
+  private readonly registeredToolCallbacks = new Map<
+    string,
+    ToolCallback<StandardSchemaWithJSON | undefined>
+  >();
 
   /** Composition supplies identity without importing the canonical schema graph. */
   get catalogIdentity(): ReturnType<typeof createCatalogIdentity> {
@@ -323,7 +328,34 @@ export class EvidenceMcpServerCore extends RequestTrackingMcpServer {
     config: StandardToolRegistration,
     callback: ToolCallback<StandardSchemaWithJSON | undefined>,
   ): RegisteredTool {
+    this.registeredToolCallbacks.set(name, callback);
     return super.registerTool(name, config as never, callback as never);
+  }
+
+  /**
+   * Invoke one already-registered tool from an in-process orchestration tool.
+   * The nested call receives the caller's signal and a silent progress channel;
+   * it still passes through the tool's own validation, admission, delivery and
+   * Evidence recording. Callers must enforce their own effect allowlist.
+   */
+  async invokeRegisteredTool(
+    name: string,
+    input: unknown,
+    signal: AbortSignal,
+  ): Promise<CallToolResult> {
+    if (!this.advertisesTool(name))
+      throw new TypeError(`Tool is not advertised: ${name}`);
+    const callback = this.registeredToolCallbacks.get(name);
+    if (callback === undefined)
+      throw new TypeError(`Unknown registered tool: ${name}`);
+    const context = {
+      mcpReq: {
+        signal,
+        _meta: {},
+        notify: async (): Promise<void> => undefined,
+      },
+    } as unknown as ServerContext;
+    return (await callback(input as never, context)) as CallToolResult;
   }
 
   /** Preserve the SDK transport lifecycle while retaining oversized errors. */

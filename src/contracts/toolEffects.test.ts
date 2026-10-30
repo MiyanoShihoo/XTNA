@@ -113,6 +113,8 @@ const EXECUTION_WORDING_EXCEPTIONS: Readonly<Record<string, string>> = {
   list_adb_processes: "lists running processes without changing the device",
   inspect_web_event_listeners: "states it does not evaluate JavaScript",
   inspect_apk_signature: "states that no Android code executes",
+  run_plan:
+    "states that foreign-code execution and device mutation are excluded",
 };
 
 const declaresForeignAuthority = (name: string): boolean => {

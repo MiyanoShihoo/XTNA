@@ -54,6 +54,12 @@ const browserEvidence = effects({
 export const TOOL_EFFECTS: Readonly<Record<string, ToolEffects>> = {
   inspect_analysis_settings: effects(),
   update_analysis_settings: effects({ mutatesSession: true }),
+  run_plan: effects({
+    mutatesSession: true,
+    launchesProcess: true,
+    accessesNetwork: true,
+    idempotent: false,
+  }),
   list_cutter_sessions: effects({ accessesNetwork: true }),
   cutter_command: effects({
     mutatesTarget: true,
