@@ -28,34 +28,43 @@ not implemented here.
 
 ## Feature modules
 
-|   # | Module                              | Status                              | Notes                                                                                                                                                                       |
-| --: | ----------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   1 | Wasm end-to-end + JS bridge         | **shipped** (static bridge)         | `npm run wasm:link`: import/export sections plus the JS glue, giving js→wasm calls, wasm→js providers, unresolved imports and unused exports                                |
-|   2 | Hermes / V8 snapshot / PyInstaller  | planned                             | —                                                                                                                                                                           |
-|   3 | Semantic version diff               | **partial** (report narrative)      | `npm run diff:narrate` pairs two reports by a stable key and names added/removed/changed records and fields; no CFG or AST diff                                             |
-|   4 | Runtime probe generation            | **shipped** (skeleton)              | `npm run probe:gen`: address to a Frida or LLDB probe skeleton that records arguments, return value and a backtrace; target selection stays manual                          |
-|   5 | Cross-boundary causal tracing       | **shipped** (merge + candidates)    | `npm run trace:causal`: browser/IPC/probe streams to one timeline, chains by explicit trace id or bounded window; causation stays an inference                              |
-|   6 | Heap snapshot query                 | **shipped** (shallow)               | `npm run heap:query`: V8 .heapsnapshot to a constructor summary or instance list with incoming-reference counts; shallow sizes only, no dominators                          |
-|   7 | AST normalization pipeline          | **partial** (folding + propagation) | `npm run ast:normalize`: literal folding, literal-branch collapse, escaped-string decoding and conservative `const` propagation; no unflattening or cross-function analysis |
-|   8 | Symbol overlay                      | **shipped** (display projection)    | `scripts/symbol-overlay.mjs` + `overlay:render` (Evidence bundle or live decompile); MCP tool results still carry the decompiler's own names                                |
-|   9 | Algorithm/protocol fingerprinting   | **shipped** (constant signatures)   | scripts/crypto-radar.mjs: AES/SHA/CRC tables, compression magics, Base64 alphabets, PEM headers with offsets                                                                |
-|  10 | Schema synthesis (OpenAPI/proto/TS) | **partial** (capture to OpenAPI)    | `npm run api:spec`: HAR to an OpenAPI 3.1 draft with per-operation request/response schemas; no protobuf or header inference                                                |
-|  11 | Standalone client SDK generation    | **shipped** (capture to client)     | `npm run sdk:gen`: HAR entries to typed TypeScript and Python clients, path/query/body/response shapes folded per operation                                                 |
-|  12 | Stateful mock server                | **shipped** (capture to CRUD)       | `npm run mock:gen`: HAR to a dependency-free local server with list/read/create/update/delete over the seeded collections and optional JSON persistence                     |
-|  13 | Property-graph / taint queries      | **shipped** (graph-level)           | scripts/taint-path.mjs for path search and scripts/graph-export.mjs to project an application graph into that format                                                        |
-|  14 | Hypothesis board                    | **shipped** (file-level)            | scripts/hypothesis.mjs: claims with confidence, status, supporting and contradicting evidence                                                                               |
-|  15 | Sub-agent orchestration             | planned                             | MCP already allows concurrent clients; shared-ledger concurrency is the gap                                                                                                 |
-|  16 | Live web investigation UI           | **partial** (live read-only)        | `npm run panel:serve`: loopback HTML + `/api/state` + SSE refresh over stored artefacts, plus the offline single-file panel; no topology graph, no editing                  |
-|  17 | Investigation checkpoints           | **shipped** (file-level)            | scripts/checkpoint.mjs: hash-verified snapshots of Evidence bundles and overlay files; no process state, no branching                                                       |
-|  18 | Dossier exporter                    | **shipped**                         | `scripts/dossier.mjs`, Markdown from an Evidence bundle                                                                                                                     |
+|   # | Module                              | Status                                      | Notes                                                                                                                                                                      |
+| --: | ----------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|   1 | Wasm end-to-end + JS bridge         | **partial** (static bridge CLI)             | `npm run wasm:link`: import/export sections plus JS glue; no WAT decompilation, automatic `.wasm` discovery, internal function-index map, or MCP surface                   |
+|   2 | Hermes / V8 snapshot / PyInstaller  | **partial** (PyInstaller only)              | CArchive 2.0/2.1 and PYZ inventory/extraction are implemented; no `.hbc`/Hermes or V8 startup-snapshot parser and no structured AST pipeline                               |
+|   3 | Semantic version diff               | **partial** (report narrative)              | `npm run diff:narrate` pairs two reports by a stable key and names added/removed/changed records and fields; no CFG or AST diff                                            |
+|   4 | Runtime probe generation            | **partial** (skeleton)                      | `npm run probe:gen`: address to a Frida or LLDB probe skeleton that records arguments, return value and a backtrace; target selection stays manual                         |
+|   5 | Cross-boundary causal tracing       | **partial** (merge + candidates)            | `npm run trace:causal`: browser/IPC/probe streams to one timeline, chains by explicit trace id or bounded window; causation stays an inference                             |
+|   6 | Heap snapshot query                 | **partial** (shallow)                       | `npm run heap:query`: constructor summary or exact-name instances with incoming-reference counts; no dominators, retained sizes, GC-root paths or SQL-like query           |
+|   7 | AST normalization pipeline          | **shipped** (typed CLI)                     | `npm run ast:normalize`: literal folding, branch collapse, string decoding, conservative top-level `const` propagation, observations/unknowns/coverage and explicit bounds |
+|   8 | Symbol overlay                      | **shipped** (projection + hypothesis store) | `overlay`/`overlay:render` for display; `npm run symbol:hypothesis` persists evidence-backed names with validation/conflict checks and Ghidra/IDA/VS Code export           |
+|   9 | Algorithm/protocol fingerprinting   | **shipped** (constant signatures)           | `npm run crypto:radar`: AES S-boxes, SHA-1/224/256/384/512 and MD5 state, CRC-32/CRC-32C, gzip/xz/LZ4/zlib/zstd, Base64 and PEM headers; bounded protobuf wire hints       |
+|  10 | Schema synthesis (OpenAPI/proto/TS) | **partial** (capture to OpenAPI)            | `npm run api:spec` emits OpenAPI 3.1 from HAR; the typed `schemaSynthesis` domain contract covers JSON Schema/OpenAPI but is not yet wired to that CLI; no `.proto` output |
+|  11 | Standalone client SDK generation    | **partial** (typed clients)                 | `npm run sdk:gen`: HAR to TypeScript/Python clients with path/query/body/response shapes; no generated test suite, auth, retry or pagination inference                     |
+|  12 | Stateful mock server                | **partial** (Node CRUD)                     | `npm run mock:gen`: dependency-free Node server with seeded list/read/create/update/delete and optional JSON persistence; no SQLite, cursor pagination or FastAPI/Express  |
+|  13 | Property-graph / taint queries      | **shipped** (graph-level)                   | scripts/taint-path.mjs for path search and scripts/graph-export.mjs to project an application graph into that format                                                       |
+|  14 | Hypothesis board                    | **partial** (file-level)                    | scripts/hypothesis.mjs stores claims/status/evidence; the typed `HypothesisBoard` contract passes tests but is not yet wired to the CLI/MCP surface                        |
+|  15 | Sub-agent orchestration             | planned                                     | No role contracts or shared-ledger worker registration; the bounded ReAct DAG scheduler is a prototype, not a sub-agent system                                             |
+|  16 | Live web investigation UI           | **partial** (live read-only)                | `npm run panel:serve`: loopback HTML + `/api/state` + SSE refresh over stored artefacts; no topology graph, waterfall, evidence cards or editing                           |
+|  17 | Investigation checkpoints           | **partial** (file-level)                    | scripts/checkpoint.mjs: hash-verified create/branch/restore of named Evidence/overlay files; no diff view, process or container state                                      |
+|  18 | Dossier exporter                    | **partial** (Markdown)                      | `scripts/dossier.mjs` emits Markdown from an Evidence bundle; no HTML/PDF, Mermaid diagrams, interface dictionary or remediation section                                   |
 
 ## Agent architecture (Plan-and-Execute, sandbox tiers)
 
-| Theme                                        | Status                                                                                  |
-| -------------------------------------------- | --------------------------------------------------------------------------------------- |
-| DAG planner / concurrent read-only execution | planned (server side); the gateway already coalesces duplicate reads                    |
-| Three-tier command safety with dry-run       | planned                                                                                 |
-| Observation windowing into CAS with cursors  | partial — Evidence bundles are already file-backed; no automatic summary+cursor gateway |
+| Theme                                        | Status                                                                                                               |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| DAG planner / concurrent read-only execution | **prototype** — bounded scheduler in `ReActDagPlanner.ts`; no MCP `run_plan` or real tool adapters                   |
+| Three-tier command safety with dry-run       | planned — only read/write/destructive plus an `approved` flag; no L1/L2/L3 policy or HITL                            |
+| Observation windowing into CAS with cursors  | partial — `ObservationCas.ts` retains one whole-array blob and returns all items; no offset/limit or summary gateway |
+
+## Verified baseline
+
+- `npm run test:fast`: 1134 test files passed, 9 skipped; 20,586 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run typecheck`: passed.
+- `npm run docs:check`: passed.
+- `npm run verify:xtna`: 8/8 checks passed.
+- `npm run test:local` focused lifecycle: `SourceMapCommand.test.ts` 11/11 and `WebBundleAnalysisWorker.test.ts` 25/25.
+- Real Ghidra verification was not rerun in this pass; the prior handoff records Ghidra 12.2 / 388 functions.
 
 ## Sequencing used here
 
