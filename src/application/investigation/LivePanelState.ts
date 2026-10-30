@@ -37,6 +37,15 @@ export interface PanelHypothesis {
   readonly confidence: string;
 }
 
+export interface PanelRecord {
+  readonly id: string;
+  readonly operation: string;
+  readonly provider: string;
+  readonly authority: string;
+  readonly confidence: string;
+  readonly limitations: number;
+}
+
 export interface PanelCheckpoint {
   readonly name: string;
   readonly bytes: number;
@@ -66,6 +75,8 @@ export interface PanelSnapshot {
   };
   readonly graph: PanelGraph;
   readonly waterfall: PanelWaterfall;
+  readonly records: readonly PanelRecord[];
+  readonly recordsTruncated: boolean;
   readonly limitations: readonly PanelLimitation[];
   readonly symbols: readonly PanelSymbol[];
   readonly hypotheses: readonly PanelHypothesis[];
@@ -91,6 +102,28 @@ const readJson = async (path: string): Promise<unknown> => {
 const asArray = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : [];
 
+const MAX_RECORD_CARDS = 200;
+
+const projectRecordCards = (records: readonly unknown[]): PanelRecord[] => {
+  const cards: PanelRecord[] = [];
+  for (const record of records.slice(0, MAX_RECORD_CARDS)) {
+    if (!isRecord(record)) continue;
+    cards.push({
+      id: typeof record.evidence_id === "string" ? record.evidence_id : "—",
+      operation:
+        typeof record.operation === "string" ? record.operation : "unknown",
+      provider: isRecord(record.provider)
+        ? String(record.provider.id ?? "unknown")
+        : "unknown",
+      authority: typeof record.authority === "string" ? record.authority : "—",
+      confidence:
+        typeof record.confidence === "string" ? record.confidence : "—",
+      limitations: asArray(record.limitations).length,
+    });
+  }
+  return cards;
+};
+
 /** Project the given artefacts into a single snapshot. */
 export async function loadInvestigationState(
   inputs: PanelInputs,
@@ -100,6 +133,7 @@ export async function loadInvestigationState(
   const records = asArray(bundle.records);
   const artifacts = asArray(bundle.artifacts);
   const unknowns = asArray(bundle.unknowns);
+  const recordCards = projectRecordCards(records);
   const graph = projectGraph(records);
   const waterfall = projectWaterfall(records);
 
@@ -266,6 +300,8 @@ export async function loadInvestigationState(
     },
     graph,
     waterfall,
+    records: recordCards,
+    recordsTruncated: records.length > recordCards.length,
     limitations,
     symbols,
     hypotheses,
@@ -279,6 +315,7 @@ export function snapshotDigest(snapshot: PanelSnapshot): string {
     counts: snapshot.counts,
     graph: snapshot.graph,
     waterfall: snapshot.waterfall,
+    records: snapshot.records,
     limitations: snapshot.limitations,
     symbols: snapshot.symbols,
     hypotheses: snapshot.hypotheses,

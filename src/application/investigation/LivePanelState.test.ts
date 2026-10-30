@@ -56,6 +56,15 @@ describe("investigation state", () => {
       operation: "procedure_pseudo_code",
       text: "static only",
     });
+    expect(snapshot.records).toHaveLength(2);
+    expect(snapshot.records[0]).toEqual({
+      id: "—",
+      operation: "procedure_pseudo_code",
+      provider: "unknown",
+      authority: "—",
+      confidence: "—",
+      limitations: 2,
+    });
     expect(snapshot.symbols[0]?.name).toBe("parseOrder");
   });
 
@@ -112,6 +121,9 @@ describe("live server", () => {
       const page = await fetch(`${base}/`);
       expect(page.status).toBe(200);
       expect(page.headers.get("content-type")).toContain("text/html");
+      const html = await page.text();
+      expect(html).toContain("Evidence cards");
+      expect(html).toContain("renderCards");
       const state = await fetch(`${base}/api/state`);
       expect(state.status).toBe(200);
       const body = (await state.json()) as { counts: { records: number } };

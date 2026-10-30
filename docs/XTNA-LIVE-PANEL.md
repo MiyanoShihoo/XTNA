@@ -34,6 +34,8 @@ to traverse.
   from browser scenario `events.items[]` where `request` and `response` events share a
   `transaction_id`. Bars start at the earliest recorded `started_at`; failures (status ≥ 400)
   are drawn in a second colour. Captures without timings fall back to capture order and say so.
+- **Evidence cards** — one card per record with operation, provider, authority, confidence,
+  limitation count and evidence id; capped at 200 with an explicit truncation note.
 - **Tables** — limitations, symbols, hypotheses and checkpoints, unchanged.
 
 Both views are bounded: 400 nodes, 1,200 edges, 200 transactions. Truncation is reported in the
@@ -75,5 +77,6 @@ evidence.
 - Topology is a projection of recorded call/trace payloads, not a live provider query; a bundle
   with no such records shows an empty graph rather than fetching one.
 - No WebSocket command channel: notes are the only write, and they are append-only.
+- Evidence cards are projections of stored records, not a live provider query.
 - The change signal is a digest of the projection, not a diff: it says "something changed".
 - One investigation per process; there is no multi-session registry.

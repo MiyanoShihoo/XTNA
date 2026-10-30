@@ -77,12 +77,18 @@ const page = `<!doctype html>
   .wf-bar { background: #4a6fa5; height: 12px; position: absolute; }
   .wf-bar.error { background: #a54a4a; }
   #note { width: 32rem; height: 4rem; }
+  .card { border: 1px solid #ddd; border-radius: 6px; padding: .6rem .8rem; margin: .5rem 0; }
+  .card .op { font-weight: 600; }
+  .card .meta { color: #666; font-size: 12px; }
   .hidden { display: none; }
 </style></head>
 <body>
 <h1 id="title">XTNA investigation panel</h1>
 <div class="muted" id="meta"></div>
 <div id="body"></div>
+<h2>Evidence cards</h2>
+<div class="muted" id="cards-meta"></div>
+<div id="cards"></div>
 <h2>Topology</h2>
 <div class="muted" id="graph-meta"></div>
 <div id="graph"></div>
@@ -195,6 +201,22 @@ const renderWaterfall = (waterfall) => {
   }).join("");
 };
 
+const renderCards = (records, truncated) => {
+  const host = document.getElementById("cards");
+  document.getElementById("cards-meta").textContent =
+    "records " + records.length + (truncated ? " (truncated at 200)" : "");
+  if (records.length === 0) {
+    host.textContent = "No evidence records in this bundle.";
+    return;
+  }
+  host.innerHTML = records.map((record) =>
+    '<div class="card"><div class="op">' + esc(record.operation) + "</div>" +
+    '<div class="meta">' + esc(record.provider) + " · authority " + esc(record.authority) +
+    " · confidence " + esc(record.confidence) + " · limitations " + esc(record.limitations) + "</div>" +
+    '<div class="meta">' + esc(record.id) + "</div></div>"
+  ).join("");
+};
+
 const renderAnnotations = (payload) => {
   const host = document.getElementById("annotations");
   if (!payload.enabled) {
@@ -219,6 +241,7 @@ const render = (s) => {
     "<h2>Symbols</h2>" + renderTable(s.symbols, ["address", "name", "kind", "confidence"]) +
     "<h2>Hypotheses</h2>" + renderTable(s.hypotheses, ["id", "claim", "status", "confidence"]) +
     "<h2>Checkpoints</h2>" + renderTable(s.checkpoints, ["name", "bytes", "modifiedAt"]);
+  renderCards(s.records ?? [], s.recordsTruncated === true);
   renderGraph(s.graph);
   renderWaterfall(s.waterfall);
 };
