@@ -1,6 +1,6 @@
 # Dossier exporter
 
-`npm run dossier -- --evidence <bundle.json> [--out report.md|report.html|report.pdf] [--format markdown|html|pdf]`
+`npm run dossier -- --evidence <bundle.json> [--out report.md|report.html|report.pdf] [--format markdown|html|pdf] [--pdf-font <file.ttf>]`
 turns a stored Evidence bundle into a reviewable Markdown, HTML or PDF document.
 
 It is a **projection**, not a second analysis. Every section is read from the bundle; missing
@@ -42,9 +42,13 @@ confidence labels.
 ## What it deliberately does not do
 
 - No narrative inference: it will not "explain" what a function does.
-- The PDF export is text-only: Helvetica, A4, 52 lines per page, **Latin-1 only** — non-ASCII
-  characters are written as `?`, and Mermaid code fences are omitted. Use HTML when the diagram
-  or CJK text matters.
+- The PDF export writes Helvetica for ASCII and embeds a TrueType font for everything else
+  (`--pdf-font`, or the first existing candidate: `simhei.ttf`, `Deng.ttf`). The **whole font is
+  embedded**, so the file grows by roughly the compressed font size; text stays extractable through
+  a ToUnicode map. Without a usable font, non-ASCII characters become `?`.
+- Mermaid `flowchart LR|TB` and `sequenceDiagram` blocks are drawn as PDF vector diagrams
+  (boxes, arrows, labels). Other Mermaid shapes render a `not rendered` note instead of an
+  approximation.
 - The HTML wrapper embeds the same Markdown projection, tables, and Mermaid source; its diagram
   edges are bundle relationships, not a claim of observed runtime calls.
 - The sequence diagram is a projection of recorded order: it implies no timing, concurrency or

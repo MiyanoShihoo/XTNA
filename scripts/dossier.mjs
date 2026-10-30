@@ -8,6 +8,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { buildPdfReport } from "./lib/pdf-report.mjs";
+
 const args = process.argv.slice(2);
 const flag = (name) => {
   const index = args.indexOf(`--${name}`);
@@ -18,7 +20,7 @@ const evidencePath = flag("evidence");
 const format = flag("format") ?? "markdown";
 if (evidencePath === undefined) {
   process.stderr.write(
-    "usage: node scripts/dossier.mjs --evidence <bundle.json> [--overlay <binary>] [--api-spec <openapi.json>] [--out report.md|report.html|report.pdf] [--format markdown|html|pdf] [--title text]\n",
+    "usage: node scripts/dossier.mjs --evidence <bundle.json> [--overlay <binary>] [--api-spec <openapi.json>] [--out report.md|report.html|report.pdf] [--format markdown|html|pdf] [--title text] [--pdf-font <file.ttf>]\n",
   );
   process.exit(2);
 }
@@ -490,107 +492,6 @@ ${markdownToHtml(markdown)}
 </html>
 `;
 
-const pdfEscape = (value) =>
-  value
-    .replace(/\\/gu, "\\\\")
-    .replace(/\(/gu, "\\(")
-    .replace(/\)/gu, "\\)")
-    .replace(/[^\x20-\x7e]/gu, "?");
-
-const wrapPdfLine = (line, width = 95) => {
-  if (line.length === 0) return [""];
-  const rows = [];
-  let current = "";
-  for (const word of line.split(" ")) {
-    const candidate = current.length === 0 ? word : current + " " + word;
-    if (candidate.length > width && current.length > 0) {
-      rows.push(current);
-      current = word;
-    } else current = candidate;
-  }
-  rows.push(current);
-  return rows;
-};
-
-const plainDossierLines = (markdown) => {
-  const out = [];
-  const source = markdown.split("\n");
-  for (let index = 0; index < source.length; index += 1) {
-    const line = source[index] ?? "";
-    if (line.startsWith("```")) {
-      for (
-        index += 1;
-        index < source.length && source[index] !== "```";
-        index += 1
-      );
-      continue;
-    }
-    if (line.trim().length === 0) {
-      out.push("");
-      continue;
-    }
-    let text = line
-      .replace(/^#+\s*/u, "")
-      .replace(/`/gu, "")
-      .replace(/^\|\s*/u, "")
-      .replace(/\s*\|$/u, "")
-      .replace(/\s*\|\s*/gu, " | ");
-    if (text.startsWith("- ")) text = "- " + text.slice(2);
-    out.push(text);
-  }
-  return out;
-};
-
-/** Minimal text-only PDF 1.4 writer: Helvetica, A4, 52 lines per page. */
-const buildPdf = (documentTitle, bodyLines) => {
-  const wrapped = [documentTitle, "", ...bodyLines].flatMap((line) =>
-    wrapPdfLine(line),
-  );
-  const perPage = 52;
-  const pages = [];
-  for (let index = 0; index < wrapped.length; index += perPage)
-    pages.push(wrapped.slice(index, index + perPage));
-  if (pages.length === 0) pages.push([""]);
-  const firstPageId = 4;
-  const objects = [];
-  objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
-  objects[2] = `<< /Type /Pages /Kids [${pages
-    .map((_page, index) => `${String(firstPageId + index * 2)} 0 R`)
-    .join(" ")}] /Count ${String(pages.length)} >>`;
-  objects[3] =
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
-  pages.forEach((pageLines, index) => {
-    const pageId = firstPageId + index * 2;
-    const contentId = pageId + 1;
-    objects[pageId] =
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${String(contentId)} 0 R >>`;
-    const content = [
-      "BT",
-      "/F1 10 Tf",
-      "14 TL",
-      "50 800 Td",
-      ...pageLines.flatMap((line) => [`(${pdfEscape(line)}) Tj`, "T*"]),
-      "ET",
-    ].join("\n");
-    objects[contentId] =
-      `<< /Length ${String(Buffer.byteLength(content, "latin1"))} >>\nstream\n${content}\nendstream`;
-  });
-  let pdf = "%PDF-1.4\n";
-  const offsets = [];
-  for (let id = 1; id < objects.length; id += 1) {
-    offsets[id] = Buffer.byteLength(pdf, "latin1");
-    pdf += `${String(id)} 0 obj\n${objects[id]}\nendobj\n`;
-  }
-  const xrefOffset = Buffer.byteLength(pdf, "latin1");
-  let xref = `xref\n0 ${String(objects.length)}\n0000000000 65535 f \n`;
-  for (let id = 1; id < objects.length; id += 1)
-    xref += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
-  pdf +=
-    xref +
-    `trailer\n<< /Size ${String(objects.length)} /Root 1 0 R >>\nstartxref\n${String(xrefOffset)}\n%%EOF\n`;
-  return Buffer.from(pdf, "latin1");
-};
-
 const markdown = `${lines.join("\n")}\n`;
 if (format === "pdf" && outPath === undefined) {
   process.stderr.write("--format pdf requires --out <report.pdf>\n");
@@ -600,7 +501,7 @@ const rendered =
   format === "html"
     ? renderHtml(markdown)
     : format === "pdf"
-      ? buildPdf(title, plainDossierLines(markdown))
+      ? buildPdfReport({ title, markdown, fontPath: flag("pdf-font") }).bytes
       : markdown;
 if (outPath === undefined) process.stdout.write(rendered);
 else {

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -147,6 +148,8 @@ it("renders the interface dictionary, remediation and a text PDF", async () => {
     const text = rendered.toString("latin1");
     expect(text).toContain("/Type /Page");
     expect(text).toContain("%%EOF");
+    expect(text).toContain("Diagram 1");
+    expect(text).toContain(" re f");
   } finally {
     await rm(root, {
       recursive: true,
@@ -156,3 +159,48 @@ it("renders the interface dictionary, remediation and a text PDF", async () => {
     });
   }
 });
+
+const cjkFont = "C:/Windows/Fonts/simhei.ttf";
+
+it.skipIf(!existsSync(cjkFont))(
+  "embeds a CJK font and keeps the text extractable",
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), "rea-dossier-cjk-"));
+    const evidence = join(root, "bundle.json");
+    const pdf = join(root, "report.pdf");
+    await writeFile(evidence, JSON.stringify(bundle));
+    try {
+      await run(
+        process.execPath,
+        [
+          script,
+          "--evidence",
+          evidence,
+          "--format",
+          "pdf",
+          "--out",
+          pdf,
+          "--title",
+          "XTNA 中文档案",
+          "--pdf-font",
+          cjkFont,
+        ],
+        { env: process.env },
+      );
+      const rendered = await readFile(pdf);
+      const text = rendered.toString("latin1");
+      expect(text).toContain("/Subtype /Type0");
+      expect(text).toContain("/FontFile2");
+      expect(text).toContain("/ToUnicode");
+      expect(rendered.length).toBeGreaterThan(100_000);
+    } finally {
+      await rm(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 20,
+      });
+    }
+  },
+  120_000,
+);
