@@ -236,6 +236,74 @@ const restore = async () => {
   );
 };
 
+const compareSet = (before, after) => {
+  const beforeBySource = new Map(before.map((entry) => [entry.source, entry]));
+  const afterBySource = new Map(after.map((entry) => [entry.source, entry]));
+  const bySource = (left, right) => left.source.localeCompare(right.source);
+  const added = [];
+  const removed = [];
+  const changed = [];
+  let unchanged = 0;
+  for (const [source, entry] of afterBySource) {
+    const previous = beforeBySource.get(source);
+    if (previous === undefined)
+      added.push({ source, sha256: entry.sha256, bytes: entry.bytes });
+    else if (previous.sha256 !== entry.sha256)
+      changed.push({
+        source,
+        before: previous.sha256,
+        after: entry.sha256,
+        bytesBefore: previous.bytes,
+        bytesAfter: entry.bytes,
+      });
+    else unchanged += 1;
+  }
+  for (const [source, entry] of beforeBySource)
+    if (!afterBySource.has(source))
+      removed.push({ source, sha256: entry.sha256, bytes: entry.bytes });
+  return {
+    added: added.sort(bySource),
+    removed: removed.sort(bySource),
+    changed: changed.sort(bySource),
+    unchanged,
+  };
+};
+
+const diff = async () => {
+  const fromId = valueOf("from") ?? fail("--from is required");
+  const toId = valueOf("to") ?? fail("--to is required");
+  const from = await readManifest(fromId);
+  const to = await readManifest(toId);
+  const report = {
+    schema: "xtna.checkpoint-diff/1",
+    from: { id: from.id, name: from.name, created_at: from.created_at },
+    to: { id: to.id, name: to.name, created_at: to.created_at },
+    evidence: compareSet(from.files, to.files),
+    overlays: compareSet(from.overlays, to.overlays),
+  };
+  if (has("json")) {
+    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+    return;
+  }
+  const short = (sha) => String(sha).slice(0, 12);
+  const lines = [`diff ${from.id} (${from.name}) -> ${to.id} (${to.name})`];
+  for (const collection of ["evidence", "overlays"]) {
+    const part = report[collection];
+    lines.push(
+      `${collection}  +${String(part.added.length)} -${String(part.removed.length)} ~${String(part.changed.length)} =${String(part.unchanged)}`,
+    );
+    for (const entry of part.added)
+      lines.push(`  + ${entry.source}  ${short(entry.sha256)}`);
+    for (const entry of part.removed)
+      lines.push(`  - ${entry.source}  ${short(entry.sha256)}`);
+    for (const entry of part.changed)
+      lines.push(
+        `  ~ ${entry.source}  ${short(entry.before)} -> ${short(entry.after)}  (${String(entry.bytesBefore)} -> ${String(entry.bytesAfter)} bytes)`,
+      );
+  }
+  process.stdout.write(`${lines.join("\n")}\n`);
+};
+
 const show = async () => {
   const checkpointId = valueOf("id") ?? fail("--id is required");
   process.stdout.write(
@@ -255,6 +323,7 @@ const usage = `usage: node scripts/checkpoint.mjs <command> [options]
   create   --name <text> [--evidence <file>]... [--overlay-dir <dir>]...
   branch   --id <cp_...> --name <text>
   list     [--json]
+  diff     --from <cp_...> --to <cp_...> [--json]
   show     --id <cp_...>
   restore  --id <cp_...> [--dest-dir <dir>] [--overlay-dir <dir>]
   delete   --id <cp_...>
@@ -270,6 +339,7 @@ const main = async () => {
   if (command === "create") return create();
   if (command === "branch") return branch();
   if (command === "list") return list();
+  if (command === "diff") return diff();
   if (command === "show") return show();
   if (command === "restore") return restore();
   if (command === "delete") return remove();

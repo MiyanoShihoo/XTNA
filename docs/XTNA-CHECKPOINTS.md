@@ -21,6 +21,10 @@ npm run checkpoint -- branch --id cp_mvsd17ym_a7edb3 --name "alternate-branch"
 npm run checkpoint -- list
 npm run checkpoint -- list --json
 
+# compare two checkpoints by source path and hash
+npm run checkpoint -- diff --from cp_xxx --to cp_yyy
+npm run checkpoint -- diff --from cp_xxx --to cp_yyy --json
+
 # restore into a working directory
 npm run checkpoint -- restore --id cp_mvsd17ym_a7edb3 \
   --dest-dir ./restored --overlay-dir ./restored/overlays
@@ -37,6 +41,20 @@ npm run checkpoint -- delete --id cp_mvsd17ym_a7edb3
 | evidence copies | exact bytes, named `<n>-<original basename>`                                  |
 | overlay copies  | exact bytes for every `*.json` in the given overlay directory                 |
 | hashes          | SHA-256 per file, verified on restore                                         |
+
+## Diff
+
+`diff` pairs the two manifests by the original source path and compares SHA-256:
+
+| Bucket    | Meaning                                            |
+| --------- | -------------------------------------------------- |
+| `added`   | source exists only in the newer checkpoint         |
+| `removed` | source exists only in the older checkpoint         |
+| `changed` | same source, different hash (both hashes reported) |
+| unchanged | same source, same hash (counted, not listed)       |
+
+Evidence files and overlays are compared separately, and `--json` emits the same structure the
+human output is rendered from.
 
 ## Behaviour worth knowing
 
@@ -58,5 +76,5 @@ npm run checkpoint -- delete --id cp_mvsd17ym_a7edb3
 
 - No process or container state: this is a file-level checkpoint.
 - `branch` clones the parent's stored files into a new checkpoint and records `parent_id` and
-  `branch`; there is no diff view yet.
+  `branch`; `diff` compares any two checkpoints, related or not.
 - Large evidence bundles are copied whole, so disk use grows with each checkpoint.
