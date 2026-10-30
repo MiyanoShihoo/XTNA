@@ -19,7 +19,7 @@ const flag = (name) => {
 const input = flag("in");
 if (input === undefined) {
   process.stderr.write(
-    "usage: node scripts/hermes-inspect.mjs --in <index.android.bundle|file.hbc> [--json]\n",
+    "usage: node scripts/hermes-inspect.mjs --in <index.android.bundle|file.hbc> [--tables] [--json]\n",
   );
   process.exit(2);
 }
@@ -28,6 +28,9 @@ const { HERMES_HEADER_BYTES, observeHermesBytecode, hermesVersionSupported } =
   await import(
     pathToFileURL(resolve("dist/artifacts/hermes/HermesBytecodeHeader.js")).href
   );
+const { readHermesTables } = await import(
+  pathToFileURL(resolve("dist/artifacts/hermes/HermesBytecodeTables.js")).href
+);
 
 const path = resolve(input);
 const info = await stat(path);
@@ -39,14 +42,19 @@ if (!info.isFile()) {
 const handle = await open(path, "r");
 let bytes;
 try {
-  const buffer = Buffer.alloc(HERMES_HEADER_BYTES);
-  const { bytesRead } = await handle.read(buffer, 0, HERMES_HEADER_BYTES, 0);
+  const buffer = Buffer.alloc(Math.min(info.size, 16 * 1024 * 1024));
+  const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
   bytes = buffer.subarray(0, bytesRead);
 } finally {
   await handle.close();
 }
 
 const observation = observeHermesBytecode(bytes);
+const withTables = args.includes("--tables");
+const tables =
+  withTables && observation.state === "parsed"
+    ? readHermesTables(bytes)
+    : undefined;
 const report = {
   path,
   bytes: info.size,
@@ -63,6 +71,17 @@ const report = {
           availableBytes: observation.availableBytes,
           neededBytes: observation.neededBytes,
         }),
+  ...(tables === undefined
+    ? {}
+    : tables.ok
+      ? {
+          tables: {
+            strings: tables.value.strings.slice(0, 200),
+            functions: tables.value.functions.slice(0, 200),
+            truncated: tables.value.truncated,
+          },
+        }
+      : { tablesError: tables.error }),
   limitations: [
     "Header prefix only: the string table, function table and bytecode are not decoded.",
     "No AST is produced; structuring the bytecode is a separate step.",
@@ -76,6 +95,20 @@ if (args.includes("--json")) {
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 } else if (observation.state === "parsed") {
   const f = observation.facts;
+  const tableLines =
+    tables !== undefined && tables.ok
+      ? [
+          `strings: ${String(tables.value.strings.length)} (first: ${tables.value.strings
+            .slice(0, 8)
+            .map((entry) => entry.value)
+            .filter((value) => value.length > 0)
+            .join(", ")})`,
+          `functions: ${tables.value.functions
+            .slice(0, 12)
+            .map((entry) => entry.name ?? `#${String(entry.nameStringId)}`)
+            .join(", ")}`,
+        ]
+      : [];
   process.stdout.write(
     [
       `Hermes bytecode: ${path}`,
@@ -85,7 +118,10 @@ if (args.includes("--json")) {
       `strings: ${f.stringCount} small, ${f.overflowStringCount} overflow, ${f.identifierCount} identifiers, ${f.stringKindCount} kinds`,
       `string storage: ${f.stringStorageSize} bytes`,
       `declared length: ${f.fileLength} bytes; file: ${info.size} bytes`,
-      "limits: header only; tables and AST are not decoded",
+      ...tableLines,
+      withTables
+        ? "limits: tables decoded; bytecode bodies and AST are not"
+        : "limits: header only; use --tables for the string/function tables",
     ].join("\n") + "\n",
   );
 } else if (observation.state === "truncated") {

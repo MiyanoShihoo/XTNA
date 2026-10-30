@@ -31,7 +31,7 @@ not implemented here.
 |   # | Module                              | Status                                      | Notes                                                                                                                                                                                                                                                                     |
 | --: | ----------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |   1 | Wasm end-to-end + JS bridge         | **partial** (bridge + call graph + scan)    | `wasm_bridge`/`wasm:link` decode imports/exports, function index space and literal glue bindings; `wasm:calls` decodes direct/indirect call edges with SIMD and atomics operands; `wasm:scan` discovers modules by magic                                                  |
-|   2 | Hermes / V8 snapshot / PyInstaller  | **partial** (PyInstaller + Hermes header)   | CArchive 2.0/2.1 and PYZ inventory/extraction; `npm run hermes:inspect` reads the 60-byte `.hbc` header (version, source hash, function/string counters, length check); no Hermes tables, no AST, no V8 startup-snapshot parser                                           |
+|   2 | Hermes / V8 snapshot / PyInstaller  | **partial** (PyInstaller + Hermes tables)   | CArchive/PYZ inventory; `hermes:inspect` reads the 128-byte header, string table and function table (v76-v88 and v89+ layouts) with names resolved; no bytecode/AST and no V8 startup-snapshot parser                                                                     |
 |   3 | Semantic version diff               | **partial** (report narrative)              | `npm run diff:narrate` pairs two reports by a stable key and names added/removed/changed records and fields; no CFG or AST diff                                                                                                                                           |
 |   4 | Runtime probe generation            | **partial** (skeleton)                      | `npm run probe:gen`: address to a Frida or LLDB probe skeleton that records arguments, return value and a backtrace; target selection stays manual                                                                                                                        |
 |   5 | Cross-boundary causal tracing       | **partial** (merge + candidates)            | `npm run trace:causal`: browser/IPC/probe streams to one timeline, chains by explicit trace id or bounded window; causation stays an inference                                                                                                                            |
@@ -59,11 +59,12 @@ not implemented here.
 
 ## Verified baseline
 
-- `npm run test:fast`: 1146 test files passed, 9 skipped; 20,666 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run test:fast`: 1147 test files passed, 9 skipped; 20,668 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
 - `npm run typecheck`: passed.
 - `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.
 - `npm run lint`: 0 errors, 3,013 warnings (2026-10-30, after splitting the long Electron fuse suites).
+- Hermes tables: all 14 v84 modules from Zenodo record 8223659 (`HermesBench.zip`, CC-BY-4.0) parse; string identifiers and function names resolve.
 - `npm run verify:xtna`: 8/8 checks passed.
 - `npm run test:local` focused lifecycle: `SourceMapCommand.test.ts` 11/11 and `WebBundleAnalysisWorker.test.ts` 25/25.
 - Real Ghidra verification (2026-10-30): Ghidra 12.2 headless on `C:\Windows\System32\notepad.exe` (SHA-256 `49f096cb…`) reported 915 procedures / 635 strings; `decompile 0x140001008` returned real pseudocode (`FUN_140001008`, ETW write transfer).

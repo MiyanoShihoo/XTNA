@@ -12,49 +12,86 @@ const script = fileURLToPath(
   new URL("../../scripts/hermes-inspect.mjs", import.meta.url),
 );
 
-const hermesHeader = (version: number, functions: number): Buffer => {
-  const buffer = Buffer.alloc(60 + 1_024);
-  buffer.writeUInt32LE(0xc61fbc3f, 0);
-  buffer.writeUInt32LE(version, 4);
-  buffer.fill(0x11, 8, 28);
-  buffer.writeUInt32LE(60 + 1_024, 28);
-  buffer.writeUInt32LE(0, 32);
-  buffer.writeUInt32LE(functions, 36);
-  buffer.writeUInt32LE(2, 40);
-  buffer.writeUInt32LE(9, 44);
-  buffer.writeUInt32LE(120, 48);
-  buffer.writeUInt32LE(0, 52);
-  buffer.writeUInt32LE(2_048, 56);
-  return buffer;
+const MAGIC = 0x1f1903c103bc1fc6n;
+const HEADER = 128;
+
+const hermesModule = (strings: readonly string[]): Buffer => {
+  const storage = Buffer.concat(
+    strings.map((text) => Buffer.from(text, "utf8")),
+  );
+  const entries: number[] = [];
+  let offset = 0;
+  for (const text of strings) {
+    const bytes = Buffer.from(text, "utf8");
+    entries.push((offset << 1) | (bytes.length << 24));
+    offset += bytes.length;
+  }
+  const functions = Buffer.alloc(16);
+  functions.writeUInt32LE(1 << 25, 0);
+  functions.writeUInt32LE(8 & 0x7fff, 4);
+  functions.writeUInt8(0, 15);
+  const kinds = Buffer.alloc(4);
+  kinds.writeUInt32LE(strings.length, 0);
+  const table = Buffer.alloc(strings.length * 4);
+  entries.forEach((entry, index) => table.writeUInt32LE(entry, index * 4));
+  const total =
+    HEADER + functions.length + kinds.length + table.length + storage.length;
+  const header = Buffer.alloc(HEADER);
+  header.writeBigUInt64LE(MAGIC, 0);
+  header.writeUInt32LE(84, 8);
+  header.writeUInt32LE(total, 32);
+  header.writeUInt32LE(1, 40);
+  header.writeUInt32LE(1, 44);
+  header.writeUInt32LE(0, 48);
+  header.writeUInt32LE(strings.length, 52);
+  header.writeUInt32LE(0, 56);
+  header.writeUInt32LE(storage.length, 60);
+  return Buffer.concat([header, functions, kinds, table, storage]);
 };
 
-it("reports a Hermes header and refuses a non-Hermes file", async () => {
+it("reports a Hermes header with tables and refuses a non-Hermes file", async () => {
   const root = await mkdtemp(join(tmpdir(), "rea-hermes-cli-"));
   const bundle = join(root, "index.android.bundle");
   const plain = join(root, "plain.bin");
-  await writeFile(bundle, hermesHeader(96, 42));
+  const bytes = hermesModule(["global", "password"]);
+  await writeFile(bundle, bytes);
   await writeFile(plain, "not bytecode");
   try {
     const reported = await run(
       process.execPath,
-      [script, "--in", bundle, "--json"],
-      {
-        env: process.env,
-      },
+      [script, "--in", bundle, "--json", "--tables"],
+      { env: process.env },
     );
     const report = JSON.parse(reported.stdout) as {
       state: string;
       bytes: number;
       facts: { version: number; functionCount: number };
       versionSupported: boolean;
+      tables: {
+        strings: { value: string }[];
+        functions: { name: string | null }[];
+      };
       limitations: string[];
     };
     expect(report.state).toBe("parsed");
-    expect(report.bytes).toBe(1_084);
-    expect(report.facts.version).toBe(96);
-    expect(report.facts.functionCount).toBe(42);
+    expect(report.bytes).toBe(bytes.length);
+    expect(report.facts.version).toBe(84);
+    expect(report.facts.functionCount).toBe(1);
     expect(report.versionSupported).toBe(true);
-    expect(report.limitations.join(" ")).toContain("No AST");
+    expect(report.tables.strings.map((entry) => entry.value)).toEqual([
+      "global",
+      "password",
+    ]);
+    expect(report.tables.functions[0]?.name).toBe("global");
+    expect(report.limitations.join(" ")).toContain("AST");
+
+    const text = await run(
+      process.execPath,
+      [script, "--in", bundle, "--tables"],
+      { env: process.env },
+    );
+    expect(text.stdout).toContain("strings: 2 (first: global, password)");
+    expect(text.stdout).toContain("functions: global");
 
     await expect(
       run(process.execPath, [script, "--in", plain, "--json"], {
