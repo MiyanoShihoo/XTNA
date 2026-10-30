@@ -191,6 +191,53 @@ const openStore = async () => {
 
 const store = await openStore();
 
+const RESERVED_QUERY = new Set(["limit", "cursor", "sort", "order"]);
+
+const viewOf = (items, url) => {
+  const filters = [];
+  let sortField;
+  let order = "asc";
+  for (const [key, value] of url.searchParams) {
+    if (key === "sort") {
+      sortField = value;
+      continue;
+    }
+    if (key === "order") {
+      order = value === "desc" ? "desc" : "asc";
+      continue;
+    }
+    if (RESERVED_QUERY.has(key)) continue;
+    filters.push([key, value]);
+  }
+  let view = items;
+  if (filters.length > 0)
+    view = view.filter((item) =>
+      filters.every(
+        ([field, value]) =>
+          item !== null &&
+          typeof item === "object" &&
+          String(item[field]) === value,
+      ),
+    );
+  if (sortField !== undefined) {
+    const indexed = view.map((item, index) => ({ item, index }));
+    indexed.sort((left, right) => {
+      const a = left.item?.[sortField];
+      const b = right.item?.[sortField];
+      if (a === b) return left.index - right.index;
+      if (a === undefined || a === null) return 1;
+      if (b === undefined || b === null) return -1;
+      const comparison =
+        typeof a === "number" && typeof b === "number"
+          ? a - b
+          : String(a).localeCompare(String(b));
+      return order === "desc" ? -comparison : comparison;
+    });
+    view = indexed.map((entry) => entry.item);
+  }
+  return view;
+};
+
 const send = (response, status, body) => {
   const text = body === undefined ? "" : JSON.stringify(body);
   response.writeHead(status, { "content-type": "application/json" });
@@ -236,9 +283,9 @@ const server = createServer(async (request, response) => {
     const page = pageFor(route.method, route.template);
     const requested = Number(url.searchParams.get("limit"));
     const limit = Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : undefined;
+    const view = viewOf(store.all(collection), url);
     if (page === undefined) {
-      const items = store.all(collection);
-      return send(response, 200, limit === undefined ? items : items.slice(0, limit));
+      return send(response, 200, limit === undefined ? view : view.slice(0, limit));
     }
     let offset = 0;
     const cursor = url.searchParams.get("cursor");
@@ -248,7 +295,8 @@ const server = createServer(async (request, response) => {
       offset = decoded;
     }
     const size = limit ?? page.defaultLimit ?? 20;
-    const result = store.page(collection, size, offset);
+    const items = view.slice(offset, offset + size);
+    const result = { items, total: view.length };
     const next = offset + result.items.length < result.total ? encodeCursor(offset + result.items.length) : null;
     const envelope = {};
     envelope[page.itemsKey] = result.items;

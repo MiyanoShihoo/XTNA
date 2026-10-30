@@ -45,6 +45,21 @@ node ./mock/server.mjs
 `node:sqlite` ships with Node 24 (and newer); on hosts without it the server prints one
 warning and keeps the same behaviour on the memory backend.
 
+## Filtering and sorting
+
+A list request may narrow and order the current state before paging:
+
+```text
+GET /users?name=Ada                 # equality on one field
+GET /users?sort=name&order=desc     # single-field sort, asc (default) or desc
+GET /events?kind=c&limit=2&cursor=… # filters apply before the cursor window
+```
+
+`limit`, `cursor`, `sort` and `order` are reserved; every other query parameter is an equality
+filter and values are compared as strings. Missing fields never match. Sorting is stable: equal
+keys keep their insertion order, and records without the field sort last. Changing filters or
+sort between pages makes an existing cursor meaningless — start the walk again.
+
 ## Paged responses
 
 When the capture shows a paged envelope, the generated server keeps that envelope instead of
@@ -77,6 +92,7 @@ client sent are never overwritten.
   contract test double.
 - Nested resources (`/users/1/orders`) are treated as their own collection only when the
   capture shows a collection response for them.
-- No authentication, relationship integrity, filtering or sorting; pagination exists only where
-  the capture declared a paged envelope.
+- No authentication, relationship integrity or multi-field operators (`>`, `in`, ranges);
+  filtering is equality-only, and pagination exists only where the capture declared a paged
+  envelope.
 - Generated code is a development aid, not a production server.

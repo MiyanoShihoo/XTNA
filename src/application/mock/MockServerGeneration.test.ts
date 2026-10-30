@@ -379,3 +379,33 @@ describe("generated server", () => {
     }
   }, 30_000);
 });
+
+describe("list view", () => {
+  it("filters by field and sorts before paging", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "xtna-mock-view-"));
+    const server = await startServer(directory, { port: 0 });
+    try {
+      const seed = (await (await request(server, "/users")).json()) as {
+        name: string;
+      }[];
+      expect(seed.map((item) => item.name)).toEqual(["Ada", "Grace"]);
+
+      const filtered = (await (
+        await request(server, "/users?name=Ada")
+      ).json()) as { name: string }[];
+      expect(filtered.map((item) => item.name)).toEqual(["Ada"]);
+
+      const sorted = (await (
+        await request(server, "/users?sort=name&order=desc")
+      ).json()) as { name: string }[];
+      expect(sorted.map((item) => item.name)).toEqual(["Grace", "Ada"]);
+
+      const unknownField = (await (
+        await request(server, "/users?missing=1")
+      ).json()) as unknown[];
+      expect(unknownField).toEqual([]);
+    } finally {
+      await server.stop();
+    }
+  }, 30_000);
+});
