@@ -1,8 +1,13 @@
 import { err, ok, type Result } from "../../domain/result.js";
 
 export type AlgorithmFamily =
+  | "aes"
   | "crc32"
   | "base64"
+  | "gzip"
+  | "lz4"
+  | "pem"
+  | "xz"
   | "zlib"
   | "zstd"
   | "md5"
@@ -55,9 +60,11 @@ export interface AlgorithmFingerprint {
   readonly algorithm: AlgorithmFamily;
   readonly category:
     | "checksum"
+    | "cipher"
     | "encoding"
     | "compression"
     | "hash"
+    | "key-material"
     | "serialization";
   readonly offset: number;
   readonly length: number;
@@ -138,6 +145,62 @@ interface Signature {
 }
 
 const SIGNATURES: readonly Signature[] = [
+  {
+    algorithm: "aes",
+    category: "cipher",
+    bytes: hex("637c777bf26b6fc53001672bfed7ab76"),
+    confidence: "high",
+    description: "AES S-box table prefix.",
+  },
+  {
+    algorithm: "aes",
+    category: "cipher",
+    bytes: hex("52096ad53036a538bf40a39e81f3d7fb"),
+    confidence: "high",
+    description: "AES inverse S-box table prefix.",
+  },
+  {
+    algorithm: "gzip",
+    category: "compression",
+    bytes: hex("1f8b08"),
+    confidence: "high",
+    description: "Gzip header magic and deflate method.",
+  },
+  {
+    algorithm: "xz",
+    category: "compression",
+    bytes: hex("fd377a585a00"),
+    confidence: "high",
+    description: "XZ stream header magic.",
+  },
+  {
+    algorithm: "lz4",
+    category: "compression",
+    bytes: hex("04224d18"),
+    confidence: "high",
+    description: "LZ4 frame magic.",
+  },
+  {
+    algorithm: "pem",
+    category: "key-material",
+    bytes: ascii("-----BEGIN PRIVATE KEY-----"),
+    confidence: "high",
+    description: "PEM PKCS#8 private-key header.",
+  },
+  {
+    algorithm: "pem",
+    category: "key-material",
+    bytes: ascii("-----BEGIN RSA PRIVATE KEY-----"),
+    confidence: "high",
+    description: "PEM RSA private-key header.",
+  },
+  {
+    algorithm: "pem",
+    category: "key-material",
+    bytes: ascii("-----BEGIN OPENSSH PRIVATE KEY-----"),
+    confidence: "high",
+    description: "PEM OpenSSH private-key header.",
+  },
   {
     algorithm: "base64",
     category: "encoding",

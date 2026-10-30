@@ -74,6 +74,22 @@ describe("algorithm and protocol fingerprinting", () => {
     );
   });
 
+  it("retains AES, compression, and PEM signatures", () => {
+    const source = new Uint8Array([
+      ...bytes("637c777bf26b6fc53001672bfed7ab76"),
+      ...bytes("1f8b08"),
+      ...bytes("fd377a585a00"),
+      ...bytes("04224d18"),
+      ...new TextEncoder().encode("-----BEGIN PRIVATE KEY-----"),
+    ]);
+    const algorithms = fingerprint(source).fingerprints.map(
+      ({ algorithm }) => algorithm,
+    );
+    expect(algorithms).toEqual(
+      expect.arrayContaining(["aes", "gzip", "xz", "lz4", "pem"]),
+    );
+  });
+
   it("reports bounded protobuf wire structure as low confidence", () => {
     const result = fingerprintAlgorithms(bytes("08011203414243"));
     if (!result.ok) throw new Error(result.error.message);
