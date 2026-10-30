@@ -1,7 +1,7 @@
 # Hermes bytecode inspection
 
-`npm run hermes:inspect -- --in <index.android.bundle|file.hbc> [--tables] [--json]` reads a React
-Native Hermes bytecode file.
+`npm run hermes:inspect -- --in <index.android.bundle|file.hbc> [--tables] [--disassemble] [--json]`
+reads a React Native Hermes bytecode file.
 
 ## Header
 
@@ -40,10 +40,25 @@ strings: 7 (first: global, pas., test, log, console, length, password)
 functions: global
 ```
 
+## Disassembly (`--disassemble`, bytecode version 84)
+
+Every non-overflowed function body is decoded with the opcode table generated from the upstream
+`BytecodeList.def` (v0.8.0, 188 opcodes). A body must end exactly at `offset + bytecodeSize`;
+an unknown opcode, an operand overrun or a mismatched boundary marks that function undecoded.
+
+```text
+code: 1/1 functions decoded
+  global: LoadConstString 1, 1
+  global: GetGlobalObject 0
+  global: PutById 0, 1, 1, 6
+```
+
+Other bytecode versions are refused rather than decoded with the wrong opcode map.
+
 ## What it does not do
 
-- **No bytecode body decoding and no AST.** Function offsets/sizes are reported, instructions are
-  not.
+- **No AST.** Instructions are decoded, but no structured control flow or expression tree is
+  recovered. Only bytecode version 84 has an opcode table here.
 - **No V8 startup snapshots.** A V8 snapshot has no stable magic to recognise; it is not parsed.
 - **No APK traversal.** Pass the extracted bundle; use `inspect_artifact`/`extract_artifact` first.
 
@@ -54,4 +69,6 @@ functions: global
 - Real files: the [Zenodo Hermes benchmark](https://doi.org/10.5281/zenodo.8223659)
   (`HermesBench.zip`, CC-BY-4.0) provides 14 v84 modules with matching JS sources. All 14 parse;
   string tables decode to their identifiers (`global`, `password`, `console`, `length`, …) and
-  function names resolve (`global`, `z`, `b`, `c` in the closure cases). Samples are not committed.
+  function names resolve (`global`, `z`, `b`, `c` in the closure cases) and **20/20 functions
+  decode with the instruction stream ending exactly at the body boundary**. Samples are not
+  committed.

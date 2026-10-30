@@ -30,6 +30,8 @@ export interface HermesFunctionEntry {
   readonly nameStringId: number;
   readonly paramCount: number;
   readonly bytecodeSize: number;
+  /** Offset of the function body from the start of the file. */
+  readonly bytecodeOffset: number;
   readonly frameSize: number;
   readonly overflowed: boolean;
 }
@@ -250,6 +252,7 @@ export function readHermesTables(
         nameStringId,
         paramCount: (word1 >>> 25) & 0x7f,
         bytecodeSize: word2 & 0x7fff,
+        bytecodeOffset: word1 & 0x1ffffff,
         frameSize: (word3 >>> 25) & 0x7f,
         overflowed,
       });
@@ -266,6 +269,7 @@ export function readHermesTables(
       nameStringId,
       paramCount: (word1 >>> 25) & 0x1f,
       bytecodeSize: word2 & 0x3fff,
+      bytecodeOffset: word1 & 0x1ffffff,
       frameSize: bounds.view.getUint8(offset + 8),
       overflowed,
     });

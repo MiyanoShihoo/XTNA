@@ -31,6 +31,9 @@ const { HERMES_HEADER_BYTES, observeHermesBytecode, hermesVersionSupported } =
 const { readHermesTables } = await import(
   pathToFileURL(resolve("dist/artifacts/hermes/HermesBytecodeTables.js")).href
 );
+const { disassembleHermes } = await import(
+  pathToFileURL(resolve("dist/artifacts/hermes/HermesDisassembly.js")).href
+);
 
 const path = resolve(input);
 const info = await stat(path);
@@ -50,10 +53,15 @@ try {
 }
 
 const observation = observeHermesBytecode(bytes);
-const withTables = args.includes("--tables");
+const withTables = args.includes("--tables") || args.includes("--disassemble");
+const withDisassembly = args.includes("--disassemble");
 const tables =
   withTables && observation.state === "parsed"
     ? readHermesTables(bytes)
+    : undefined;
+const disassembly =
+  withDisassembly && observation.state === "parsed"
+    ? disassembleHermes(bytes)
     : undefined;
 const report = {
   path,
@@ -71,6 +79,20 @@ const report = {
           availableBytes: observation.availableBytes,
           neededBytes: observation.neededBytes,
         }),
+  ...(disassembly === undefined
+    ? {}
+    : disassembly.ok
+      ? {
+          decodedFunctions: disassembly.value.decodedFunctions,
+          undecodedFunctions: disassembly.value.undecodedFunctions,
+          code: disassembly.value.functions.map((fn) => ({
+            index: fn.index,
+            name: fn.name,
+            decoded: fn.decoded,
+            instructions: fn.instructions.slice(0, 100),
+          })),
+        }
+      : { disassemblyError: disassembly.error }),
   ...(tables === undefined
     ? {}
     : tables.ok
@@ -119,6 +141,21 @@ if (args.includes("--json")) {
       `string storage: ${f.stringStorageSize} bytes`,
       `declared length: ${f.fileLength} bytes; file: ${info.size} bytes`,
       ...tableLines,
+      ...(disassembly !== undefined && disassembly.ok
+        ? [
+            `code: ${String(disassembly.value.decodedFunctions)}/${String(disassembly.value.functions.length)} functions decoded`,
+            ...disassembly.value.functions
+              .slice(0, 2)
+              .flatMap((fn) =>
+                fn.instructions
+                  .slice(0, 6)
+                  .map(
+                    (ins) =>
+                      `  ${fn.name ?? "#" + String(fn.index)}: ${ins.name} ${ins.operands.join(", ")}`,
+                  ),
+              ),
+          ]
+        : []),
       withTables
         ? "limits: tables decoded; bytecode bodies and AST are not"
         : "limits: header only; use --tables for the string/function tables",
