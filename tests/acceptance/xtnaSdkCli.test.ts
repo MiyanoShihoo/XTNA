@@ -73,3 +73,97 @@ it("writes clients and a runnable generated Python smoke test", async () => {
     });
   }
 });
+
+it("walks paginated responses with the generated Python client", async () => {
+  const { createServer } = await import("node:http");
+  const directory = await mkdtemp(join(tmpdir(), "rea-sdk-pages-"));
+  const server = createServer((request, response) => {
+    const url = new URL(request.url ?? "/", "http://127.0.0.1");
+    const cursor = url.searchParams.get("cursor");
+    const body =
+      cursor === null
+        ? { items: [{ id: 1 }, { id: 2 }], next_cursor: "c2" }
+        : { items: [{ id: 3 }], next_cursor: null };
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify(body));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  const port =
+    typeof address === "object" && address !== null ? address.port : 0;
+  try {
+    const capture = join(directory, "capture.har");
+    await writeFile(
+      capture,
+      JSON.stringify({
+        log: {
+          entries: [
+            {
+              request: {
+                method: "GET",
+                url: "https://api.test/events?limit=2",
+              },
+              response: {
+                status: 200,
+                content: {
+                  text: JSON.stringify({
+                    items: [{ id: 1 }, { id: 2 }],
+                    next_cursor: "c2",
+                  }),
+                },
+              },
+            },
+            {
+              request: {
+                method: "GET",
+                url: "https://api.test/events?limit=2&cursor=c2",
+              },
+              response: {
+                status: 200,
+                content: {
+                  text: JSON.stringify({
+                    items: [{ id: 3 }],
+                    next_cursor: null,
+                  }),
+                },
+              },
+            },
+          ],
+        },
+      }),
+    );
+    const output = join(directory, "client");
+    await run(
+      process.execPath,
+      [
+        script,
+        "--in",
+        capture,
+        "--out",
+        output,
+        "--lang",
+        "py",
+        "--base-url",
+        `http://127.0.0.1:${String(port)}`,
+      ],
+      { env: process.env },
+    );
+    const tested = await run(
+      "python",
+      [
+        "-c",
+        "from client import ApiClient\n" +
+          "client = ApiClient()\n" +
+          "pages = client.get_events_pages({'limit': 2})\n" +
+          "print(len(pages))\n" +
+          "print([item['id'] for page in pages for item in page['items']])",
+      ],
+      { cwd: output, env: process.env },
+    );
+    expect(tested.stdout).toContain("2");
+    expect(tested.stdout).toContain("[1, 2, 3]");
+  } finally {
+    server.close();
+    await rm(directory, { recursive: true, force: true, maxRetries: 5 });
+  }
+});

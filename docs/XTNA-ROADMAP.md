@@ -40,7 +40,7 @@ not implemented here.
 |   8 | Symbol overlay                      | **shipped** (projection + hypothesis store) | `overlay`/`overlay:render` for display; `npm run symbol:hypothesis` persists evidence-backed names with validation/conflict checks and Ghidra/IDA/VS Code export                                                                                                         |
 |   9 | Algorithm/protocol fingerprinting   | **shipped** (constant signatures)           | `npm run crypto:radar`: AES S-boxes, SHA-1/224/256/384/512 and MD5 state, CRC-32/CRC-32C, gzip/xz/LZ4/zlib/zstd, Base64 and PEM headers; bounded protobuf wire hints                                                                                                     |
 |  10 | Schema synthesis (OpenAPI/proto/TS) | **partial** (capture to OpenAPI)            | `npm run api:spec` emits OpenAPI 3.1 from HAR; the typed `schemaSynthesis` domain contract covers JSON Schema/OpenAPI but is not yet wired to that CLI; no `.proto` output                                                                                               |
-|  11 | Standalone client SDK generation    | **partial** (types + auth + retry)          | `npm run sdk:gen`: HAR to TypeScript/Python clients with typed path/query/body/response shapes, inferred auth scheme (values never copied) and an inferred retry loop honouring `Retry-After`; no pagination, OAuth or signing inference                                 |
+|  11 | Standalone client SDK generation    | **partial** (types + auth + retry + pages)  | `npm run sdk:gen`: HAR to TypeScript/Python clients with typed shapes, inferred auth scheme (values never copied), retry loop honouring `Retry-After` and cursor/page/offset page walkers; no OAuth, signing or non-standard pagination inference                        |
 |  12 | Stateful mock server                | **partial** (SQLite + cursors)              | `npm run mock:gen`: seeded CRUD over built-in `node:sqlite` (memory or file-backed, map fallback), captured paged envelopes with opaque cursors and generated timestamp fields; no FastAPI/Express, filtering or relationship integrity                                  |
 |  13 | Property-graph / taint queries      | **shipped** (graph-level)                   | scripts/taint-path.mjs for path search and scripts/graph-export.mjs to project an application graph into that format                                                                                                                                                     |
 |  14 | Hypothesis board                    | **partial** (file-level)                    | scripts/hypothesis.mjs stores claims/status/evidence; the typed `HypothesisBoard` contract passes tests but is not yet wired to the CLI/MCP surface                                                                                                                      |
@@ -59,7 +59,7 @@ not implemented here.
 
 ## Verified baseline
 
-- `npm run test:fast`: 1143 test files passed, 9 skipped; 20,643 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run test:fast`: 1143 test files passed, 9 skipped; 20,646 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
 - `npm run typecheck`: passed.
 - `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.

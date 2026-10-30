@@ -245,3 +245,85 @@ describe("auth and retry inference", () => {
     ).toEqual([]);
   });
 });
+
+describe("pagination inference", () => {
+  const cursorHar = {
+    log: {
+      entries: [
+        {
+          request: {
+            method: "GET",
+            url: "https://api.test/events?limit=2",
+          },
+          response: {
+            status: 200,
+            content: {
+              text: JSON.stringify({
+                items: [{ id: 1 }, { id: 2 }],
+                next_cursor: "abc",
+              }),
+            },
+          },
+        },
+        {
+          request: {
+            method: "GET",
+            url: "https://api.test/users?page=1&per_page=2",
+          },
+          response: {
+            status: 200,
+            content: { text: JSON.stringify([{ id: 1 }, { id: 2 }]) },
+          },
+        },
+      ],
+    },
+  };
+
+  it("detects cursor envelopes and page parameters", () => {
+    const sdk = generateClientSdk(cursorHar);
+    const events = sdk.operations.find(
+      (operation) => operation.pathTemplate === "/events",
+    );
+    expect(events?.pagination).toEqual({
+      kind: "cursor",
+      param: "cursor",
+      limitParam: "limit",
+      itemsKey: "items",
+      cursorKey: "next_cursor",
+    });
+    const users = sdk.operations.find(
+      (operation) => operation.pathTemplate === "/users",
+    );
+    expect(users?.pagination).toMatchObject({
+      kind: "page",
+      param: "page",
+      limitParam: "per_page",
+    });
+  });
+
+  it("emits pages helpers in both languages", () => {
+    const sdk = generateClientSdk(cursorHar);
+    expect(sdk.typescript).toContain("async getEventsPages(");
+    expect(sdk.typescript).toContain("async getUsersPages(");
+    expect(sdk.python).toContain("def get_events_pages(");
+    expect(sdk.python).toContain("def get_users_pages(");
+    const source = ts.createSourceFile(
+      "client.ts",
+      sdk.typescript,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    expect(
+      (source as unknown as { parseDiagnostics?: readonly unknown[] })
+        .parseDiagnostics ?? [],
+    ).toEqual([]);
+  });
+
+  it("does not paginate a plain list without paging parameters", () => {
+    const sdk = generateClientSdk(har);
+    expect(
+      sdk.operations.find((operation) => operation.pathTemplate === "/users")
+        ?.pagination,
+    ).toBeUndefined();
+  });
+});

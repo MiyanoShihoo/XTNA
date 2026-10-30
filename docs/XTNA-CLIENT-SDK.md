@@ -48,14 +48,26 @@ Two facts are inferred from the capture and turned into code:
   header, and otherwise backs off 100 ms × 2^attempt. Python sleeps between attempts; the
   TypeScript client uses `setTimeout`.
 
-`SdkOperation` exposes `auth` and `retry` so the manifest shows what was inferred and why.
+## Pagination
+
+When a captured list request carries a page parameter (`page`, `offset`, `start`, `cursor`,
+`after`) or the response is a paged envelope (`items`/`data`/`results` plus `next_cursor`/`next`),
+each client gains a page walker:
+
+- TypeScript: `getEventsPages(query, maxPages = 20)` returning `GetEventsResponse[]`;
+- Python: `get_events_pages(query, max_pages=20)` returning a list of pages.
+
+Cursor mode follows `next_cursor` until it is null; page/offset mode increments the page (or
+`offset += limit`) and stops on a short page. `maxPages` bounds every walk.
+
+`SdkOperation` exposes `auth`, `retry` and `pagination` so the manifest shows what was inferred
+and why.
 
 ## What it will not do
 
 - Execute anything, call the recorded URLs, or copy credential values into generated code.
 - Infer OAuth flows, token refresh, signing schemes or per-operation auth differences beyond the
   first scheme seen.
-- Infer pagination; list operations still return one page.
 - Produce UI code: the client is transport only.
 - Guarantee the server still behaves as recorded — the capture is the only evidence it has.
 
@@ -68,6 +80,8 @@ Two facts are inferred from the capture and turned into code:
 - Bodies are treated as JSON. Binary and form payloads are ignored.
 - Retry inference is a heuristic from observed statuses; it does not know which operations are
   safe to repeat on the real server.
+- Pagination is inferred from parameter names and envelope keys; a non-standard scheme (GraphQL
+  connections, opaque POST bodies) is not recognised.
 - Generated tests are smoke tests with mocked transport, not server contract tests or
   end-to-end authentication/retry verification.
 - Generated code is a starting point: review error handling and base URL before shipping.

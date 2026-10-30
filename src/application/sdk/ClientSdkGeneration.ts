@@ -21,6 +21,19 @@ export interface SdkAuth {
   readonly header: string;
 }
 
+export interface SdkPagination {
+  /** How the next page is requested. */
+  readonly kind: "cursor" | "page" | "offset";
+  /** Query parameter that carries the cursor, page number or offset. */
+  readonly param: string;
+  /** Query parameter that carries the page size, when the capture shows one. */
+  readonly limitParam: string | undefined;
+  /** Envelope key holding the items array, when the response is an envelope. */
+  readonly itemsKey: string | undefined;
+  /** Envelope key holding the next cursor, when one is present. */
+  readonly cursorKey: string | undefined;
+}
+
 export interface SdkRetry {
   readonly attempts: number;
   readonly statuses: readonly number[];
@@ -41,6 +54,7 @@ export interface SdkOperation {
   readonly statuses: readonly number[];
   readonly auth: SdkAuth | undefined;
   readonly retry: SdkRetry | undefined;
+  readonly pagination: SdkPagination | undefined;
 }
 
 export interface ClientSdk {
@@ -204,6 +218,9 @@ interface Sampled {
   readonly statuses: Set<number>;
   readonly paramNames: string[];
   auth: SdkAuth | undefined;
+  envelope:
+    | { readonly itemsKey: string; readonly cursorKey: string }
+    | undefined;
 }
 
 const parseJson = (text: unknown): unknown => {
@@ -274,6 +291,54 @@ const retryOf = (
   };
 };
 
+const PAGE_PARAMS = ["page", "offset", "cursor", "after", "start"] as const;
+const LIMIT_PARAMS = [
+  "limit",
+  "page_size",
+  "per_page",
+  "size",
+  "count",
+] as const;
+const ITEM_KEYS = ["items", "data", "results", "records", "rows"] as const;
+const CURSOR_KEYS = ["next_cursor", "nextCursor", "next", "cursor"] as const;
+
+const envelopeOf = (
+  value: unknown,
+): { itemsKey: string; cursorKey: string } | undefined => {
+  if (!isRecord(value)) return undefined;
+  const itemsKey = ITEM_KEYS.find((key) => Array.isArray(value[key]));
+  if (itemsKey === undefined) return undefined;
+  const cursorKey = CURSOR_KEYS.find((key) => key in value);
+  return cursorKey === undefined ? undefined : { itemsKey, cursorKey };
+};
+
+const paginationOf = (
+  query: ReadonlyMap<string, Shape>,
+  envelope: { itemsKey: string; cursorKey: string } | undefined,
+): SdkPagination | undefined => {
+  const limitParam = LIMIT_PARAMS.find((name) => query.has(name));
+  const pageParam = PAGE_PARAMS.find((name) => query.has(name));
+  if (pageParam === undefined && envelope === undefined) return undefined;
+  const kind: SdkPagination["kind"] =
+    pageParam === "page"
+      ? "page"
+      : pageParam === "offset" || pageParam === "start"
+        ? "offset"
+        : pageParam === undefined
+          ? "cursor"
+          : "cursor";
+  const param =
+    pageParam ??
+    (kind === "cursor" ? "cursor" : kind === "page" ? "page" : "offset");
+  return {
+    kind,
+    param,
+    limitParam,
+    itemsKey: envelope?.itemsKey,
+    cursorKey: envelope?.cursorKey,
+  };
+};
+
 const collect = (document: unknown): Map<string, Sampled> => {
   const operations = new Map<string, Sampled>();
   for (const entry of entriesOf(document)) {
@@ -305,6 +370,7 @@ const collect = (document: unknown): Map<string, Sampled> => {
       statuses: new Set<number>(),
       paramNames: [],
       auth: undefined,
+      envelope: undefined,
     };
     if (existing.auth === undefined)
       existing.auth = authOf(requestHeaders(request));
@@ -328,8 +394,11 @@ const collect = (document: unknown): Map<string, Sampled> => {
         ? response.content.text
         : undefined;
       const responseJson = parseJson(responseText);
-      if (responseJson !== undefined)
+      if (responseJson !== undefined) {
         existing.responses.push(shapeOf(responseJson));
+        if (existing.envelope === undefined)
+          existing.envelope = envelopeOf(responseJson);
+      }
     }
     for (const segment of template.split("/"))
       if (segment.startsWith("{") && segment.endsWith("}")) {
@@ -474,6 +543,46 @@ const renderTypeScript = (
       "  }",
       "",
     );
+    const pagination = operation.pagination;
+    if (pagination !== undefined) {
+      const limit = JSON.stringify(pagination.limitParam ?? "limit");
+      const cursorKey = JSON.stringify(pagination.cursorKey ?? "next_cursor");
+      const itemsKey = JSON.stringify(pagination.itemsKey ?? "items");
+      lines.push(
+        `  async ${operation.name}Pages(query: ${queryType(operation)} = {}, maxPages = 20): Promise<${responseTypeName(operation)}[]> {`,
+        `    const pages: ${responseTypeName(operation)}[] = [];`,
+        "    let cursor: unknown;",
+        "    for (let index = 0; index < maxPages; index += 1) {",
+        "      const pageQuery = { ...query } as Record<string, unknown>;",
+        "      if (index > 0) {",
+        `        if (${JSON.stringify(pagination.kind)} === "cursor") {`,
+        "          if (cursor === undefined) break;",
+        `          pageQuery[${JSON.stringify(pagination.param)}] = cursor;`,
+        "        } else if (" +
+          JSON.stringify(pagination.kind) +
+          ' === "page") {',
+        `          pageQuery[${JSON.stringify(pagination.param)}] = index + 1;`,
+        "        } else {",
+        `          pageQuery[${JSON.stringify(pagination.param)}] = index * Number(pageQuery[${limit}] ?? 50);`,
+        "        }",
+        "      }",
+        `      const page = await this.${operation.name}(pageQuery as never);`,
+        "      pages.push(page);",
+        `      const batch = Array.isArray(page) ? page : (page as Record<string, unknown>)[${itemsKey}];`,
+        `      const next = Array.isArray(page) ? undefined : (page as Record<string, unknown>)[${cursorKey}];`,
+        `      if (${JSON.stringify(pagination.kind)} === "cursor") {`,
+        "        if (next === undefined || next === null) break;",
+        "        cursor = next;",
+        "        continue;",
+        "      }",
+        "      if (!Array.isArray(batch) || batch.length === 0) break;",
+        `      if (batch.length < Number(pageQuery[${limit}] ?? batch.length)) break;`,
+        "    }",
+        "    return pages;",
+        "  }",
+        "",
+      );
+    }
   }
   lines.push("}", "");
   return lines.join("\n");
@@ -572,9 +681,58 @@ const renderPython = (
       `        return self._call(${JSON.stringify(operation.method)}, ${path}, ${operation.queryParams.length === 0 ? "{}" : "query or {}"}, ${operation.requestBody === undefined ? "None" : "body"})`,
       "",
     );
+    const pagination = operation.pagination;
+    if (pagination !== undefined) {
+      const pythonName = snake(operation.name);
+      const kind = JSON.stringify(pagination.kind);
+      lines.push(
+        `    def ${pythonName}_pages(self, query: Optional[Dict[str, Any]] = None, max_pages: int = 20) -> list:`,
+        "        pages = []",
+        "        cursor = None",
+        "        for index in range(max_pages):",
+        "            page_query = dict(query or {})",
+        "            if index > 0:",
+        `                if ${kind} == 'cursor':`,
+        "                    if cursor is None:",
+        "                        break",
+        `                    page_query[${JSON.stringify(pagination.param)}] = cursor`,
+        `                elif ${kind} == 'page':`,
+        `                    page_query[${JSON.stringify(pagination.param)}] = index + 1`,
+        "                else:",
+        `                    page_query[${JSON.stringify(pagination.param)}] = index * int(page_query.get(${JSON.stringify(pagination.limitParam ?? "limit")}, 50))`,
+        `            page = self.${pythonName}(page_query)`,
+        "            pages.append(page)",
+        `            batch = page if isinstance(page, list) else (page or {}).get(${JSON.stringify(pagination.itemsKey ?? "items")})`,
+        `            next_cursor = None if isinstance(page, list) else (page or {}).get(${JSON.stringify(pagination.cursorKey ?? "next_cursor")})`,
+        `            if ${kind} == 'cursor':`,
+        "                if next_cursor is None:",
+        "                    break",
+        "                cursor = next_cursor",
+        "                continue",
+        "            if not isinstance(batch, list) or not batch:",
+        "                break",
+        `            if len(batch) < int(page_query.get(${JSON.stringify(pagination.limitParam ?? "limit")}, len(batch))):`,
+        "                break",
+        "        return pages",
+        "",
+      );
+    }
   }
   return lines.join("\n");
 };
+
+const queryType = (operation: SdkOperation): string =>
+  operation.queryParams.length === 0
+    ? "Record<string, never>"
+    : `{ ${operation.queryParams
+        .map(
+          (param) =>
+            `${JSON.stringify(param.name)}${param.optional ? "?" : ""}: ${param.type}`,
+        )
+        .join("; ")} }`;
+
+const responseTypeName = (operation: SdkOperation): string =>
+  `${operation.name.charAt(0).toUpperCase() + operation.name.slice(1)}Response`;
 
 const examplePath = (operation: SdkOperation): string =>
   operation.pathTemplate.replace(/\{\w+\}/gu, "example");
@@ -698,6 +856,7 @@ export function generateClientSdk(
       statuses: [...item.statuses].sort((a, b) => a - b),
       auth: item.auth,
       retry: retryOf(item.method, item.statuses),
+      pagination: paginationOf(item.query, item.envelope),
     };
   });
   return {
