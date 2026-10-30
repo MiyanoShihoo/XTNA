@@ -358,7 +358,9 @@
     "crypto:radar": "node scripts/crypto-radar.mjs",
     "schema:synth": "node scripts/schema-synth.mjs",
     "hypothesis": "node scripts/hypothesis.mjs",
-    "panel": "node scripts/panel.mjs"
+    "panel": "node scripts/panel.mjs",
+    "sandbox:probe": "node scripts/sandbox.mjs",
+    "prefilter": "node scripts/prefilter.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [
