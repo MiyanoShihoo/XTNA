@@ -158,3 +158,71 @@ it("diffs two checkpoints by source path and hash", async () => {
     });
   }
 });
+
+it("records a process snapshot without pretending to restore it", async () => {
+  const root = await mkdtemp(join(tmpdir(), "rea-checkpoint-proc-"));
+  const store = join(root, "store");
+  const evidence = join(root, "evidence.json");
+  const snapshot = join(root, "snapshot.json");
+  await writeFile(evidence, '{"step":1}\n');
+  await writeFile(
+    snapshot,
+    JSON.stringify({
+      capturedAt: "2026-10-30T00:00:00.000Z",
+      platform: "win32",
+      processes: [
+        { pid: 1, ppid: null, name: "a.exe", rssBytes: 1024 },
+        { pid: 2, ppid: 1, name: "b.exe", rssBytes: 2048 },
+      ],
+      containers: [{ id: "c1", image: "nginx", status: "Up", names: "web" }],
+      limitations: ["point-in-time"],
+    }),
+  );
+  const environment = { ...process.env, XTNA_CHECKPOINT_DIR: store };
+  try {
+    const created = await run(
+      process.execPath,
+      [
+        script,
+        "create",
+        "--name",
+        "with-processes",
+        "--evidence",
+        evidence,
+        "--processes-from",
+        snapshot,
+      ],
+      { env: environment },
+    );
+    expect(created.stdout).toContain("2 processes");
+    const id = /created (cp_\S+)/u.exec(created.stdout)?.[1];
+
+    const shown = await run(process.execPath, [script, "show", "--id", id!], {
+      env: environment,
+    });
+    const manifest = JSON.parse(shown.stdout) as {
+      processes: {
+        processes: unknown[];
+        containers: unknown[];
+        source: string;
+      };
+    };
+    expect(manifest.processes.processes).toHaveLength(2);
+    expect(manifest.processes.containers).toHaveLength(1);
+    expect(manifest.processes.source).toBe(snapshot);
+
+    const listed = await run(process.execPath, [script, "list", "--json"], {
+      env: environment,
+    });
+    expect(JSON.parse(listed.stdout)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id, processes: 2 })]),
+    );
+  } finally {
+    await rm(root, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 20,
+    });
+  }
+});

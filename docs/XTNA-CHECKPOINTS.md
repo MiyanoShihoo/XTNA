@@ -25,6 +25,10 @@ npm run checkpoint -- list --json
 npm run checkpoint -- diff --from cp_xxx --to cp_yyy
 npm run checkpoint -- diff --from cp_xxx --to cp_yyy --json
 
+# record what was running (observation, not restorable state)
+npm run checkpoint -- create --name "with-procs" --evidence ev.json --processes
+npm run checkpoint -- create --name "from-file" --evidence ev.json --processes-from snapshot.json
+
 # restore into a working directory
 npm run checkpoint -- restore --id cp_mvsd17ym_a7edb3 \
   --dest-dir ./restored --overlay-dir ./restored/overlays
@@ -56,6 +60,16 @@ npm run checkpoint -- delete --id cp_mvsd17ym_a7edb3
 Evidence files and overlays are compared separately, and `--json` emits the same structure the
 human output is rendered from.
 
+## Process and container observation
+
+`--processes` captures the live process table (Windows `tasklist`, POSIX `ps`) and asks
+`docker ps` for containers; `--processes-from <snapshot.json>` stores a snapshot captured
+elsewhere. The block lands in `manifest.json` as `processes`, with `capturedAt`, `platform`,
+`processes[]`, `containers[] | null` and explicit limitations.
+
+This is **evidence, not state**: restore writes files and never recreates a process or container.
+`null` containers mean the runtime did not answer — unknown, not empty.
+
 ## Behaviour worth knowing
 
 - **Tamper-evident.** Editing any stored file makes `restore` fail with the exact source path
@@ -74,7 +88,8 @@ human output is rendered from.
 
 ## Limits
 
-- No process or container state: this is a file-level checkpoint.
+- Process and container data is an observation only; nothing is restarted or reattached on
+  restore.
 - `branch` clones the parent's stored files into a new checkpoint and records `parent_id` and
   `branch`; `diff` compares any two checkpoints, related or not.
 - Large evidence bundles are copied whole, so disk use grows with each checkpoint.

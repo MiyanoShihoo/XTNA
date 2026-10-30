@@ -46,7 +46,7 @@ not implemented here.
 |  14 | Hypothesis board                    | **partial** (file-level)                    | scripts/hypothesis.mjs stores claims/status/evidence; the typed `HypothesisBoard` contract passes tests but is not yet wired to the CLI/MCP surface                                                                                                                      |
 |  15 | Sub-agent orchestration             | **partial** (ledger + scheduler)            | `subagent_task_start/finish` ledger plus an in-process `runWorkerPlan` scheduler: dependency waves, bounded retries, AbortSignal cancellation delivery, failure containment and `replanAfterFailure` role fallback; no OS process/LLM launch, MCP wiring or HITL console |
 |  16 | Live web investigation UI           | **partial** (graph + waterfall + notes)     | `npm run panel:serve`: loopback HTML, `/api/state`, SSE refresh, SVG call-topology graph, network waterfall, and an optional append-only `--annotations` JSONL channel for human notes; no WebSocket editing, no live provider queries, no evidence cards                |
-|  17 | Investigation checkpoints           | **partial** (file-level + diff)             | scripts/checkpoint.mjs: hash-verified create/branch/restore plus `diff` pairing two manifests by source path (added/removed/changed hashes); no process, container or target-memory state                                                                                |
+|  17 | Investigation checkpoints           | **partial** (files + diff + process view)   | scripts/checkpoint.mjs: hash-verified create/branch/restore, manifest `diff`, and an optional process/container observation (`--processes` / `--processes-from`); restore never recreates processes, and no target-memory state is captured                              |
 |  18 | Dossier exporter                    | **partial** (PDF + dictionary + probes)     | `scripts/dossier.mjs`: Markdown/HTML/PDF (text-only Latin-1), Mermaid architecture, module matrix, optional OpenAPI interface dictionary, remediation suggestions from unknown probes; no sequence diagram, no diagram/CJK rendering inside the PDF                      |
 
 ## Agent architecture (Plan-and-Execute, sandbox tiers)
@@ -59,7 +59,7 @@ not implemented here.
 
 ## Verified baseline
 
-- `npm run test:fast`: 1143 test files passed, 9 skipped; 20,646 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run test:fast`: 1144 test files passed, 9 skipped; 20,652 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
 - `npm run typecheck`: passed.
 - `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.

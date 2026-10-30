@@ -7,7 +7,8 @@
  * Restore verifies every hash before writing, so a checkpoint cannot silently
  * return different bytes.
  *
- * It does not snapshot a running process or a container; only files you pass.
+ * It can optionally record a point-in-time process/container observation, but
+ * restore only writes files: a process list is evidence, not restorable state.
  */
 import { createHash, randomBytes } from "node:crypto";
 import {
@@ -21,6 +22,7 @@ import {
 } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const SCHEMA = "xtna.checkpoint/1";
 const args = process.argv.slice(2);
@@ -65,12 +67,43 @@ const readManifest = async (checkpointId) => {
   return manifest;
 };
 
+const loadProcessSnapshot = async () => {
+  const fromFile = valueOf("processes-from");
+  if (fromFile !== undefined) {
+    const parsed = JSON.parse(await readFile(resolve(fromFile), "utf8"));
+    if (!Array.isArray(parsed.processes))
+      fail(`${fromFile} does not contain a processes array`);
+    return {
+      capturedAt: parsed.capturedAt ?? new Date().toISOString(),
+      platform: parsed.platform ?? "unknown",
+      processes: parsed.processes,
+      containers: Array.isArray(parsed.containers) ? parsed.containers : null,
+      limitations: Array.isArray(parsed.limitations) ? parsed.limitations : [],
+      source: resolve(fromFile),
+    };
+  }
+  if (!has("processes")) return undefined;
+  const { captureProcessSnapshot } = await import(
+    pathToFileURL(resolve("dist/application/investigation/ProcessSnapshot.js"))
+      .href
+  );
+  const snapshot = await captureProcessSnapshot();
+  return { ...snapshot, source: "live" };
+};
+
 const create = async () => {
   const name = valueOf("name") ?? "unnamed";
   const evidencePaths = valuesOf("evidence");
   const overlayDirs = valuesOf("overlay-dir");
-  if (evidencePaths.length === 0 && overlayDirs.length === 0)
-    fail("pass at least one --evidence <file> or --overlay-dir <dir>");
+  const processSnapshot = await loadProcessSnapshot();
+  if (
+    evidencePaths.length === 0 &&
+    overlayDirs.length === 0 &&
+    processSnapshot === undefined
+  )
+    fail(
+      "pass at least one --evidence <file>, --overlay-dir <dir> or --processes",
+    );
 
   const checkpointId = id();
   const target = checkpointDir(checkpointId);
@@ -115,6 +148,7 @@ const create = async () => {
     created_at: new Date().toISOString(),
     files,
     overlays,
+    ...(processSnapshot === undefined ? {} : { processes: processSnapshot }),
   };
   await writeFile(
     join(target, "manifest.json"),
@@ -122,7 +156,11 @@ const create = async () => {
     "utf8",
   );
   process.stdout.write(
-    `created ${checkpointId} (${String(files.length)} evidence, ${String(overlays.length)} overlay files)\n`,
+    `created ${checkpointId} (${String(files.length)} evidence, ${String(overlays.length)} overlay files` +
+      (processSnapshot === undefined
+        ? ")\n"
+        : `, ${String(processSnapshot.processes.length)} processes)
+`),
   );
 };
 
@@ -174,6 +212,9 @@ const list = async () => {
       branch: parsed.branch ?? null,
       evidence: parsed.files.length,
       overlays: parsed.overlays.length,
+      processes: Array.isArray(parsed.processes?.processes)
+        ? parsed.processes.processes.length
+        : 0,
     });
   }
   rows.sort((left, right) =>
@@ -320,7 +361,7 @@ const remove = async () => {
 
 const usage = `usage: node scripts/checkpoint.mjs <command> [options]
 
-  create   --name <text> [--evidence <file>]... [--overlay-dir <dir>]...
+  create   --name <text> [--evidence <file>]... [--overlay-dir <dir>]... [--processes | --processes-from <snapshot.json>]
   branch   --id <cp_...> --name <text>
   list     [--json]
   diff     --from <cp_...> --to <cp_...> [--json]
