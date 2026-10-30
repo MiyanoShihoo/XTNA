@@ -30,7 +30,7 @@ not implemented here.
 
 |   # | Module                              | Status                                      | Notes                                                                                                                                                                                                                                                                     |
 | --: | ----------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|   1 | Wasm end-to-end + JS bridge         | **partial** (bridge + call graph + scan)    | `wasm_bridge`/`wasm:link` decode imports/exports, function index space and literal glue bindings; `wasm:calls` decodes direct/indirect call edges including SIMD operands (atomics still report undecoded); `wasm:scan` discovers modules by magic                        |
+|   1 | Wasm end-to-end + JS bridge         | **partial** (bridge + call graph + scan)    | `wasm_bridge`/`wasm:link` decode imports/exports, function index space and literal glue bindings; `wasm:calls` decodes direct/indirect call edges with SIMD and atomics operands; `wasm:scan` discovers modules by magic                                                  |
 |   2 | Hermes / V8 snapshot / PyInstaller  | **partial** (PyInstaller + Hermes header)   | CArchive 2.0/2.1 and PYZ inventory/extraction; `npm run hermes:inspect` reads the 60-byte `.hbc` header (version, source hash, function/string counters, length check); no Hermes tables, no AST, no V8 startup-snapshot parser                                           |
 |   3 | Semantic version diff               | **partial** (report narrative)              | `npm run diff:narrate` pairs two reports by a stable key and names added/removed/changed records and fields; no CFG or AST diff                                                                                                                                           |
 |   4 | Runtime probe generation            | **partial** (skeleton)                      | `npm run probe:gen`: address to a Frida or LLDB probe skeleton that records arguments, return value and a backtrace; target selection stays manual                                                                                                                        |
@@ -59,7 +59,7 @@ not implemented here.
 
 ## Verified baseline
 
-- `npm run test:fast`: 1146 test files passed, 9 skipped; 20,661 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run test:fast`: 1146 test files passed, 9 skipped; 20,662 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
 - `npm run typecheck`: passed.
 - `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.

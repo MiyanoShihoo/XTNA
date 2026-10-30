@@ -319,6 +319,13 @@ PREFIX_FD[0x5c] = "memarg";
 PREFIX_FD[0x5d] = "memarg";
 for (let sub = 0x5e; sub <= 0xff; sub += 1) PREFIX_FD[sub] = "none";
 
+/**
+ * Atomics: every instruction but `atomic.fence` carries a memarg. Unknown
+ * sub-opcodes still stop the function, so a future instruction cannot be
+ * silently skipped.
+ */
+const isAtomicSubOpcode = (sub: number): boolean => sub >= 0x00 && sub <= 0x4e;
+
 const PREFIX_FC: Record<number, Operand | "unknown"> = {
   0: "none",
   1: "none",
@@ -416,12 +423,18 @@ const decodeBody = (
       skipOperand(body, operand);
       continue;
     }
-    if (opcode === 0xfe)
-      return {
-        edges,
-        undecoded: true,
-        undecodedAt: `0xfe/${body.uleb().toString(16)}`,
-      };
+    if (opcode === 0xfe) {
+      const sub = body.uleb();
+      if (!isAtomicSubOpcode(sub))
+        return {
+          edges,
+          undecoded: true,
+          undecodedAt: `0xfe/${sub.toString(16)}`,
+        };
+      if (sub === 0x03) body.byte();
+      else skipOperand(body, "memarg");
+      continue;
+    }
     const operand = CORE_OPERANDS.get(opcode);
     if (operand === undefined)
       return {

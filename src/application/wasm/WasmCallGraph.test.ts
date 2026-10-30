@@ -94,14 +94,28 @@ describe("wasm call graph", () => {
     expect(graph.value.edges).toEqual([{ from: 0, to: 1, kind: "direct" }]);
   });
 
+  it("decodes atomic memory operands and fence", () => {
+    const atomicLoad = [0xfe, 0x10, 0x02, 0x00];
+    const fence = [0xfe, 0x03, 0x00];
+    const bytes = moduleWithBodies([
+      body([...atomicLoad, ...fence, 0x10, 0x01]),
+      body([]),
+    ]);
+    const graph = readWasmCallGraph(bytes);
+    expect(graph.ok).toBe(true);
+    if (!graph.ok) return;
+    expect(graph.value.undecodedFunctions).toEqual([]);
+    expect(graph.value.edges).toEqual([{ from: 0, to: 1, kind: "direct" }]);
+  });
+
   it("marks a function undecoded when an unknown opcode stops the decoder", () => {
-    const bytes = moduleWithBodies([body([0x10, 0x01, 0xfe, 0x00]), body([])]);
+    const bytes = moduleWithBodies([body([0x10, 0x01, 0xfe, 0x7f]), body([])]);
     const graph = readWasmCallGraph(bytes);
     expect(graph.ok).toBe(true);
     if (!graph.ok) return;
     expect(graph.value.undecodedFunctions).toEqual([0]);
     expect(graph.value.functions[0]?.undecoded).toBe(true);
-    expect(graph.value.functions[0]?.undecodedAt).toBe("0xfe/0");
+    expect(graph.value.functions[0]?.undecodedAt).toBe("0xfe/7f");
     expect(graph.value.edges).toHaveLength(1);
   });
 

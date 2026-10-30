@@ -95,7 +95,8 @@ silent omission.
   wrappers (bundler shims, `wasm-bindgen` internals) need a hand-written adapter.
 - The call graph is static structure: no reachability, no runtime table resolution, and no
   indirect target inference.
-- SIMD is decoded for the standardized opcode map; **atomics** (`0xFE`) and unassigned
-  subopcodes still stop a function as undecoded rather than being skipped blindly.
+- SIMD and atomics are decoded for the standardized opcode map (atomics `0x00–0x4E` carry a
+  memarg, `0x03` is the fence); unassigned sub-opcodes still stop a function as undecoded
+  rather than being skipped blindly.
 - Directory scanning is local files only; it does not open APKs, ASAR archives or other
   containers — extract those first.
