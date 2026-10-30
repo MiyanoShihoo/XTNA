@@ -99,8 +99,10 @@ const MAX_ANNOTATION_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_ANNOTATIONS_RETURNED = 200;
 
 const { loadInvestigationState, snapshotDigest } = await import(
-  pathToFileURL(resolve("dist/application/investigation/LivePanelState.js"))
-    .href
+  new URL(
+    "../dist/application/investigation/LivePanelState.js",
+    import.meta.url,
+  ).href
 );
 
 const inputs = {
@@ -690,7 +692,16 @@ const server = createServer(async (request, response) => {
           allowedTools,
           allowWriteTools,
         });
-        if (!verdict.ok) throw rejectStatus(400, verdict.reason);
+        if (!verdict.ok) {
+          await logQuery({
+            at: new Date().toISOString(),
+            tool: typeof payload?.tool === "string" ? payload.tool : null,
+            tier: "denied",
+            ok: false,
+            reason: verdict.reason,
+          });
+          throw rejectStatus(400, verdict.reason);
+        }
         if (verdict.tier !== "read") {
           const confirm = payload?.confirm;
           if (confirm === undefined || confirm === null) {
