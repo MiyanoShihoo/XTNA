@@ -109,18 +109,28 @@ export const inspectWasmBridge = async (
     },
     imports: wasm.imports,
     exports: wasm.exports,
+    functions: wasm.functions.map(
+      ({ index, kind, typeIndex, module, name, exports }) => ({
+        index,
+        kind,
+        type_index: typeIndex,
+        module,
+        name,
+        exports,
+      }),
+    ),
     js_to_wasm: graph.jsToWasm,
     wasm_to_js: graph.wasmToJs,
     unresolved_imports: graph.unresolvedImports,
     unused_exports: graph.unusedExports,
     instantiation_line: graph.instantiationLine ?? null,
     coverage: {
-      wasm: "imports_and_exports",
+      wasm: "imports_exports_and_function_index",
       glue: "static_literal_bindings",
     },
     limitations: [
-      "Static import/export and literal glue matching only; no wasm instantiation or runtime reachability.",
-      "Internal function-index mapping and WAT decompilation are not part of this bridge report.",
+      "Static import/export/function-index and literal glue matching only; no wasm instantiation or runtime reachability.",
+      "The function index maps imports and exports by type; intra-function call graphs and WAT decompilation are not part of this bridge report.",
     ],
   });
   const evidence = createEvidence(undefined, PROVIDER, {

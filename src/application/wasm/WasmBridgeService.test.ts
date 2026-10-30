@@ -82,6 +82,16 @@ instance.exports.add(1, 2);
       { name: "add", kind: "function" },
       { name: "memory", kind: "memory" },
     ]);
+    expect(report.functions).toEqual([
+      {
+        index: 0,
+        kind: "imported",
+        type_index: 0,
+        module: "env",
+        name: "abort",
+        exports: ["add"],
+      },
+    ]);
     expect(report.js_to_wasm).toEqual(
       expect.arrayContaining([{ from: "js", to: "add", line: 3 }]),
     );

@@ -28,13 +28,14 @@ length. Nothing is instantiated, compiled, or executed.
   wasm -> js  abort  => abortImpl  (line 1)
 ```
 
-| Field               | Meaning                                                        |
-| ------------------- | -------------------------------------------------------------- |
-| `jsToWasm`          | glue sites that reach a real export                            |
-| `wasmToJs`          | imports the glue supplies, with the provider identifier        |
-| `unresolvedImports` | imports the glue never supplies (a real bug in most bundles)   |
-| `unusedExports`     | exports nothing in this glue reaches                           |
-| `instantiationLine` | where the import object is handed to `WebAssembly.instantiate` |
+| Field               | Meaning                                                             |
+| ------------------- | ------------------------------------------------------------------- |
+| `jsToWasm`          | glue sites that reach a real export                                 |
+| `wasmToJs`          | imports the glue supplies, with the provider identifier             |
+| `functions`         | function index space: imported/defined, type index and export names |
+| `unresolvedImports` | imports the glue never supplies (a real bug in most bundles)        |
+| `unusedExports`     | exports nothing in this glue reaches                                |
+| `instantiationLine` | where the import object is handed to `WebAssembly.instantiate`      |
 
 `--json` returns the full structure plus the raw import/export tables. The MCP tool
 `wasm_bridge` accepts `wasm_path` and `js_path` and returns the same facts as authenticated
@@ -47,5 +48,5 @@ Evidence, with the exact file digests and explicit static-only limitations.
 - The import object must be an object literal or a `const` bound to one in the same file.
 - `new WebAssembly.Instance` and `instantiate`/`instantiateStreaming` are recognised; other
   wrappers (bundler shims, `wasm-bindgen` internals) need a hand-written adapter.
-- Function-level reachability inside the module is not computed: this links boundaries, not
-  call graphs inside Wasm.
+- The function index space is mapped to its import/export boundaries, but reachability and call
+  graphs inside Wasm functions are not computed.

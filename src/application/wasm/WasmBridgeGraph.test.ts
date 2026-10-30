@@ -73,6 +73,46 @@ describe("wasm interface", () => {
     ]);
   });
 
+  it("maps imported and defined function indices to export names", () => {
+    const bytes = new Uint8Array([
+      0x00,
+      0x61,
+      0x73,
+      0x6d,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      ...section(2, [
+        ...leb(1),
+        ...name("env"),
+        ...name("abort"),
+        0x00,
+        ...leb(0),
+      ]),
+      ...section(3, [...leb(1), ...leb(0)]),
+      ...section(7, [...leb(1), ...name("run"), 0x00, ...leb(1)]),
+    ]);
+    expect(readWasmInterface(bytes).functions).toEqual([
+      {
+        index: 0,
+        kind: "imported",
+        typeIndex: 0,
+        module: "env",
+        name: "abort",
+        exports: [],
+      },
+      {
+        index: 1,
+        kind: "defined",
+        typeIndex: 0,
+        module: null,
+        name: null,
+        exports: ["run"],
+      },
+    ]);
+  });
+
   it("rejects a file without the wasm magic", () => {
     expect(() =>
       readWasmInterface(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])),

@@ -19,9 +19,23 @@ export interface WasmExport {
   readonly kind: "function" | "table" | "memory" | "global" | "unknown";
 }
 
+export interface WasmFunction {
+  /** Function index in the module's index space. */
+  readonly index: number;
+  readonly kind: "imported" | "defined";
+  readonly typeIndex: number;
+  /** Import module/name; both null for a defined function. */
+  readonly module: string | null;
+  readonly name: string | null;
+  /** Export names that resolve to this function index. */
+  readonly exports: readonly string[];
+}
+
 export interface WasmInterface {
   readonly imports: readonly WasmImport[];
   readonly exports: readonly WasmExport[];
+  /** Function index space with imported functions before defined functions. */
+  readonly functions: readonly WasmFunction[];
 }
 
 export interface GlueBinding {
@@ -117,6 +131,14 @@ export function readWasmInterface(bytes: Uint8Array): WasmInterface {
   reader.skip(8);
   const imports: WasmImport[] = [];
   const exports: WasmExport[] = [];
+  const importedFunctions: {
+    readonly module: string;
+    readonly name: string;
+    readonly typeIndex: number;
+  }[] = [];
+  const definedFunctionTypes: number[] = [];
+  const functionExports: { readonly name: string; readonly index: number }[] =
+    [];
   while (reader.offset < bytes.length) {
     const sectionId = reader.byte();
     const size = reader.u32();
@@ -130,8 +152,10 @@ export function readWasmInterface(bytes: Uint8Array): WasmInterface {
         const name = reader.name();
         const kindCode = reader.byte();
         const kind = KIND_BY_CODE[kindCode] ?? "unknown";
-        if (kindCode === 0x00) reader.u32();
-        else if (kindCode === 0x01) reader.byte();
+        if (kindCode === 0x00) {
+          const typeIndex = reader.u32();
+          importedFunctions.push({ module, name, typeIndex });
+        } else if (kindCode === 0x01) reader.byte();
         else if (kindCode === 0x02) reader.u32();
         else if (kindCode === 0x03) {
           reader.byte();
@@ -140,18 +164,46 @@ export function readWasmInterface(bytes: Uint8Array): WasmInterface {
           throw new Error(`unsupported wasm import kind ${String(kindCode)}`);
         imports.push({ module, name, kind });
       }
+    } else if (sectionId === 3) {
+      const count = reader.u32();
+      for (let index = 0; index < count; index += 1)
+        definedFunctionTypes.push(reader.u32());
     } else if (sectionId === 7) {
       const count = reader.u32();
       for (let index = 0; index < count; index += 1) {
         const name = reader.name();
         const kindCode = reader.byte();
-        reader.u32();
+        const exportIndex = reader.u32();
+        if (kindCode === 0x00)
+          functionExports.push({ name, index: exportIndex });
         exports.push({ name, kind: KIND_BY_CODE[kindCode] ?? "unknown" });
       }
     }
     reader.offset = end;
   }
-  return { imports, exports };
+  const exportNames = (index: number): string[] =>
+    functionExports
+      .filter((entry) => entry.index === index)
+      .map((entry) => entry.name);
+  const functions: WasmFunction[] = [
+    ...importedFunctions.map((entry, index) => ({
+      index,
+      kind: "imported" as const,
+      typeIndex: entry.typeIndex,
+      module: entry.module,
+      name: entry.name,
+      exports: exportNames(index),
+    })),
+    ...definedFunctionTypes.map((typeIndex, index) => ({
+      index: importedFunctions.length + index,
+      kind: "defined" as const,
+      typeIndex,
+      module: null,
+      name: null,
+      exports: exportNames(importedFunctions.length + index),
+    })),
+  ];
+  return { imports, exports, functions };
 }
 
 const memberPath = (node: Node): string | undefined => {
