@@ -129,20 +129,9 @@ exported, imported, compared and projected into dossiers without losing those di
   permissions; read their guide before pointing them at hostile input.
 - The live panel binds to loopback and refuses cross-origin WebSocket upgrades.
 
-## Limits
+## License
 
-XTNA is not a sandbox and not a decompiler suite. It orchestrates providers, keeps their
-evidence honest and bounds its own resource use. Modules listed as **partial** in the roadmap
-have documented gaps (for example: no Hermes table/AST decoding, no external worker process
-launch, no Mermaid rendering inside the PDF export). Treat those documents as the contract.
-
-## Documentation and license
-
-- Start at [docs/README.md](docs/README.md); installation and provider setup in
-  [docs/installation.md](docs/installation.md); tool contracts in
-  [docs/mcp-contracts.md](docs/mcp-contracts.md).
-- Apache-2.0. XTNA is a fork of the REA toolkit; upstream attribution is retained in
-  [NOTICE](NOTICE) and the release contribution records.
+Apache-2.0.
 
 ---
 
@@ -247,17 +236,8 @@ node scripts/rea.mjs mcp          # stdio
 - 会拉起进程的 provider（Ghidra headless、IDA、Hopper 等）以调用者权限运行，喂 hostile 输入前先读对应指南
 - 实时面板只绑 loopback，并拒绝跨站 WebSocket 升级
 
-## 边界
+## 许可
 
-XTNA 不是沙箱，也不是反编译器全家桶：它编排 provider、保证证据诚实、约束自身资源。
-路线图里标 **partial** 的模块有明确缺口（例如 Hermes 表/AST 未解码、外部 worker 未启动、
-PDF 不渲染 Mermaid）。以那些文档为准，别以宣传语为准。
-
-## 文档与许可
-
-- 从 [docs/README.md](docs/README.md) 开始；安装与 provider 配置见
-  [docs/installation.md](docs/installation.md)；工具契约见
-  [docs/mcp-contracts.md](docs/mcp-contracts.md)
-- Apache-2.0。XTNA 是 REA 工具包的分支，上游署名保留在 [NOTICE](NOTICE) 与发布贡献记录中
+Apache-2.0。
 
 ---
