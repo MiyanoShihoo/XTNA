@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -188,4 +188,261 @@ describe("real artefact schemas", () => {
       modifiedAt: "2026-10-28T17:00:07.446Z",
     });
   });
+});
+
+const visualBundle = {
+  records: [
+    {
+      operation: "trace_call_path",
+      normalized_result: {
+        nodes: [
+          { address: "0x401000", depth: 0 },
+          { address: "0x401050", depth: 1, name: "parseOrder" },
+        ],
+        edges: [{ source_address: "0x401000", target_address: "0x401050" }],
+      },
+    },
+    {
+      operation: "inspect_web_network_capture",
+      normalized_result: {
+        transactions: [
+          {
+            id: "t1",
+            method: "GET",
+            url: "https://api.test/orders",
+            status: 200,
+            started_at: "2026-10-30T00:00:00.000Z",
+            elapsed_ms: 40,
+          },
+          {
+            id: "t2",
+            method: "POST",
+            url: "https://api.test/orders",
+            status: 500,
+            started_at: "2026-10-30T00:00:01.000Z",
+            elapsed_ms: 90,
+          },
+        ],
+      },
+    },
+    {
+      operation: "capture_browser_scenario",
+      normalized_result: {
+        events: {
+          items: [
+            {
+              kind: "request",
+              transaction_id: "b1",
+              method: "get",
+              url: "https://web.test/app.js",
+              started_at: "2026-10-30T00:00:02.000Z",
+            },
+            {
+              kind: "response",
+              transaction_id: "b1",
+              status: 200,
+              elapsed_ms: 12,
+            },
+          ],
+        },
+      },
+    },
+  ],
+};
+
+describe("topology and waterfall projection", () => {
+  it("projects call-graph nodes, edges and network transactions", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "xtna-visual-"));
+    const evidencePath = join(directory, "bundle.json");
+    await writeFile(evidencePath, JSON.stringify(visualBundle), "utf8");
+    const snapshot = await loadInvestigationState({ evidencePath });
+
+    expect(snapshot.graph.nodes).toEqual([
+      { id: "0x401000", label: "0x401000", depth: 0 },
+      { id: "0x401050", label: "parseOrder", depth: 1 },
+    ]);
+    expect(snapshot.graph.edges).toEqual([
+      { source: "0x401000", target: "0x401050" },
+    ]);
+    expect(snapshot.graph.truncated).toBe(false);
+
+    expect(snapshot.waterfall.entries).toHaveLength(3);
+    expect(snapshot.waterfall.entries[0]).toEqual({
+      id: "t1",
+      method: "GET",
+      url: "https://api.test/orders",
+      status: 200,
+      startedAt: "2026-10-30T00:00:00.000Z",
+      elapsedMs: 40,
+    });
+    expect(snapshot.waterfall.entries[2]).toMatchObject({
+      id: "b1",
+      method: "GET",
+      status: 200,
+      elapsedMs: 12,
+    });
+    expect(snapshot.waterfall.timed).toBe(true);
+    expect(snapshot.counts.graphNodes).toBe(2);
+    expect(snapshot.counts.transactions).toBe(3);
+  });
+
+  it("changes the digest when the graph changes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "xtna-visual-"));
+    const evidencePath = join(directory, "bundle.json");
+    await writeFile(evidencePath, JSON.stringify(visualBundle), "utf8");
+    const first = snapshotDigest(
+      await loadInvestigationState({ evidencePath }),
+    );
+    const extended = {
+      ...visualBundle,
+      records: [
+        ...visualBundle.records,
+        {
+          operation: "trace_call_path",
+          normalized_result: {
+            nodes: [{ address: "0x401100", depth: 2 }],
+            edges: [],
+          },
+        },
+      ],
+    };
+    await writeFile(evidencePath, JSON.stringify(extended), "utf8");
+    const second = snapshotDigest(
+      await loadInvestigationState({ evidencePath }),
+    );
+    expect(second).not.toBe(first);
+  });
+
+  it("keeps the graph bounded and reports truncation", async () => {
+    const records = [
+      {
+        operation: "trace_call_path",
+        normalized_result: {
+          nodes: Array.from({ length: 450 }, (_unused, index) => ({
+            address: `0x${(0x400000 + index).toString(16)}`,
+            depth: 0,
+          })),
+          edges: [],
+        },
+      },
+    ];
+    const directory = await mkdtemp(join(tmpdir(), "xtna-visual-"));
+    const evidencePath = join(directory, "bundle.json");
+    await writeFile(evidencePath, JSON.stringify({ records }), "utf8");
+    const snapshot = await loadInvestigationState({ evidencePath });
+    expect(snapshot.graph.nodes).toHaveLength(400);
+    expect(snapshot.graph.truncated).toBe(true);
+  });
+});
+
+const startPanel = async (
+  evidencePath: string,
+  extra: readonly string[],
+): Promise<{ base: string; stop: () => Promise<void> }> => {
+  const child = spawn(
+    process.execPath,
+    [
+      "scripts/panel-serve.mjs",
+      "--evidence",
+      evidencePath,
+      "--port",
+      "0",
+      ...extra,
+    ],
+    { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const port = await new Promise<number>((resolvePort, reject) => {
+    let buffered = "";
+    const timer = setTimeout(
+      () => reject(new Error("server did not start")),
+      15_000,
+    );
+    child.stdout.on("data", (chunk: Buffer) => {
+      buffered += chunk.toString("utf8");
+      const line = buffered.split("\n")[0] ?? "";
+      if (line.startsWith("{")) {
+        clearTimeout(timer);
+        resolvePort(JSON.parse(line).port as number);
+      }
+    });
+    child.on("error", reject);
+  });
+  return {
+    base: `http://127.0.0.1:${String(port)}`,
+    stop: async () => {
+      if (child.exitCode !== null) return;
+      const exited = new Promise<void>((resolveExit) => {
+        child.once("exit", () => resolveExit());
+      });
+      child.kill();
+      await exited;
+    },
+  };
+};
+
+describe("panel annotations", () => {
+  it("refuses notes when the channel is not configured", async () => {
+    const { evidencePath } = await writeFixture();
+    const panel = await startPanel(evidencePath, []);
+    try {
+      const listed = await fetch(`${panel.base}/api/annotations`);
+      expect(listed.status).toBe(200);
+      expect(await listed.json()).toEqual({
+        enabled: false,
+        annotations: [],
+      });
+      const posted = await fetch(`${panel.base}/api/annotations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ target: "0x401000", note: "check" }),
+      });
+      expect(posted.status).toBe(403);
+    } finally {
+      await panel.stop();
+    }
+  }, 30_000);
+
+  it("appends a bounded note and reads it back", async () => {
+    const { evidencePath, directory } = await writeFixture();
+    const notes = join(directory, "notes.jsonl");
+    const panel = await startPanel(evidencePath, ["--annotations", notes]);
+    try {
+      const posted = await fetch(`${panel.base}/api/annotations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          target: "0x401000",
+          note: "rename to parseOrder",
+        }),
+      });
+      expect(posted.status).toBe(201);
+      const created = (await posted.json()) as { target: string; note: string };
+      expect(created.target).toBe("0x401000");
+
+      const listed = (await (
+        await fetch(`${panel.base}/api/annotations`)
+      ).json()) as { enabled: boolean; annotations: unknown[] };
+      expect(listed.enabled).toBe(true);
+      expect(listed.annotations).toHaveLength(1);
+
+      const invalid = await fetch(`${panel.base}/api/annotations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ target: "", note: "" }),
+      });
+      expect(invalid.status).toBe(400);
+
+      const broken = await fetch(`${panel.base}/api/annotations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
+      });
+      expect(broken.status).toBe(400);
+
+      const stored = await readFile(notes, "utf8");
+      expect(stored.trim().split("\n")).toHaveLength(1);
+    } finally {
+      await panel.stop();
+    }
+  }, 30_000);
 });

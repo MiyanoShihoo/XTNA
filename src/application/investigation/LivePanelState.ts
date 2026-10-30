@@ -11,6 +11,13 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
+import {
+  projectGraph,
+  projectWaterfall,
+  type PanelGraph,
+  type PanelWaterfall,
+} from "./PanelGraphProjection.js";
+
 export interface PanelLimitation {
   readonly operation: string;
   readonly text: string;
@@ -53,7 +60,12 @@ export interface PanelSnapshot {
     readonly symbols: number;
     readonly hypotheses: number;
     readonly checkpoints: number;
+    readonly graphNodes: number;
+    readonly graphEdges: number;
+    readonly transactions: number;
   };
+  readonly graph: PanelGraph;
+  readonly waterfall: PanelWaterfall;
   readonly limitations: readonly PanelLimitation[];
   readonly symbols: readonly PanelSymbol[];
   readonly hypotheses: readonly PanelHypothesis[];
@@ -88,6 +100,8 @@ export async function loadInvestigationState(
   const records = asArray(bundle.records);
   const artifacts = asArray(bundle.artifacts);
   const unknowns = asArray(bundle.unknowns);
+  const graph = projectGraph(records);
+  const waterfall = projectWaterfall(records);
 
   const limitations: PanelLimitation[] = [];
   for (const record of records) {
@@ -246,7 +260,12 @@ export async function loadInvestigationState(
       symbols: symbols.length,
       hypotheses: hypotheses.length,
       checkpoints: checkpoints.length,
+      graphNodes: graph.nodes.length,
+      graphEdges: graph.edges.length,
+      transactions: waterfall.entries.length,
     },
+    graph,
+    waterfall,
     limitations,
     symbols,
     hypotheses,
@@ -258,6 +277,8 @@ export async function loadInvestigationState(
 export function snapshotDigest(snapshot: PanelSnapshot): string {
   const stable = {
     counts: snapshot.counts,
+    graph: snapshot.graph,
+    waterfall: snapshot.waterfall,
     limitations: snapshot.limitations,
     symbols: snapshot.symbols,
     hypotheses: snapshot.hypotheses,
