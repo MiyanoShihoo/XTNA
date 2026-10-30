@@ -54,7 +54,17 @@ snapshot and on the page; nothing is silently cut.
 
 The snapshot keeps every source path so a reviewer can trace a row back to its file.
 
-## Annotations
+## Annotations and the socket
+
+The page talks to `/ws` when the browser allows it and falls back to `POST /api/annotations`.
+The socket carries one message type, `{"type":"annotation","target":"…","note":"…"}`; the server
+validates it exactly like the HTTP route, appends the record and broadcasts
+`{"type":"annotation","record":…}` to every connected page, so two open panels stay in sync.
+A rejected note comes back as `{"type":"error","message":…}`.
+
+Bounds: 16 KiB per message, 8 concurrent sockets, loopback only. A browser handshake whose
+`Origin` is not `127.0.0.1`/`localhost` on the served port is refused with `403` — the panel
+does not accept cross-site WebSocket connections.
 
 With `--annotations notes.jsonl`, a human can select a graph node, type a note and save it. The
 server validates `target` (1–512 characters) and `note` (1–4,000 characters), rejects bodies over
@@ -76,7 +86,8 @@ evidence.
 
 - Topology is a projection of recorded call/trace payloads, not a live provider query; a bundle
   with no such records shows an empty graph rather than fetching one.
-- No WebSocket command channel: notes are the only write, and they are append-only.
+- The only write is an append-only note, over HTTP or the socket; there is no editing of
+  evidence or provider state.
 - Evidence cards are projections of stored records, not a live provider query.
 - The change signal is a digest of the projection, not a diff: it says "something changed".
 - One investigation per process; there is no multi-session registry.

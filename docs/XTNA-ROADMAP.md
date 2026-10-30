@@ -45,7 +45,7 @@ not implemented here.
 |  13 | Property-graph / taint queries      | **shipped** (graph-level)                   | scripts/taint-path.mjs for path search and scripts/graph-export.mjs to project an application graph into that format                                                                                                                                                      |
 |  14 | Hypothesis board                    | **partial** (file-level)                    | scripts/hypothesis.mjs stores claims/status/evidence; the typed `HypothesisBoard` contract passes tests but is not yet wired to the CLI/MCP surface                                                                                                                       |
 |  15 | Sub-agent orchestration             | **partial** (ledger + scheduler)            | `subagent_task_start/finish` ledger plus an in-process `runWorkerPlan` scheduler: dependency waves, bounded retries, AbortSignal cancellation delivery, failure containment and `replanAfterFailure` role fallback; no OS process/LLM launch, MCP wiring or HITL console  |
-|  16 | Live web investigation UI           | **partial** (graph + waterfall + cards)     | `npm run panel:serve`: loopback HTML, `/api/state`, SSE refresh, SVG call-topology graph, network waterfall, evidence cards and an optional append-only `--annotations` channel; no WebSocket editing and no live provider queries                                        |
+|  16 | Live web investigation UI           | **partial** (graph + cards + socket)        | `npm run panel:serve`: loopback HTML, `/api/state`, SSE refresh, SVG topology, waterfall, evidence cards, append-only notes over HTTP and a bounded `/ws` channel with an Origin check; no live provider queries                                                          |
 |  17 | Investigation checkpoints           | **partial** (files + diff + process view)   | scripts/checkpoint.mjs: hash-verified create/branch/restore, manifest `diff`, and an optional process/container observation (`--processes` / `--processes-from`); restore never recreates processes, and no target-memory state is captured                               |
 |  18 | Dossier exporter                    | **partial** (PDF + dictionary + probes)     | `scripts/dossier.mjs`: Markdown/HTML/PDF (text-only Latin-1), Mermaid architecture and sequence projections, module matrix, optional OpenAPI interface dictionary, remediation suggestions from unknown probes; no Mermaid/CJK rendering inside the PDF                   |
 
@@ -59,7 +59,7 @@ not implemented here.
 
 ## Verified baseline
 
-- `npm run test:fast`: 1146 test files passed, 9 skipped; 20,664 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run test:fast`: 1146 test files passed, 9 skipped; 20,666 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
 - `npm run typecheck`: passed.
 - `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { request as httpRequest } from "node:http";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -453,6 +454,87 @@ describe("panel annotations", () => {
 
       const stored = await readFile(notes, "utf8");
       expect(stored.trim().split("\n")).toHaveLength(1);
+    } finally {
+      await panel.stop();
+    }
+  }, 30_000);
+});
+
+describe("panel websocket", () => {
+  it("accepts a note over the socket and broadcasts it", async () => {
+    const { evidencePath, directory } = await writeFixture();
+    const notes = join(directory, "ws-notes.jsonl");
+    const panel = await startPanel(evidencePath, ["--annotations", notes]);
+    try {
+      const socket = new WebSocket(
+        panel.base.replace("http://", "ws://") + "/ws",
+      );
+      const opened = new Promise<void>((resolve, reject) => {
+        socket.addEventListener("open", () => resolve());
+        socket.addEventListener("error", () =>
+          reject(new Error("socket error")),
+        );
+        setTimeout(() => reject(new Error("socket timeout")), 10_000);
+      });
+      await opened;
+      const message = new Promise<{ type: string; record: { target: string } }>(
+        (resolve) => {
+          socket.addEventListener("message", (event) => {
+            const parsed = JSON.parse(String(event.data));
+            if (parsed.type === "annotation") resolve(parsed);
+          });
+        },
+      );
+      socket.send(
+        JSON.stringify({
+          type: "annotation",
+          target: "0x401000",
+          note: "via ws",
+        }),
+      );
+      const received = await message;
+      expect(received.record.target).toBe("0x401000");
+      const listed = (await (
+        await fetch(`${panel.base}/api/annotations`)
+      ).json()) as { annotations: unknown[] };
+      expect(listed.annotations).toHaveLength(1);
+      socket.close();
+    } finally {
+      await panel.stop();
+    }
+  }, 30_000);
+
+  it("refuses a cross-origin upgrade", async () => {
+    const { evidencePath } = await writeFixture();
+    const panel = await startPanel(evidencePath, [
+      "--annotations",
+      join(tmpdir(), "x.jsonl"),
+    ]);
+    try {
+      const url = new URL(panel.base);
+      const status = await new Promise<number>((resolve, reject) => {
+        const request = httpRequest(
+          {
+            host: url.hostname,
+            port: Number(url.port),
+            path: "/ws",
+            headers: {
+              connection: "Upgrade",
+              upgrade: "websocket",
+              "sec-websocket-key": "dGhlIHNhbXBsZSBub25jZQ==",
+              "sec-websocket-version": "13",
+              origin: "http://evil.test",
+            },
+          },
+          (response) => {
+            response.resume();
+            resolve(response.statusCode ?? 0);
+          },
+        );
+        request.on("error", reject);
+        request.end();
+      });
+      expect(status).toBe(403);
     } finally {
       await panel.stop();
     }

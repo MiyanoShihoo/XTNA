@@ -9,6 +9,7 @@
  * lets a human mark a node for the agent to read back.
  */
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 import { watch } from "node:fs";
 import { appendFile, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -252,10 +253,35 @@ const refresh = async () => {
 const refreshAnnotations = async () => {
   try { renderAnnotations(await (await fetch("/api/annotations")).json()); } catch {}
 };
+let socket = null;
+const connectSocket = () => {
+  const scheme = location.protocol === "https:" ? "wss" : "ws";
+  socket = new WebSocket(scheme + "://" + location.host + "/ws");
+  socket.addEventListener("message", (event) => {
+    try {
+      const message = JSON.parse(event.data);
+      if (message.type === "annotation") refreshAnnotations();
+      if (message.type === "error")
+        document.getElementById("save-status").textContent = "rejected: " + message.message;
+    } catch {}
+  });
+  socket.addEventListener("close", () => {
+    socket = null;
+    setTimeout(connectSocket, 2000);
+  });
+};
+connectSocket();
+
 document.getElementById("save").addEventListener("click", async () => {
   if (selected === null) return;
   const note = document.getElementById("note").value;
   const status = document.getElementById("save-status");
+  if (socket !== null && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "annotation", target: selected, note }));
+    status.textContent = "sent";
+    document.getElementById("note").value = "";
+    return;
+  }
   const response = await fetch("/api/annotations", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -274,6 +300,42 @@ events.addEventListener("refresh", refresh);
 setInterval(refresh, 5000);
 </script>
 </body></html>`;
+
+const WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+const MAX_WS_CLIENTS = 8;
+const MAX_WS_MESSAGE_BYTES = 16 * 1024;
+const wsClients = new Set();
+let listeningPort = 0;
+
+const encodeFrame = (payload, opcode = 0x1) => {
+  const body = Buffer.from(payload, "utf8");
+  const length = body.length;
+  if (length < 126)
+    return Buffer.concat([Buffer.from([0x80 | opcode, length]), body]);
+  if (length < 65536) {
+    const header = Buffer.alloc(4);
+    header[0] = 0x80 | opcode;
+    header[1] = 126;
+    header.writeUInt16BE(length, 2);
+    return Buffer.concat([header, body]);
+  }
+  const header = Buffer.alloc(10);
+  header[0] = 0x80 | opcode;
+  header[1] = 127;
+  header.writeBigUInt64BE(BigInt(length), 2);
+  return Buffer.concat([header, body]);
+};
+
+const broadcastJson = (value) => {
+  const frame = encodeFrame(JSON.stringify(value));
+  for (const client of wsClients) {
+    try {
+      client.write(frame);
+    } catch {
+      wsClients.delete(client);
+    }
+  }
+};
 
 let lastDigest = "";
 const clients = new Set();
@@ -365,6 +427,7 @@ const server = createServer(async (request, response) => {
           "content-type": "application/json; charset=utf-8",
         });
         response.end(`${JSON.stringify(record)}\n`);
+        broadcastJson({ type: "annotation", record });
         void broadcast();
         return;
       }
@@ -435,10 +498,141 @@ for (const path of watched) {
   }
 }
 
+const websocketHandler = async (socket, payload) => {
+  let message;
+  try {
+    message = JSON.parse(payload);
+  } catch {
+    socket.write(
+      encodeFrame(JSON.stringify({ type: "error", message: "invalid JSON" })),
+    );
+    return;
+  }
+  if (message?.type !== "annotation") {
+    socket.write(
+      encodeFrame(
+        JSON.stringify({ type: "error", message: "unsupported message" }),
+      ),
+    );
+    return;
+  }
+  try {
+    const record = await appendAnnotation(message);
+    broadcastJson({ type: "annotation", record });
+  } catch (error) {
+    socket.write(
+      encodeFrame(
+        JSON.stringify({
+          type: "error",
+          message: String(error.message ?? error),
+        }),
+      ),
+    );
+  }
+};
+
+const attachWebSocket = (socket) => {
+  wsClients.add(socket);
+  let buffer = Buffer.alloc(0);
+  const closeWith = (code) => {
+    const body = Buffer.alloc(2);
+    body.writeUInt16BE(code, 0);
+    try {
+      socket.write(Buffer.concat([Buffer.from([0x88, 2]), body]));
+    } catch {}
+    wsClients.delete(socket);
+    socket.destroy();
+  };
+  socket.on("data", (chunk) => {
+    buffer = Buffer.concat([buffer, chunk]);
+    for (;;) {
+      if (buffer.length < 2) return;
+      const first = buffer[0];
+      const second = buffer[1];
+      const fin = (first & 0x80) !== 0;
+      const opcode = first & 0x0f;
+      const masked = (second & 0x80) !== 0;
+      let length = second & 0x7f;
+      let offset = 2;
+      if (length === 126) {
+        if (buffer.length < 4) return;
+        length = buffer.readUInt16BE(2);
+        offset = 4;
+      } else if (length === 127) {
+        if (buffer.length < 10) return;
+        length = Number(buffer.readBigUInt64BE(2));
+        offset = 10;
+      }
+      if (length > MAX_WS_MESSAGE_BYTES) return closeWith(1009);
+      if (!masked) return closeWith(1002);
+      if (buffer.length < offset + 4 + length) return;
+      const mask = buffer.subarray(offset, offset + 4);
+      offset += 4;
+      const payload = Buffer.from(buffer.subarray(offset, offset + length));
+      for (let index = 0; index < payload.length; index += 1)
+        payload[index] ^= mask[index % 4];
+      buffer = buffer.subarray(offset + length);
+      if (!fin) return closeWith(1003);
+      if (opcode === 0x8) return closeWith(1000);
+      if (opcode === 0x9) {
+        socket.write(encodeFrame("", 0xa));
+        continue;
+      }
+      if (opcode !== 0x1) return closeWith(1003);
+      void websocketHandler(socket, payload.toString("utf8"));
+    }
+  });
+  socket.on("close", () => wsClients.delete(socket));
+  socket.on("error", () => wsClients.delete(socket));
+};
+
+server.on("upgrade", (request, socket) => {
+  const url = new URL(request.url ?? "/", `http://${host}`);
+  if (url.pathname !== "/ws") {
+    socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+  const key = request.headers["sec-websocket-key"];
+  if (typeof key !== "string" || wsClients.size >= MAX_WS_CLIENTS) {
+    socket.write("HTTP/1.1 400 Bad Request\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+  const origin = request.headers.origin;
+  if (origin !== undefined) {
+    let allowed = false;
+    try {
+      const parsed = new URL(origin);
+      allowed =
+        ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname) &&
+        Number(parsed.port === "" ? 80 : parsed.port) === listeningPort;
+    } catch {
+      allowed = false;
+    }
+    if (!allowed) {
+      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+  }
+  const accept = createHash("sha1")
+    .update(key + WS_GUID)
+    .digest("base64");
+  socket.write(
+    "HTTP/1.1 101 Switching Protocols\r\n" +
+      "Upgrade: websocket\r\n" +
+      "Connection: Upgrade\r\n" +
+      `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
+  );
+  attachWebSocket(socket);
+});
+
 server.listen(port, host, () => {
   const address = server.address();
   const actualPort =
     typeof address === "object" && address !== null ? address.port : port;
+  listeningPort = actualPort;
   process.stdout.write(`${JSON.stringify({ host, port: actualPort })}\n`);
 });
 
