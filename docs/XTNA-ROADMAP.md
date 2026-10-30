@@ -31,7 +31,7 @@ not implemented here.
 |   # | Module                              | Status                                      | Notes                                                                                                                                                                                                                                                     |
 | --: | ----------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |   1 | Wasm end-to-end + JS bridge         | **partial** (MCP bridge + WAT inspection)   | `wasm_bridge`/`wasm:link` decode imports/exports, function index space and literal glue bindings; `inspect_wasm_artifact` provides WABT/WAT; no automatic `.wasm` discovery or intra-function call graph                                                  |
-|   2 | Hermes / V8 snapshot / PyInstaller  | **partial** (PyInstaller only)              | CArchive 2.0/2.1 and PYZ inventory/extraction are implemented; no `.hbc`/Hermes or V8 startup-snapshot parser and no structured AST pipeline                                                                                                              |
+|   2 | Hermes / V8 snapshot / PyInstaller  | **partial** (PyInstaller + Hermes header)   | CArchive 2.0/2.1 and PYZ inventory/extraction; `npm run hermes:inspect` reads the 60-byte `.hbc` header (version, source hash, function/string counters, length check); no Hermes tables, no AST, no V8 startup-snapshot parser                           |
 |   3 | Semantic version diff               | **partial** (report narrative)              | `npm run diff:narrate` pairs two reports by a stable key and names added/removed/changed records and fields; no CFG or AST diff                                                                                                                           |
 |   4 | Runtime probe generation            | **partial** (skeleton)                      | `npm run probe:gen`: address to a Frida or LLDB probe skeleton that records arguments, return value and a backtrace; target selection stays manual                                                                                                        |
 |   5 | Cross-boundary causal tracing       | **partial** (merge + candidates)            | `npm run trace:causal`: browser/IPC/probe streams to one timeline, chains by explicit trace id or bounded window; causation stays an inference                                                                                                            |
@@ -59,9 +59,9 @@ not implemented here.
 
 ## Verified baseline
 
-- `npm run test:fast`: 1140 test files passed, 9 skipped; 20,615 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run test:fast`: 1141 test files passed, 9 skipped; 20,625 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
 - `npm run typecheck`: passed.
-- `npm run test:acceptance` (mock CLI scope): `xtnaMockCli.test.ts` 1/1 passed.
+- `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.
 - `npm run verify:xtna`: 8/8 checks passed.
 - `npm run test:local` focused lifecycle: `SourceMapCommand.test.ts` 11/11 and `WebBundleAnalysisWorker.test.ts` 25/25.
