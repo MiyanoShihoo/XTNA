@@ -106,6 +106,84 @@ for (const [index, record] of graphRecords.entries()) {
 }
 lines.push("```", "");
 
+const mermaidText = (value) =>
+  String(value ?? "")
+    .replace(/[\r\n]+/gu, " ")
+    .replace(/;/gu, ",")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 120);
+
+const scenarioTransactions = () => {
+  const transactions = new Map();
+  for (const record of records) {
+    const payload =
+      record !== null && typeof record === "object"
+        ? (record.normalized_result ?? record.result ?? record)
+        : undefined;
+    const items = payload?.events?.items;
+    if (!Array.isArray(items)) continue;
+    for (const item of items) {
+      if (item === null || typeof item !== "object") continue;
+      if (typeof item.transaction_id !== "string") continue;
+      const entry = transactions.get(item.transaction_id) ?? {};
+      if (item.kind === "request") entry.request = item;
+      else if (item.kind === "response") entry.response = item;
+      transactions.set(item.transaction_id, entry);
+    }
+  }
+  return [...transactions.entries()]
+    .filter(([, entry]) => entry.request !== undefined)
+    .sort(
+      (left, right) =>
+        Number(left[1].request.sequence ?? 0) -
+        Number(right[1].request.sequence ?? 0),
+    );
+};
+
+const sequence = scenarioTransactions();
+lines.push("## Interaction sequence", "");
+lines.push("```mermaid", "sequenceDiagram");
+if (sequence.length > 0) {
+  lines.push("  participant B as Browser", "  participant S as Server");
+  for (const [, entry] of sequence.slice(0, 20)) {
+    const request = entry.request;
+    const method = mermaidText(request.method ?? "GET").toUpperCase();
+    let path = "/";
+    try {
+      path = new URL(String(request.url ?? "")).pathname;
+    } catch {
+      path = String(request.url ?? "/").split("?")[0] || "/";
+    }
+    lines.push(`  B->>S: ${method} ${mermaidText(path)}`);
+    const response = entry.response;
+    lines.push(
+      `  S-->>B: ${response === undefined ? "unobserved" : String(response.status ?? "?")}`,
+    );
+  }
+  if (sequence.length > 20)
+    lines.push("  Note over B,S: truncated at 20 transactions");
+} else if (records.length > 0) {
+  const provider = String(records[0]?.provider?.id ?? "provider");
+  lines.push(
+    "  participant A as Agent",
+    `  participant P as ${mermaidText(provider)}`,
+  );
+  for (const record of records.slice(0, 20))
+    lines.push(`  A->>P: ${mermaidText(record.operation ?? "operation")}`);
+  if (records.length > 20)
+    lines.push("  Note over A,P: truncated at 20 records");
+} else {
+  lines.push("  Note over B: no recorded interactions");
+}
+lines.push("```", "");
+lines.push(
+  "> Projection of recorded request/response order. It is not a runtime trace and implies no",
+);
+lines.push(
+  "> timing, concurrency or causation beyond the recorded sequence.",
+  "",
+);
 lines.push("## Module responsibility matrix", "");
 if (records.length === 0)
   lines.push("No provider operations are recorded.", "");

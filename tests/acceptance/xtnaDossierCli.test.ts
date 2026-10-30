@@ -69,6 +69,10 @@ it("emits Mermaid architecture and an HTML dossier", async () => {
     expect(md).toContain("flowchart LR");
     expect(md).toContain("## Module responsibility matrix");
     expect(md).toContain("| ghidra | inspect_artifact | 1 |");
+    expect(md).toContain("## Interaction sequence");
+    expect(md).toContain("sequenceDiagram");
+    expect(md).toContain("participant A as Agent");
+    expect(md).toContain("A->>P: inspect_artifact");
 
     await run(
       process.execPath,

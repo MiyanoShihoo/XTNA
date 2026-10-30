@@ -24,19 +24,20 @@ confidence labels.
 
 ## Sections
 
-| Section        | Source                                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------------------- |
-| Targets        | `artifacts[]` — format, architecture, SHA-256                                                            |
-| Architecture   | Mermaid `flowchart LR` from artifact/provider/record identity; edges are projections, not observed calls |
-| Module matrix  | record counts grouped by provider and operation                                                          |
-| Records        | `records[]` — operation, provider, authority, confidence, limitation count, evidence id                  |
-| Limitations    | every `record.limitations[]`, de-duplicated                                                              |
-| Unknowns       | `unknowns[]` — domain, severity, status, question                                                        |
-| Remediation    | `unknowns[].recommended_probes[]` — question, suggested probe, rationale                                 |
-| Interfaces     | optional `--api-spec` OpenAPI document: method, path, operation id, parameters, responses                |
-| Providers      | `providers[]` — id and version                                                                           |
-| Symbol overlay | optional overlay file, with `observed` / `inferred` / `guessed` intact                                   |
-| Reproduction   | the commands that produce the same bundle                                                                |
+| Section        | Source                                                                                                                                       |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Targets        | `artifacts[]` — format, architecture, SHA-256                                                                                                |
+| Architecture   | Mermaid `flowchart LR` from artifact/provider/record identity; edges are projections, not observed calls                                     |
+| Sequence       | Mermaid `sequenceDiagram`: browser request/response order when the bundle holds scenario events, otherwise agent-to-provider operation order |
+| Module matrix  | record counts grouped by provider and operation                                                                                              |
+| Records        | `records[]` — operation, provider, authority, confidence, limitation count, evidence id                                                      |
+| Limitations    | every `record.limitations[]`, de-duplicated                                                                                                  |
+| Unknowns       | `unknowns[]` — domain, severity, status, question                                                                                            |
+| Remediation    | `unknowns[].recommended_probes[]` — question, suggested probe, rationale                                                                     |
+| Interfaces     | optional `--api-spec` OpenAPI document: method, path, operation id, parameters, responses                                                    |
+| Providers      | `providers[]` — id and version                                                                                                               |
+| Symbol overlay | optional overlay file, with `observed` / `inferred` / `guessed` intact                                                                       |
+| Reproduction   | the commands that produce the same bundle                                                                                                    |
 
 ## What it deliberately does not do
 
@@ -46,4 +47,6 @@ confidence labels.
   or CJK text matters.
 - The HTML wrapper embeds the same Markdown projection, tables, and Mermaid source; its diagram
   edges are bundle relationships, not a claim of observed runtime calls.
+- The sequence diagram is a projection of recorded order: it implies no timing, concurrency or
+  causation, and it caps at 20 transactions or 20 records.
 - No redaction: run it on a bundle you are willing to publish.
