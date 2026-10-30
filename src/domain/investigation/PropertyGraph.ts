@@ -3,7 +3,9 @@ export interface PropertyNode {
   readonly kind: string;
   readonly label?: string;
   readonly evidenceIds?: readonly string[];
-  readonly properties?: Readonly<Record<string, string | number | boolean | null>>;
+  readonly properties?: Readonly<
+    Record<string, string | number | boolean | null>
+  >;
 }
 
 export interface PropertyEdge {
@@ -64,25 +66,56 @@ export const queryPropertyGraph = ({
       limitations.push(`Duplicate node identity: ${node.id}`);
     } else nodes.set(node.id, node);
   }
-  const sources = [...nodes.values()].filter((node) => matches(node, from)).map(({ id }) => id).sort();
-  const targets = new Set([...nodes.values()].filter((node) => matches(node, to)).map(({ id }) => id));
+  const sources = [...nodes.values()]
+    .filter((node) => matches(node, from))
+    .map(({ id }) => id)
+    .sort();
+  const targets = new Set(
+    [...nodes.values()].filter((node) => matches(node, to)).map(({ id }) => id),
+  );
   if (sources.length === 0) missingNodes.push(from);
   if (targets.size === 0) missingNodes.push(to);
-  const blocked = new Set([...nodes.values()].filter((node) => sanitizers.some((selector) => matches(node, selector))).map(({ id }) => id));
+  const blocked = new Set(
+    [...nodes.values()]
+      .filter((node) => sanitizers.some((selector) => matches(node, selector)))
+      .map(({ id }) => id),
+  );
   const adjacency = new Map<string, PropertyEdge[]>();
   for (const edge of graph.edges) {
     if (!nodes.has(edge.from) || !nodes.has(edge.to)) {
       limitations.push(`Unresolved edge: ${edge.from} -> ${edge.to}`);
       continue;
     }
-    const oriented = direction === "forward" ? edge : { ...edge, from: edge.to, to: edge.from };
+    const oriented =
+      direction === "forward"
+        ? edge
+        : { ...edge, from: edge.to, to: edge.from };
     const outgoing = adjacency.get(oriented.from) ?? [];
     outgoing.push(oriented);
     adjacency.set(oriented.from, outgoing);
   }
-  for (const edges of adjacency.values()) edges.sort((a, b) => a.to.localeCompare(b.to) || a.from.localeCompare(b.from));
-  if (!Number.isInteger(maxHops) || maxHops < 0 || !Number.isInteger(maxPaths) || maxPaths < 1 || !Number.isInteger(maxVisited) || maxVisited < 1)
-    return { status: "invalid", paths: [], visited: 0, missingNodes, limitations: [...limitations, "Bounds must be non-negative integers; path and visit budgets must be positive."] };
+  for (const edges of adjacency.values())
+    edges.sort(
+      (a, b) => a.to.localeCompare(b.to) || a.from.localeCompare(b.from),
+    );
+  if (
+    !Number.isInteger(maxHops) ||
+    maxHops < 0 ||
+    !Number.isInteger(maxPaths) ||
+    maxPaths < 1 ||
+    !Number.isInteger(maxVisited) ||
+    maxVisited < 1
+  )
+    return {
+      status: "invalid",
+      paths: [],
+      visited: 0,
+      missingNodes,
+      limitations: [
+        ...limitations,
+        "Bounds must be non-negative integers; path and visit budgets must be positive.",
+      ],
+    };
   const paths: PropertyPath[] = [];
   let visited = 0;
   let truncated = false;
@@ -107,7 +140,18 @@ export const queryPropertyGraph = ({
     walk(source, [source], []);
     if (truncated) break;
   }
-  if (truncated) limitations.push("Path or visit budget reached; unenumerated paths remain unknown.");
-  limitations.push("Paths are candidates derived from the supplied graph, not proof of runtime reachability.");
-  return { status: truncated ? "truncated" : "complete", paths, visited, missingNodes, limitations };
+  if (truncated)
+    limitations.push(
+      "Path or visit budget reached; unenumerated paths remain unknown.",
+    );
+  limitations.push(
+    "Paths are candidates derived from the supplied graph, not proof of runtime reachability.",
+  );
+  return {
+    status: truncated ? "truncated" : "complete",
+    paths,
+    visited,
+    missingNodes,
+    limitations,
+  };
 };

@@ -18,7 +18,12 @@ const graph = {
 
 describe("property graph queries", () => {
   it("enumerates simple source-to-sink paths with provenance", () => {
-    const result = queryPropertyGraph({ graph, from: "source", to: "sink", sanitizers: ["sanitizer"] });
+    const result = queryPropertyGraph({
+      graph,
+      from: "source",
+      to: "sink",
+      sanitizers: ["sanitizer"],
+    });
     expect(result.status).toBe("complete");
     expect(result.paths).toHaveLength(1);
     expect(result.paths[0]?.nodes).toEqual(["a", "b", "c"]);
@@ -26,18 +31,32 @@ describe("property graph queries", () => {
   });
 
   it("supports reverse dependency traversal", () => {
-    const result = queryPropertyGraph({ graph, from: "sink", to: "source", direction: "backward" });
+    const result = queryPropertyGraph({
+      graph,
+      from: "sink",
+      to: "source",
+      direction: "backward",
+    });
     expect(result.paths[0]?.nodes).toEqual(["c", "b", "a"]);
   });
 
   it("reports a bound instead of claiming exhaustive results", () => {
-    const result = queryPropertyGraph({ graph, from: "source", to: "sink", maxHops: 1 });
+    const result = queryPropertyGraph({
+      graph,
+      from: "source",
+      to: "sink",
+      maxHops: 1,
+    });
     expect(result.paths).toEqual([]);
     expect(result.limitations.join(" ")).toContain("not proof");
   });
 
   it("does not silently ignore unknown selectors or edges", () => {
-    const result = queryPropertyGraph({ graph: { nodes: [], edges: [{ from: "a", to: "b" }] }, from: "a", to: "b" });
+    const result = queryPropertyGraph({
+      graph: { nodes: [], edges: [{ from: "a", to: "b" }] },
+      from: "a",
+      to: "b",
+    });
     expect(result.missingNodes).toEqual(["a", "b"]);
     expect(result.limitations.join(" ")).toContain("Unresolved edge");
   });

@@ -414,7 +414,9 @@ it.each([false, true] as const)(
 );
 
 describe("absolute dyld candidate paths at the filesystem reader boundary", () => {
-  it.skipIf(process.platform === "win32").each(["install-name", "rpath"] as const)(
+  it
+    .skipIf(process.platform === "win32")
+    .each(["install-name", "rpath"] as const)(
     "resolves an absolute in-root %s while preserving its source path",
     async (kind) => {
       const root = await createTestTempDirectory("rea-dylib-absolute-in-root-");
@@ -492,55 +494,56 @@ describe("absolute dyld candidate paths at the filesystem reader boundary", () =
   it.skipIf(process.platform === "win32")(
     "keeps a genuinely external absolute candidate outside the analyzed root",
     async () => {
-    const root = await createTestTempDirectory("rea-dylib-absolute-outside-");
-    const canonicalRoot = await realpath(root);
-    const executable = machoImage({
-      commands: [
-        buildVersionCommand(1),
-        dylibCommand(LC.LOAD_DYLIB, "/usr/lib/libSystem.B.dylib"),
-        dylibCommand(LC.LOAD_DYLIB, `${canonicalRoot}/../outside.dylib`),
-        dylibCommand(
-          LC.LOAD_DYLIB,
-          `file://${canonicalRoot}/Frameworks/libBridge.dylib`,
-        ),
-      ],
-    });
-    await writeFile(join(root, "App"), executable);
-    const trace = await traceDylibResolution({
-      rootPath: root,
-      targetPath: join(root, "App"),
-      targetSha256: createHash("sha256").update(executable).digest("hex"),
-      enumerateRoots: false,
-      parameters: { roots: ["App"] },
-    });
+      const root = await createTestTempDirectory("rea-dylib-absolute-outside-");
+      const canonicalRoot = await realpath(root);
+      const executable = machoImage({
+        commands: [
+          buildVersionCommand(1),
+          dylibCommand(LC.LOAD_DYLIB, "/usr/lib/libSystem.B.dylib"),
+          dylibCommand(LC.LOAD_DYLIB, `${canonicalRoot}/../outside.dylib`),
+          dylibCommand(
+            LC.LOAD_DYLIB,
+            `file://${canonicalRoot}/Frameworks/libBridge.dylib`,
+          ),
+        ],
+      });
+      await writeFile(join(root, "App"), executable);
+      const trace = await traceDylibResolution({
+        rootPath: root,
+        targetPath: join(root, "App"),
+        targetSha256: createHash("sha256").update(executable).digest("hex"),
+        enumerateRoots: false,
+        parameters: { roots: ["App"] },
+      });
 
-    expect(trace.edges[0]).toMatchObject({
-      candidates: [
-        {
-          path: "/usr/lib/libSystem.B.dylib",
-          outcome: "outside-target",
-          resolved_path: null,
-        },
-      ],
-      resolution: { status: "undetermined", image: null },
-    });
-    expect(trace.edges[1]).toMatchObject({
-      candidates: [{ outcome: "escapes-target", resolved_path: null }],
-      resolution: { status: "undetermined", image: null },
-    });
-    expect(trace.edges[2]).toMatchObject({
-      install_name: `file://${canonicalRoot}/Frameworks/libBridge.dylib`,
-      candidates: [
-        {
-          path: `file://${canonicalRoot}/Frameworks/libBridge.dylib`,
-          outcome: "undetermined",
-          resolved_path: null,
-        },
-      ],
-      resolution: { status: "undetermined", image: null },
-    });
-    expect(trace.images.map(({ path }) => path)).toEqual(["App"]);
-  });
+      expect(trace.edges[0]).toMatchObject({
+        candidates: [
+          {
+            path: "/usr/lib/libSystem.B.dylib",
+            outcome: "outside-target",
+            resolved_path: null,
+          },
+        ],
+        resolution: { status: "undetermined", image: null },
+      });
+      expect(trace.edges[1]).toMatchObject({
+        candidates: [{ outcome: "escapes-target", resolved_path: null }],
+        resolution: { status: "undetermined", image: null },
+      });
+      expect(trace.edges[2]).toMatchObject({
+        install_name: `file://${canonicalRoot}/Frameworks/libBridge.dylib`,
+        candidates: [
+          {
+            path: `file://${canonicalRoot}/Frameworks/libBridge.dylib`,
+            outcome: "undetermined",
+            resolved_path: null,
+          },
+        ],
+        resolution: { status: "undetermined", image: null },
+      });
+      expect(trace.images.map(({ path }) => path)).toEqual(["App"]);
+    },
+  );
 });
 
 describe("absolute dyld candidate traversal", () => {
