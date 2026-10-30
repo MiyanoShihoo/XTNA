@@ -1116,7 +1116,7 @@ describe("decompile_all identity and recovery", () => {
 describe("decompile_all untrusted directory and provider facts", () => {
   const directory = useOutputDirectory();
 
-  it("refuses a journal that is a symlink and leaves its target unchanged", async () => {
+  it("refuses a journal that is a symlink and leaves its target unchanged", async (context) => {
     expect((await run(harness().tools, directory(), { limit: 1 })).ok).toBe(
       true,
     );
@@ -1125,7 +1125,15 @@ describe("decompile_all untrusted directory and provider facts", () => {
     const torn = `${await readFile(journalPath, "utf8")}{"kind":"func`;
     await writeFile(outside, torn);
     await rm(journalPath);
-    await symlink(outside, journalPath);
+    try {
+      await symlink(outside, journalPath);
+    } catch (cause) {
+      if ((cause as NodeJS.ErrnoException).code === "EPERM") {
+        context.skip();
+        return;
+      }
+      throw cause;
+    }
     const next = harness();
     const resumed = await run(next.tools, directory(), { resume: true });
     expect(resumed.ok).toBe(false);

@@ -7,6 +7,7 @@ import {
   open,
   realpath,
   rmdir,
+  truncate,
   type FileHandle,
 } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
@@ -350,12 +351,23 @@ const openResumedJournal = async (
     true,
   );
   // Drop a torn final line left by a crash so the next append starts a line.
+  const journalPath = join(root, DECOMPILE_DIRECTORY_JOURNAL_NAME);
+  const repairJournal = async (): Promise<boolean> => {
+    try {
+      await handle.value.truncate(opened.value.committedBytes);
+      return true;
+    } catch {
+      // Windows rejects ftruncate on an O_APPEND handle; a path truncate still
+      // repairs the owned journal while the lease excludes another writer.
+      return await truncate(journalPath, opened.value.committedBytes).then(
+        () => true,
+        () => false,
+      );
+    }
+  };
   const repaired =
     opened.value.committedBytes === opened.value.journalBytes ||
-    (await handle.value.truncate(opened.value.committedBytes).then(
-      () => true,
-      () => false,
-    ));
+    (await repairJournal());
   if (!repaired) {
     return err(
       decompileInputError(

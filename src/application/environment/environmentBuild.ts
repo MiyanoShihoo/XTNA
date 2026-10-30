@@ -233,9 +233,11 @@ const environmentName = (
   return ok(name);
 };
 
-/** A path as one POSIX shell word. */
+/** A path as one shell word; a Windows drive path needs no quoting when it has no spaces. */
 const shellWord = (path: string): string =>
-  /^[\w./@%+=:,-]+$/u.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`;
+  /^(?:[\w./@%+=:,-]+|[A-Za-z]:[\\/][^'"\s]*)$/u.test(path)
+    ? path
+    : `'${path.replaceAll("'", "'\\''")}'`;
 
 const packageSourceValue = (
   source: EnvironmentPackageSource,
