@@ -24,7 +24,7 @@ const flag = (name) => {
 const evidencePath = flag("evidence");
 if (evidencePath === undefined) {
   process.stderr.write(
-    "usage: node scripts/panel-serve.mjs --evidence <bundle.json> [--overlay file] [--hypotheses file] [--checkpoints dir] [--annotations notes.jsonl] [--port 4321] [--host 127.0.0.1] [--title text]\n",
+    "usage: node scripts/panel-serve.mjs --evidence <bundle.json> [--overlay file] [--hypotheses file] [--checkpoints dir] [--annotations notes.jsonl] [--mcp-url http://127.0.0.1:8765/mcp --query-token <token>] [--query-tools tool,tool] [--query-log queries.jsonl] [--port 4321] [--host 127.0.0.1] [--title text]\n",
   );
   process.exit(2);
 }
@@ -33,6 +33,48 @@ const port = Number(flag("port") ?? "4321");
 const host = flag("host") ?? "127.0.0.1";
 const annotationsPath =
   flag("annotations") === undefined ? undefined : resolve(flag("annotations"));
+const mcpUrl = flag("mcp-url");
+const queryToken = flag("query-token");
+const queryLogPath =
+  flag("query-log") === undefined ? undefined : resolve(flag("query-log"));
+const requestedTools = flag("query-tools");
+
+if ((mcpUrl === undefined) !== (queryToken === undefined)) {
+  process.stderr.write(
+    "--mcp-url and --query-token must be given together; the query relay fails closed\n",
+  );
+  process.exit(2);
+}
+
+const { DEFAULT_READ_ONLY_TOOLS, validatePanelQuery } = await import(
+  new URL("./lib/panel-query-policy.mjs", import.meta.url).href
+);
+const { createMcpHttpClient } = await import(
+  new URL("./lib/mcp-http-client.mjs", import.meta.url).href
+);
+
+const allowedTools =
+  requestedTools === undefined
+    ? DEFAULT_READ_ONLY_TOOLS
+    : requestedTools
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+const queryClient =
+  mcpUrl === undefined ? undefined : createMcpHttpClient({ url: mcpUrl });
+if (queryClient !== undefined) {
+  try {
+    await queryClient.initialize();
+    process.stderr.write(
+      `query relay: read-only tools via ${queryClient.endpoint}\n`,
+    );
+  } catch (error) {
+    process.stderr.write(
+      `query relay: cannot reach ${mcpUrl} (${String(error)}); refusing to start\n`,
+    );
+    process.exit(2);
+  }
+}
 
 const MAX_NOTE_CHARS = 4_000;
 const MAX_TARGET_CHARS = 512;
@@ -82,6 +124,7 @@ const page = `<!doctype html>
   .card .op { font-weight: 600; }
   .card .meta { color: #666; font-size: 12px; }
   .hidden { display: none; }
+  #query-result { max-height: 20rem; overflow: auto; background: #f7f7f7; padding: .5rem; }
 </style></head>
 <body>
 <h1 id="title">XTNA investigation panel</h1>
@@ -98,6 +141,21 @@ const page = `<!doctype html>
   <textarea id="note" maxlength="4000" placeholder="Note for the agent (target = selected node)"></textarea>
   <button id="save">Save note</button>
   <span class="muted" id="save-status"></span>
+  <div id="query" class="hidden">
+    <div class="muted">Read-only provider query (relayed to the MCP server; never executes here)</div>
+    <select id="query-tool"></select>
+    <select id="query-key">
+      <option value="procedure">procedure</option>
+      <option value="address">address</option>
+      <option value="name">name</option>
+      <option value="pattern">pattern</option>
+    </select>
+    <input id="query-arg" placeholder="address or symbol" size="26">
+    <input id="query-token" type="password" placeholder="query token" size="18">
+    <button id="run-query">Query</button>
+    <span class="muted" id="query-status"></span>
+    <pre id="query-result"></pre>
+  </div>
 </div>
 <h2>Network waterfall</h2>
 <div class="muted" id="wf-meta"></div>
@@ -293,8 +351,48 @@ document.getElementById("save").addEventListener("click", async () => {
     refreshAnnotations();
   }
 });
+const queryBox = document.getElementById("query");
+const queryTool = document.getElementById("query-tool");
+const queryStatus = document.getElementById("query-status");
+const loadQuery = async () => {
+  let info = { enabled: false };
+  try { info = await (await fetch("/api/query")).json(); } catch {}
+  if (!info.enabled) return;
+  queryBox.classList.remove("hidden");
+  queryTool.innerHTML = info.tools
+    .map((tool) => '<option value="' + esc(tool) + '">' + esc(tool) + "</option>")
+    .join("");
+};
+document.getElementById("run-query").addEventListener("click", async () => {
+  const token = document.getElementById("query-token").value;
+  const tool = queryTool.value;
+  const key = document.getElementById("query-key").value;
+  const raw = document.getElementById("query-arg").value.trim();
+  const status = queryStatus;
+  status.textContent = "running…";
+  document.getElementById("query-result").textContent = "";
+  const args = {};
+  if (raw.length > 0) args[key] = raw;
+  try {
+    const response = await fetch("/api/query", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-xtna-token": token },
+      body: JSON.stringify({ tool, args }),
+    });
+    const payload = await response.json();
+    status.textContent = response.ok ? "ok" : "rejected (" + response.status + ")";
+    document.getElementById("query-result").textContent = JSON.stringify(
+      response.ok ? payload.result : payload.error,
+      null,
+      2,
+    );
+  } catch (error) {
+    status.textContent = "failed: " + String(error);
+  }
+});
 refresh();
 refreshAnnotations();
+loadQuery();
 const events = new EventSource("/events");
 events.addEventListener("refresh", refresh);
 setInterval(refresh, 5000);
@@ -384,6 +482,64 @@ const body = (request) =>
     request.on("error", rejectBody);
   });
 
+const rejectStatus = (status, message) =>
+  Object.assign(new Error(message), { status });
+
+const tokenMatches = (request) => {
+  if (queryToken === undefined) return false;
+  const supplied = request.headers["x-xtna-token"];
+  if (typeof supplied !== "string" || supplied.length !== queryToken.length)
+    return false;
+  let difference = 0;
+  for (let index = 0; index < supplied.length; index += 1)
+    difference |= supplied.charCodeAt(index) ^ queryToken.charCodeAt(index);
+  return difference === 0;
+};
+
+/** A browser Origin must be this panel's own loopback origin. */
+const requireSameOrigin = (request) => {
+  const origin = request.headers.origin;
+  if (origin === undefined) return;
+  let allowed = false;
+  try {
+    const parsed = new URL(origin);
+    allowed =
+      ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname) &&
+      Number(parsed.port === "" ? 80 : parsed.port) === listeningPort;
+  } catch {
+    allowed = false;
+  }
+  if (!allowed) throw rejectStatus(403, "cross-origin query refused");
+};
+
+const QUERY_WINDOW_MS = 60_000;
+const MAX_QUERIES_PER_WINDOW = 20;
+const queryTimes = [];
+let queryInFlight = false;
+
+const admitQuery = () => {
+  if (queryInFlight) throw rejectStatus(429, "a query is already running");
+  const now = Date.now();
+  while (queryTimes.length > 0 && now - queryTimes[0] > QUERY_WINDOW_MS)
+    queryTimes.shift();
+  if (queryTimes.length >= MAX_QUERIES_PER_WINDOW)
+    throw rejectStatus(429, "query rate limit reached");
+  queryTimes.push(now);
+  queryInFlight = true;
+};
+
+const logQuery = async (record) => {
+  if (queryLogPath === undefined) return;
+  const size = await stat(queryLogPath).then(
+    (info) => info.size,
+    () => 0,
+  );
+  if (size > MAX_ANNOTATION_FILE_BYTES) return;
+  await appendFile(queryLogPath, `${JSON.stringify(record)}\n`, "utf8").catch(
+    () => {},
+  );
+};
+
 const appendAnnotation = async (payload) => {
   if (annotationsPath === undefined)
     throw Object.assign(new Error("annotations disabled"), { status: 403 });
@@ -432,6 +588,69 @@ const server = createServer(async (request, response) => {
         return;
       }
       response.writeHead(405, { allow: "GET, POST" }).end();
+      return;
+    }
+    if (url.pathname === "/api/query") {
+      if (queryClient === undefined)
+        throw rejectStatus(
+          404,
+          "query relay disabled; start the panel with --mcp-url and --query-token",
+        );
+      if (request.method === "GET") {
+        response.writeHead(200, {
+          "content-type": "application/json; charset=utf-8",
+        });
+        response.end(
+          `${JSON.stringify({ enabled: true, tools: allowedTools })}\n`,
+        );
+        return;
+      }
+      if (request.method !== "POST") {
+        response.writeHead(405, { allow: "GET, POST" }).end();
+        return;
+      }
+      requireSameOrigin(request);
+      if (!tokenMatches(request))
+        throw rejectStatus(401, "missing or invalid x-xtna-token");
+      admitQuery();
+      try {
+        const verdict = validatePanelQuery(await body(request), {
+          allowedTools,
+        });
+        if (!verdict.ok) throw rejectStatus(400, verdict.reason);
+        const startedAt = Date.now();
+        try {
+          const result = await queryClient.callTool(verdict.tool, verdict.args);
+          await logQuery({
+            at: new Date().toISOString(),
+            tool: verdict.tool,
+            args: verdict.args,
+            ok: true,
+            elapsedMs: Date.now() - startedAt,
+          });
+          response.writeHead(200, {
+            "content-type": "application/json; charset=utf-8",
+          });
+          response.end(
+            `${JSON.stringify({ ok: true, tool: verdict.tool, result })}\n`,
+          );
+        } catch (error) {
+          await logQuery({
+            at: new Date().toISOString(),
+            tool: verdict.tool,
+            args: verdict.args,
+            ok: false,
+            error: String(error.message ?? error),
+            elapsedMs: Date.now() - startedAt,
+          });
+          throw rejectStatus(
+            502,
+            `provider query failed: ${String(error.message ?? error)}`,
+          );
+        }
+      } finally {
+        queryInFlight = false;
+      }
       return;
     }
     if (request.method !== "GET") {
