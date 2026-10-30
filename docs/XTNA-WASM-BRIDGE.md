@@ -16,8 +16,9 @@ Without that, a Wasm-heavy application is a black box sitting in the middle of t
 | Wasm | binary sections 2 and 7 | imports (module, name, kind) and exports (name, kind)                              |
 | JS   | the glue file           | import-object bindings, `WebAssembly.instantiate` line, `.exports.<name>` accesses |
 
-Only the import and export sections are decoded; code, data and custom sections are skipped by
-length. Nothing is instantiated, compiled, or executed.
+Only the import and export sections are decoded here; code, data and custom sections are skipped
+by length. Nothing is instantiated, compiled, or executed. The call graph below reads the code
+section separately and is a different tool.
 
 ## Output
 
@@ -41,6 +42,31 @@ length. Nothing is instantiated, compiled, or executed.
 `wasm_bridge` accepts `wasm_path` and `js_path` and returns the same facts as authenticated
 Evidence, with the exact file digests and explicit static-only limitations.
 
+## Call graph
+
+`npm run wasm:calls -- --in module.wasm [--json]` decodes the function body section and reports
+every `call` / `call_indirect` site:
+
+```text
+wasm call graph: module.wasm
+functions: 67 defined, 1 imported
+edges: 396
+undecoded: none
+  f1 -> f9
+  f1 -> f8
+```
+
+| Field                | Meaning                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| `functions`          | defined functions with index, export name when present, call sites                      |
+| `edges`              | `{from, to, kind}`; `call_indirect` records `to: null` plus its type index              |
+| `undecodedFunctions` | functions where an unknown opcode (SIMD, atomics, future proposals) stopped the decoder |
+| `truncated`          | the 20,000-edge cap was hit                                                             |
+
+Operand skipping follows an explicit opcode table (core MVP plus sign-extension, bulk-memory and
+tail-call forms). A function is either fully decoded or reported undecoded — it is never guessed
+at. `call_indirect` targets stay unknown because they depend on the runtime table.
+
 ## Limits
 
 - Static only: a call inside a `Function` built from a string, or an export reached through a
@@ -48,5 +74,7 @@ Evidence, with the exact file digests and explicit static-only limitations.
 - The import object must be an object literal or a `const` bound to one in the same file.
 - `new WebAssembly.Instance` and `instantiate`/`instantiateStreaming` are recognised; other
   wrappers (bundler shims, `wasm-bindgen` internals) need a hand-written adapter.
-- The function index space is mapped to its import/export boundaries, but reachability and call
-  graphs inside Wasm functions are not computed.
+- The call graph is static structure: no reachability, no runtime table resolution, and no
+  indirect target inference.
+- SIMD/atomic opcodes are not decoded; functions that use them are listed as undecoded rather
+  than partially decoded.
