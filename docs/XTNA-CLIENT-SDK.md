@@ -10,10 +10,12 @@ and `request.url`; bodies and responses are used when present as JSON text.
 
 ## Output
 
-| File        | Runtime requirement                      |
-| ----------- | ---------------------------------------- |
-| `client.ts` | global `fetch` (Node 18+, browsers)      |
-| `client.py` | standard library only (`urllib`, `json`) |
+| File             | Runtime requirement                      |
+| ---------------- | ---------------------------------------- |
+| `client.ts`      | global `fetch` (Node 18+, browsers)      |
+| `client.test.ts` | Vitest; mocks the private transport      |
+| `client.py`      | standard library only (`urllib`, `json`) |
+| `test_client.py` | Python `unittest`; mocks `_call`         |
 
 Each request becomes one method. Requests that share a method and a path template merge into
 one operation: `/users/42` and `/users/7` both become `/users/{id}` with one `id` parameter.
@@ -27,6 +29,9 @@ npm run sdk:gen -- --in traffic.har --out ./client --lang py
 ```
 
 The command prints the operation count, the generated method names and the files it wrote.
+Each generated smoke test calls every operation with placeholder arguments and mocks the
+transport, so it verifies method wiring, path substitution, query/body passing and the HTTP
+method without making network requests.
 
 ## What it will not do
 
@@ -42,4 +47,6 @@ The command prints the operation count, the generated method names and the files
 - Response types are structural and inline. They describe the samples seen, not a schema the
   server promises.
 - Bodies are treated as JSON. Binary and form payloads are ignored.
+- Generated tests are smoke tests with mocked transport, not server contract tests or
+  end-to-end authentication/retry verification.
 - Generated code is a starting point: review error handling and base URL before shipping.

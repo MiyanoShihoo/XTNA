@@ -53,11 +53,17 @@ if (language !== "py") {
   const path = join(directory, "client.ts");
   await writeFile(path, sdk.typescript, "utf8");
   written.push(path);
+  const testPath = join(directory, "client.test.ts");
+  await writeFile(testPath, sdk.typescriptTest, "utf8");
+  written.push(testPath);
 }
 if (language !== "ts") {
   const path = join(directory, "client.py");
   await writeFile(path, sdk.python, "utf8");
   written.push(path);
+  const testPath = join(directory, "test_client.py");
+  await writeFile(testPath, sdk.pythonTest, "utf8");
+  written.push(testPath);
 }
 
 process.stdout.write(

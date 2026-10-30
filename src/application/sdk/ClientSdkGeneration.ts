@@ -34,6 +34,8 @@ export interface ClientSdk {
   readonly operations: readonly SdkOperation[];
   readonly typescript: string;
   readonly python: string;
+  readonly typescriptTest: string;
+  readonly pythonTest: string;
 }
 
 export interface SdkOptions {
@@ -421,6 +423,81 @@ const renderPython = (
   return lines.join("\n");
 };
 
+const examplePath = (operation: SdkOperation): string =>
+  operation.pathTemplate.replace(/\{\w+\}/gu, "example");
+
+const tsCallArguments = (operation: SdkOperation): string[] => [
+  ...operation.pathParams.map(() => JSON.stringify("example")),
+  ...(operation.queryParams.length === 0 ? [] : ["{}"]),
+  ...(operation.requestBody === undefined ? [] : ["{} as never"]),
+];
+
+const renderTypeScriptTest = (
+  operations: readonly SdkOperation[],
+  className: string,
+  header: string | undefined,
+): string => {
+  const lines: string[] = [];
+  if (header !== undefined) lines.push(`// ${header}`, "");
+  lines.push(
+    'import { describe, expect, it, vi } from "vitest";',
+    "",
+    `import { ${className} } from "./client.js";`,
+    "",
+    'describe("generated client smoke", () => {',
+  );
+  for (const operation of operations) {
+    const args = tsCallArguments(operation);
+    lines.push(
+      `  it(${JSON.stringify(operation.name)}, async () => {`,
+      `    const client = new ${className}();`,
+      '    const call = vi.spyOn(client as unknown as { call: (...args: unknown[]) => Promise<unknown> }, "call").mockResolvedValue({});',
+      `    await client.${operation.name}(${args.join(", ")});`,
+      `    expect(call).toHaveBeenCalledWith(${JSON.stringify(operation.method)}, ${JSON.stringify(examplePath(operation))}, {}, ${operation.requestBody === undefined ? "undefined" : "{}"});`,
+      "  });",
+    );
+  }
+  lines.push("});", "");
+  return lines.join("\n");
+};
+
+const pythonCallArguments = (operation: SdkOperation): string[] => [
+  ...operation.pathParams.map(() => JSON.stringify("example")),
+  ...(operation.queryParams.length === 0 ? [] : ["query={}"]),
+  ...(operation.requestBody === undefined ? [] : ["body={}"]),
+];
+
+const renderPythonTest = (
+  operations: readonly SdkOperation[],
+  className: string,
+  header: string | undefined,
+): string => {
+  const lines: string[] = [];
+  if (header !== undefined) lines.push(`# ${header}`, "");
+  lines.push(
+    "import unittest",
+    "from unittest.mock import patch",
+    "",
+    `from client import ${className}`,
+    "",
+    "",
+    "class GeneratedClientSmoke(unittest.TestCase):",
+    "    def test_operations(self):",
+    `        client = ${className}()`,
+  );
+  if (operations.length === 0) lines.push("        self.assertTrue(True)");
+  for (const operation of operations) {
+    const args = pythonCallArguments(operation);
+    lines.push(
+      '        with patch.object(client, "_call", return_value={}) as call:',
+      `            client.${snake(operation.name)}(${args.join(", ")})`,
+      `            call.assert_called_once_with(${JSON.stringify(operation.method)}, ${JSON.stringify(examplePath(operation))}, {}, ${operation.requestBody === undefined ? "None" : "{}"})`,
+    );
+  }
+  lines.push("", "", 'if __name__ == "__main__":', "    unittest.main()", "");
+  return lines.join("\n");
+};
+
 const pyTypeFromName = (type: string): string =>
   type === "string" ? "str" : type === "number" ? "float" : "Any";
 
@@ -477,5 +554,7 @@ export function generateClientSdk(
       options.header,
     ),
     python: renderPython(operations, className, baseUrl, options.header),
+    typescriptTest: renderTypeScriptTest(operations, className, options.header),
+    pythonTest: renderPythonTest(operations, className, options.header),
   };
 }

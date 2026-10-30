@@ -100,6 +100,24 @@ describe("TypeScript output", () => {
     ).toEqual([]);
   });
 
+  it("emits a smoke test for every operation", () => {
+    const sdk = generateClientSdk(har, { clientName: "UsersClient" });
+    expect(sdk.typescriptTest).toContain('describe("generated client smoke"');
+    expect(sdk.typescriptTest).toContain("async () => {");
+    expect(sdk.typescriptTest).toContain("vi.spyOn");
+    expect(sdk.typescriptTest).toContain("getUsersById");
+    const source = ts.createSourceFile(
+      "client.test.ts",
+      sdk.typescriptTest,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    expect(
+      (source as unknown as { parseDiagnostics?: readonly unknown[] })
+        .parseDiagnostics ?? [],
+    ).toEqual([]);
+  });
+
   it("is deterministic", () => {
     expect(generateClientSdk(har).typescript).toBe(
       generateClientSdk(har).typescript,
@@ -116,6 +134,16 @@ describe("Python output", () => {
     expect(sdk.python).toContain("def get_users(");
     expect(sdk.python).toContain("def get_users_by_id(");
     expect(sdk.python).not.toContain("requests");
+  });
+
+  it("emits a unittest smoke test with mocked transport", () => {
+    const sdk = generateClientSdk(har, { clientName: "UsersClient" });
+    expect(sdk.pythonTest).toContain("class GeneratedClientSmoke");
+    expect(sdk.pythonTest).toContain('patch.object(client, "_call"');
+    expect(sdk.pythonTest).toContain(
+      'call.assert_called_once_with("GET", "/users/example"',
+    );
+    expect(sdk.pythonTest).toContain("from client import UsersClient");
   });
 });
 
