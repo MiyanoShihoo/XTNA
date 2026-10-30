@@ -59,7 +59,7 @@ not implemented here.
 
 ## Verified baseline
 
-- `npm run test:fast`: 1137 test files passed, 9 skipped; 20,597 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
+- `npm run test:fast`: 1138 test files passed, 9 skipped; 20,598 tests passed, 430 skipped, 0 failed (Windows x64, Node v24.22.1).
 - `npm run typecheck`: passed.
 - `npm run docs:check`: passed.
 - `npm run verify:xtna`: 8/8 checks passed.
