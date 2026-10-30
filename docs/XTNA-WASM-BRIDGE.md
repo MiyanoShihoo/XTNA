@@ -63,9 +63,12 @@ undecoded: none
 | `undecodedFunctions` | functions where an unknown opcode (SIMD, atomics, future proposals) stopped the decoder |
 | `truncated`          | the 20,000-edge cap was hit                                                             |
 
-Operand skipping follows an explicit opcode table (core MVP plus sign-extension, bulk-memory and
-tail-call forms). A function is either fully decoded or reported undecoded — it is never guessed
-at. `call_indirect` targets stay unknown because they depend on the runtime table.
+Operand skipping follows an explicit opcode table (core MVP plus sign-extension, bulk-memory,
+tail-call and the standardized SIMD map, including memory, const/shuffle, lane and arithmetic
+immediates). A function is either fully decoded or reported undecoded with the opcode that
+stopped it (`undecodedAt`) — it is never guessed at. As a self-check, a decode that does not end
+exactly on the function's final `end` is reported undecoded rather than trusted. `call_indirect`
+targets stay unknown because they depend on the runtime table.
 
 ## Module discovery
 
@@ -92,7 +95,7 @@ silent omission.
   wrappers (bundler shims, `wasm-bindgen` internals) need a hand-written adapter.
 - The call graph is static structure: no reachability, no runtime table resolution, and no
   indirect target inference.
-- SIMD/atomic opcodes are not decoded; functions that use them are listed as undecoded rather
-  than partially decoded.
+- SIMD is decoded for the standardized opcode map; **atomics** (`0xFE`) and unassigned
+  subopcodes still stop a function as undecoded rather than being skipped blindly.
 - Directory scanning is local files only; it does not open APKs, ASAR archives or other
   containers — extract those first.

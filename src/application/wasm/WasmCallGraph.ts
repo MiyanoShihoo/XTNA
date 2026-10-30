@@ -21,6 +21,8 @@ export interface WasmFunctionFact {
   readonly callSites: number;
   /** True when an unknown opcode stopped decoding for this function. */
   readonly undecoded: boolean;
+  /** Opcode that stopped decoding, e.g. `0xfd/0x2d`; absent when decoded. */
+  readonly undecodedAt: string | undefined;
 }
 
 export interface WasmCallEdge {
@@ -192,7 +194,9 @@ type Operand =
   | "f32"
   | "f64"
   | "vec"
-  | "ref";
+  | "ref"
+  | "bytes16"
+  | "memarg_lane";
 
 const CORE_OPERANDS = new Map<number, Operand>([
   [0x00, "none"],
@@ -287,8 +291,33 @@ const skipOperand = (reader: Reader, operand: Operand): void => {
       if (type === 0x63 || type === 0x64) reader.sleb();
       return;
     }
+    case "bytes16":
+      reader.skip(16);
+      return;
+    case "memarg_lane":
+      reader.uleb();
+      reader.uleb();
+      reader.byte();
+      return;
   }
 };
+
+/**
+ * SIMD sub-opcodes whose immediates are unambiguous. Anything outside this table
+ * (including 0x2D and above) stops the function as undecoded; the body-length
+ * check below rejects a skip that landed on the wrong boundary.
+ */
+const PREFIX_FD: Record<number, Operand> = {};
+for (let sub = 0x00; sub <= 0x0b; sub += 1) PREFIX_FD[sub] = "memarg";
+PREFIX_FD[0x0c] = "bytes16";
+PREFIX_FD[0x0d] = "bytes16";
+for (let sub = 0x0e; sub <= 0x14; sub += 1) PREFIX_FD[sub] = "none";
+for (let sub = 0x15; sub <= 0x22; sub += 1) PREFIX_FD[sub] = "byte";
+for (let sub = 0x23; sub <= 0x53; sub += 1) PREFIX_FD[sub] = "none";
+for (let sub = 0x54; sub <= 0x5b; sub += 1) PREFIX_FD[sub] = "memarg_lane";
+PREFIX_FD[0x5c] = "memarg";
+PREFIX_FD[0x5d] = "memarg";
+for (let sub = 0x5e; sub <= 0xff; sub += 1) PREFIX_FD[sub] = "none";
 
 const PREFIX_FC: Record<number, Operand | "unknown"> = {
   0: "none",
@@ -314,6 +343,7 @@ const PREFIX_FC: Record<number, Operand | "unknown"> = {
 interface DecodedBody {
   readonly edges: readonly WasmCallEdge[];
   readonly undecoded: boolean;
+  readonly undecodedAt?: string;
 }
 
 const decodeBody = (
@@ -366,15 +396,43 @@ const decodeBody = (
       const sub = body.uleb();
       const operand = PREFIX_FC[sub];
       if (operand === undefined || operand === "unknown")
-        return { edges, undecoded: true };
+        return {
+          edges,
+          undecoded: true,
+          undecodedAt: `0xfc/${sub.toString(16)}`,
+        };
       skipOperand(body, operand);
       continue;
     }
-    if (opcode === 0xfd || opcode === 0xfe) return { edges, undecoded: true };
+    if (opcode === 0xfd) {
+      const sub = body.uleb();
+      const operand = PREFIX_FD[sub];
+      if (operand === undefined)
+        return {
+          edges,
+          undecoded: true,
+          undecodedAt: `0xfd/${sub.toString(16)}`,
+        };
+      skipOperand(body, operand);
+      continue;
+    }
+    if (opcode === 0xfe)
+      return {
+        edges,
+        undecoded: true,
+        undecodedAt: `0xfe/${body.uleb().toString(16)}`,
+      };
     const operand = CORE_OPERANDS.get(opcode);
-    if (operand === undefined) return { edges, undecoded: true };
+    if (operand === undefined)
+      return {
+        edges,
+        undecoded: true,
+        undecodedAt: `0x${opcode.toString(16)}`,
+      };
     skipOperand(body, operand);
   }
+  if (body.remaining !== 0)
+    return { edges, undecoded: true, undecodedAt: "body-length-mismatch" };
   return { edges, undecoded: false };
 };
 
@@ -466,6 +524,7 @@ export function readWasmCallGraph(
         imported: false,
         callSites: decoded.edges.length,
         undecoded: decoded.undecoded,
+        undecodedAt: decoded.undecodedAt,
       });
     }
   } catch (error) {

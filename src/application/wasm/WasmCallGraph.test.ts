@@ -80,13 +80,28 @@ describe("wasm call graph", () => {
     ]);
   });
 
+  it("decodes SIMD instructions with their immediates", () => {
+    const constV128 = [0xfd, 0x0c, ...new Array<number>(16).fill(0)];
+    const lane = [0xfd, 0x15, 0x00];
+    const bytes = moduleWithBodies([
+      body([...constV128, ...lane, 0x10, 0x01]),
+      body([]),
+    ]);
+    const graph = readWasmCallGraph(bytes);
+    expect(graph.ok).toBe(true);
+    if (!graph.ok) return;
+    expect(graph.value.undecodedFunctions).toEqual([]);
+    expect(graph.value.edges).toEqual([{ from: 0, to: 1, kind: "direct" }]);
+  });
+
   it("marks a function undecoded when an unknown opcode stops the decoder", () => {
-    const bytes = moduleWithBodies([body([0x10, 0x01, 0xfd, 0x00]), body([])]);
+    const bytes = moduleWithBodies([body([0x10, 0x01, 0xfe, 0x00]), body([])]);
     const graph = readWasmCallGraph(bytes);
     expect(graph.ok).toBe(true);
     if (!graph.ok) return;
     expect(graph.value.undecodedFunctions).toEqual([0]);
     expect(graph.value.functions[0]?.undecoded).toBe(true);
+    expect(graph.value.functions[0]?.undecodedAt).toBe("0xfe/0");
     expect(graph.value.edges).toHaveLength(1);
   });
 
@@ -113,5 +128,23 @@ describe("wasm call graph", () => {
       expect(edge.from).toBeGreaterThanOrEqual(0);
       expect(edge.to === null || edge.to >= 0).toBe(true);
     }
+  });
+});
+
+describe("simd coverage", () => {
+  it("fully decodes a SIMD-heavy real module", () => {
+    const path = join(
+      process.cwd(),
+      "node_modules",
+      "playwright-core",
+      "lib",
+      "webp_codec.wasm",
+    );
+    const graph = readWasmCallGraph(readFileSync(path));
+    expect(graph.ok).toBe(true);
+    if (!graph.ok) return;
+    expect(graph.value.functions.length).toBeGreaterThan(600);
+    expect(graph.value.undecodedFunctions).toEqual([]);
+    expect(graph.value.edges.length).toBeGreaterThan(2_000);
   });
 });
