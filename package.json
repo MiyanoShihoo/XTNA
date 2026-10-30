@@ -343,6 +343,7 @@
     "trace:causal": "node scripts/causal-trace.mjs",
     "wasm:link": "node scripts/wasm-link.mjs",
     "wasm:calls": "node scripts/wasm-calls.mjs",
+    "wasm:scan": "node scripts/wasm-scan.mjs",
     "stability:smoke": "node scripts/stability-smoke.mjs",
     "diff:narrate": "node scripts/diff-narrate.mjs",
     "api:spec": "node scripts/api-spec.mjs",

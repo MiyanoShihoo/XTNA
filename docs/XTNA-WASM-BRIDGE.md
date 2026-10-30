@@ -67,6 +67,22 @@ Operand skipping follows an explicit opcode table (core MVP plus sign-extension,
 tail-call forms). A function is either fully decoded or reported undecoded — it is never guessed
 at. `call_indirect` targets stay unknown because they depend on the runtime table.
 
+## Module discovery
+
+`npm run wasm:scan -- --in <dir> [--json] [--max-files N]` walks a directory and parses every
+module it finds. Detection is by magic (`\0asm`), so a renamed or extension-less module is still
+found; non-wasm files are counted and skipped rather than reported as empty modules.
+
+```text
+wasm scan: ./dist
+modules: 2 (files examined 14, non-wasm 12)
+  ./dist/a.wasm  functions=67 edges=396 undecoded=0
+```
+
+The walk is bounded: 500 files, 16 MiB per module and eight directory levels by default. Hitting
+a bound sets `truncated` and names the limit; an unreadable file becomes a limitation row, not a
+silent omission.
+
 ## Limits
 
 - Static only: a call inside a `Function` built from a string, or an export reached through a
@@ -78,3 +94,5 @@ at. `call_indirect` targets stay unknown because they depend on the runtime tabl
   indirect target inference.
 - SIMD/atomic opcodes are not decoded; functions that use them are listed as undecoded rather
   than partially decoded.
+- Directory scanning is local files only; it does not open APKs, ASAR archives or other
+  containers — extract those first.
