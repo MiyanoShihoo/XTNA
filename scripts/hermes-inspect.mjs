@@ -68,7 +68,7 @@ const disassembly =
     : undefined;
 const ast =
   withAst && disassembly !== undefined && disassembly.ok
-    ? buildHermesAst(disassembly.value)
+    ? buildHermesAst(disassembly.value, bytes)
     : undefined;
 const report = {
   path,

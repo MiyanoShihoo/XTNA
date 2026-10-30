@@ -103,6 +103,16 @@ export type HermesStatement =
       readonly at: number;
     }
   | {
+      readonly kind: "switch";
+      readonly test: HermesExpression;
+      readonly cases: readonly {
+        readonly values: readonly number[];
+        readonly body: readonly HermesStatement[];
+      }[];
+      readonly defaultBody: readonly HermesStatement[];
+      readonly at: number;
+    }
+  | {
       readonly kind: "unknown";
       readonly reason: string;
       readonly at: number;
@@ -307,6 +317,24 @@ export function renderHermesStatement(
       ];
       for (const child of statement.body)
         lines.push(renderHermesStatement(child, indent + 1));
+      lines.push(`${pad}}`);
+      return lines.join("\n");
+    }
+    case "switch": {
+      const lines = [
+        `${pad}switch (${renderHermesExpression(statement.test)}) {`,
+      ];
+      for (const entry of statement.cases) {
+        for (const value of entry.values)
+          lines.push(`${pad}  case ${String(value)}:`);
+        for (const child of entry.body)
+          lines.push(renderHermesStatement(child, indent + 2));
+      }
+      if (statement.defaultBody.length > 0) {
+        lines.push(`${pad}  default:`);
+        for (const child of statement.defaultBody)
+          lines.push(renderHermesStatement(child, indent + 2));
+      }
       lines.push(`${pad}}`);
       return lines.join("\n");
     }
@@ -555,6 +583,7 @@ export function buildHermesFunctionAst(
     readonly decoded: boolean;
   },
   tables: HermesTables,
+  code?: { readonly bytes: Uint8Array },
 ): HermesFunctionAst {
   const limitations: string[] = [];
   if (!fn.decoded || fn.instructions.length === 0)
@@ -589,6 +618,66 @@ export function buildHermesFunctionAst(
     return state.values.get(register) ?? { kind: "register", register };
   };
 
+  const parseSwitch = (
+    instruction: HermesInstruction,
+    to: number,
+  ): HermesStatement | undefined => {
+    if (code === undefined) return undefined;
+    const view = new DataView(
+      code.bytes.buffer,
+      code.bytes.byteOffset,
+      code.bytes.byteLength,
+    );
+    const tableOffset = instruction.operands[1] ?? 0;
+    const minimum = instruction.operands[3] ?? 0;
+    const maximum = instruction.operands[4] ?? 0;
+    if (maximum < minimum || maximum - minimum > 255) return undefined;
+    const tableStart = Math.ceil((instruction.offset + tableOffset) / 4) * 4;
+    const groups = new Map<number, number[]>();
+    for (let value = minimum; value <= maximum; value += 1) {
+      const entry = tableStart + (value - minimum) * 4;
+      if (entry + 4 > code.bytes.length) return undefined;
+      const target = instruction.offset + view.getInt32(entry, true);
+      const existing = groups.get(target) ?? [];
+      existing.push(value);
+      groups.set(target, existing);
+    }
+    const defaultTarget = instruction.offset + (instruction.operands[2] ?? 0);
+    const parsedTargets = [...groups.keys()]
+      .map((offset) => ({ offset, index: offsetToIndex.get(offset) }))
+      .filter(
+        (entry): entry is { offset: number; index: number } =>
+          entry.index !== undefined,
+      );
+    if (parsedTargets.length === 0) return undefined;
+    const defaultIndex = offsetToIndex.get(defaultTarget);
+    const boundaries = new Map<number, number>(
+      parsedTargets.map((entry) => [entry.offset, entry.index]),
+    );
+    if (defaultIndex !== undefined && !boundaries.has(defaultTarget))
+      boundaries.set(defaultTarget, defaultIndex);
+    const ordered = [...boundaries.entries()]
+      .map(([offset, index]) => ({ offset, index }))
+      .sort((left, right) => left.index - right.index);
+    const cases = parsedTargets
+      .sort((left, right) => left.index - right.index)
+      .map((entry) => {
+        const next = ordered.find((candidate) => candidate.index > entry.index);
+        return {
+          values: groups.get(entry.offset) ?? [],
+          body: parseRange(entry.index, next?.index ?? to, 32),
+        };
+      });
+    return {
+      kind: "switch",
+      test: read(instruction.operands[0] ?? 0),
+      cases,
+      defaultBody:
+        defaultIndex === undefined ? [] : parseRange(defaultIndex, to, 32),
+      at: instruction.offset,
+    };
+  };
+
   const parseRange = (
     from: number,
     to: number,
@@ -608,6 +697,14 @@ export function buildHermesFunctionAst(
     while (index < to) {
       const instruction = instructions[index];
       if (instruction === undefined) break;
+      if (instruction.name === "SwitchImm") {
+        const statement = parseSwitch(instruction, to);
+        if (statement !== undefined) {
+          out.push(statement);
+          index += 1;
+          continue;
+        }
+      }
       if (isBranch(instruction)) {
         const target = targetIndex(instruction);
         if (target === undefined) {
@@ -833,9 +930,16 @@ const buildBlocks = (
 };
 
 /** Recover an AST for every decoded function in a disassembly. */
-export function buildHermesAst(disassembly: HermesDisassembly): HermesAst {
+export function buildHermesAst(
+  disassembly: HermesDisassembly,
+  bytes?: Uint8Array,
+): HermesAst {
   const functions = disassembly.functions.map((fn) =>
-    buildHermesFunctionAst(fn, disassembly.tables),
+    buildHermesFunctionAst(
+      fn,
+      disassembly.tables,
+      bytes === undefined ? undefined : { bytes },
+    ),
   );
   const unstructuredFunctions = functions
     .filter((fn) => !fn.structured)

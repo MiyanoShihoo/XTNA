@@ -49,6 +49,44 @@ export interface HermesDisassemblyError {
 
 const MAX_INSTRUCTIONS = 200_000;
 
+const JUMP_NAMES = [
+  "JLess",
+  "JNotLess",
+  "JLessN",
+  "JNotLessN",
+  "JLessEqual",
+  "JNotLessEqual",
+  "JLessEqualN",
+  "JNotLessEqualN",
+  "JGreater",
+  "JNotGreater",
+  "JGreaterN",
+  "JNotGreaterN",
+  "JGreaterEqual",
+  "JNotGreaterEqual",
+  "JGreaterEqualN",
+  "JNotGreaterEqualN",
+  "JEqual",
+  "JNotEqual",
+  "JStrictEqual",
+  "JStrictNotEqual",
+];
+
+/** Opcodes whose first operand is a relative branch target. */
+const BRANCH_NAMES: ReadonlySet<string> = new Set([
+  "Jmp",
+  "JmpLong",
+  "JmpTrue",
+  "JmpTrueLong",
+  "JmpFalse",
+  "JmpFalseLong",
+  "JmpUndefined",
+  "JmpUndefinedLong",
+  "SaveGenerator",
+  "SaveGeneratorLong",
+  ...JUMP_NAMES.flatMap((name) => [name, `${name}Long`]),
+]);
+
 /**
  * Read one operand. Branch targets and immediate integers are signed: a jump
  * offset is relative to the jump instruction and may point backwards.
@@ -162,7 +200,37 @@ export function disassembleHermes(
       }
       instructions.push({ offset: cursor, opcode, name: entry.name, operands });
       instructionBudget -= 1;
+      if (entry.name === "SwitchImm") {
+        const tableOffset = operands[1] ?? 0;
+        const minimum = operands[3] ?? 0;
+        const maximum = operands[4] ?? 0;
+        if (maximum < minimum) {
+          reason = "switch table bounds are inverted";
+          break;
+        }
+        const tableStart = Math.ceil((cursor + tableOffset) / 4) * 4;
+        const tableEnd = tableStart + (maximum - minimum + 1) * 4;
+        if (tableEnd > end) {
+          reason = "switch table runs past the function body";
+          break;
+        }
+        cursor = tableEnd;
+        continue;
+      }
       cursor = operandCursor;
+    }
+    if (reason === undefined && cursor === end) {
+      const boundaries = new Set(
+        instructions.map((instruction) => instruction.offset),
+      );
+      for (const instruction of instructions) {
+        if (!BRANCH_NAMES.has(instruction.name)) continue;
+        const target = instruction.offset + (instruction.operands[0] ?? 0);
+        if (target !== end && !boundaries.has(target)) {
+          reason = `branch target 0x${target.toString(16)} is not an instruction boundary`;
+          break;
+        }
+      }
     }
     const decoded = reason === undefined && cursor === end;
     functions.push({

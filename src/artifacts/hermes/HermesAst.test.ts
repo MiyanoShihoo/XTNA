@@ -96,9 +96,13 @@ const buildModule = (code: readonly number[]): Buffer => {
 };
 
 const astOf = (code: readonly number[]) => {
-  const result = disassembleHermes(buildModule(code));
+  const module = buildModule(code);
+  const result = disassembleHermes(module);
   if (!result.ok) throw new Error(result.error.message);
-  return { disassembly: result.value, ast: buildHermesAst(result.value) };
+  return {
+    disassembly: result.value,
+    ast: buildHermesAst(result.value, new Uint8Array(module)),
+  };
 };
 
 describe("hermes ast", () => {
@@ -198,5 +202,75 @@ describe("hermes ast", () => {
     expect(
       fn?.statements.map((statement) => renderHermesStatement(statement)),
     ).toEqual(["return 7;"]);
+  });
+});
+
+describe("hermes switch recovery", () => {
+  it("reads the dispatch table, groups case values and keeps the default arm", () => {
+    const table: number[] = [];
+    const pushInt32 = (value: number) => {
+      table.push(
+        value & 0xff,
+        (value >> 8) & 0xff,
+        (value >> 16) & 0xff,
+        (value >> 24) & 0xff,
+      );
+    };
+    pushInt32(26);
+    pushInt32(31);
+    const program = [
+      opcode("AsyncBreakCheck"),
+      opcode("SwitchImm"),
+      1,
+      18,
+      0,
+      0,
+      0,
+      36,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      ...table,
+      opcode("LoadConstUInt8"),
+      0,
+      10,
+      opcode("Ret"),
+      0,
+      opcode("LoadConstUInt8"),
+      0,
+      20,
+      opcode("Ret"),
+      0,
+      opcode("LoadConstUInt8"),
+      0,
+      30,
+      opcode("Ret"),
+      0,
+    ];
+    const { ast } = astOf(program);
+    const fn = ast.functions[0];
+    expect(fn?.structured).toBe(true);
+    const statement = fn?.statements.find((entry) => entry.kind === "switch");
+    expect(statement?.kind).toBe("switch");
+    if (statement?.kind !== "switch") return;
+    expect(statement.cases.map((entry) => entry.values)).toEqual([[0], [1]]);
+    expect(
+      statement.cases.map((entry) =>
+        entry.body.map((body) => renderHermesStatement(body)),
+      ),
+    ).toEqual([["return 10;"], ["return 20;"]]);
+    expect(
+      statement.defaultBody.map((body) => renderHermesStatement(body)),
+    ).toEqual(["return 30;"]);
+    expect(renderHermesStatement(statement)).toContain("case 0:");
+    expect(renderHermesStatement(statement)).toContain("default:");
   });
 });

@@ -83,6 +83,82 @@ describe("hermes disassembly", () => {
     expect(result.value.functions[0]?.reason).toContain("operands run past");
   });
 
+  it("refuses a branch that lands inside an instruction", () => {
+    const code = [
+      opcode("LoadConstTrue"),
+      1,
+      opcode("JmpFalse"),
+      1,
+      1,
+      opcode("Ret"),
+      0,
+    ];
+    const result = disassembleHermes(buildModule(code));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.decodedFunctions).toBe(0);
+    expect(result.value.functions[0]?.reason).toContain(
+      "is not an instruction boundary",
+    );
+  });
+
+  it("skips a switch jump table instead of decoding it as opcodes", () => {
+    const table = [26, 0, 0, 0, 31, 0, 0, 0];
+    const code = [
+      opcode("AsyncBreakCheck"),
+      opcode("SwitchImm"),
+      1,
+      18,
+      0,
+      0,
+      0,
+      36,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      ...table,
+      opcode("LoadConstUInt8"),
+      0,
+      10,
+      opcode("Ret"),
+      0,
+      opcode("LoadConstUInt8"),
+      0,
+      20,
+      opcode("Ret"),
+      0,
+      opcode("LoadConstUInt8"),
+      0,
+      30,
+      opcode("Ret"),
+      0,
+    ];
+    const result = disassembleHermes(buildModule(code));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const names = result.value.functions[0]?.instructions.map(
+      (entry) => entry.name,
+    );
+    expect(names).toEqual([
+      "AsyncBreakCheck",
+      "SwitchImm",
+      "LoadConstUInt8",
+      "Ret",
+      "LoadConstUInt8",
+      "Ret",
+      "LoadConstUInt8",
+      "Ret",
+    ]);
+  });
+
   it("refuses versions without an opcode table", () => {
     const result = disassembleHermes(buildModule([opcode("Ret"), 0], 96));
     expect(result.ok).toBe(false);

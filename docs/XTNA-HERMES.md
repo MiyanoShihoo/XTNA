@@ -60,6 +60,11 @@ code: 1/1 functions decoded
   global: PutById 0, 1, 1, 6
 ```
 
+A decoded body is additionally checked for **instruction-boundary alignment**: every branch target must
+land on the first byte of an instruction (or on the body end), and a `SwitchImm` jump table is skipped
+during linear decoding instead of being read as opcodes. A target inside an instruction marks the
+function undecoded — the boundary check no longer trusts "the loop consumed bytecodeSize bytes".
+
 Other bytecode versions are refused rather than decoded with the wrong opcode map.
 
 ## Structured AST (`--ast`, bytecode version 84)
@@ -73,6 +78,8 @@ Other bytecode versions are refused rather than decoded with the wrong opcode ma
   loads, `PutById`/`PutByVal` assignments, binary and unary operators, `Call2`–`Call4`, closures and
   returns become expression nodes. Any other opcode makes its destination an `unknown` expression
   that names the opcode, and unresolved reads stay `rN`.
+- **Switch.** A `SwitchImm` table is read with its 4-byte alignment, case values are grouped by target
+  and each arm is parsed from its target to the next arm; the default arm is parsed separately.
 
 ```text
 ast: 1/1 functions structured
@@ -91,8 +98,9 @@ Anything that does not match a known shape becomes an `unknown` statement and ma
 
 - **No try/catch recovery.** Hermes keeps exception handlers in a function-level table, not in the
   instruction stream; `Catch` is reported as an unmodelled control-flow statement.
-- **No `switch` recovery.** `SwitchImm` carries an unaligned jump table; it is reported as
-  unmodelled rather than decoded speculatively.
+- **`switch` bodies lose break/fallthrough.** Case values and their target blocks are recovered from
+  the `SwitchImm` table, but a case body is delimited by the next case target, so an explicit `break`
+  versus fallthrough is not distinguished.
 - **No cross-block data flow.** Register values are tracked inside straight-line runs; a value that
   crosses a branch renders as `rN`.
 - **No V8 startup snapshots.** A V8 snapshot has no stable magic to recognise; it is not parsed.
