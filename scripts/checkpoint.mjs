@@ -126,6 +126,36 @@ const create = async () => {
   );
 };
 
+const branch = async () => {
+  const parentId = valueOf("id") ?? fail("--id is required");
+  const name = valueOf("name");
+  if (name === undefined || name.trim().length === 0)
+    fail("--name is required");
+  const parent = await readManifest(parentId);
+  const checkpointId = id();
+  const target = checkpointDir(checkpointId);
+  await mkdir(target, { recursive: true });
+  for (const entry of [...parent.files, ...parent.overlays])
+    await copyFile(
+      join(checkpointDir(parentId), entry.stored),
+      join(target, entry.stored),
+    );
+  const manifest = {
+    ...parent,
+    id: checkpointId,
+    name,
+    parent_id: parentId,
+    branch: name,
+    created_at: new Date().toISOString(),
+  };
+  await writeFile(
+    join(target, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8",
+  );
+  process.stdout.write(`branched ${parentId} -> ${checkpointId} (${name})\n`);
+};
+
 const list = async () => {
   const entries = await readdir(root).catch(() => []);
   const rows = [];
@@ -140,6 +170,8 @@ const list = async () => {
       id: parsed.id,
       name: parsed.name,
       created_at: parsed.created_at,
+      parent_id: parsed.parent_id ?? null,
+      branch: parsed.branch ?? null,
       evidence: parsed.files.length,
       overlays: parsed.overlays.length,
     });
@@ -157,7 +189,7 @@ const list = async () => {
   }
   for (const row of rows)
     process.stdout.write(
-      `${row.id}  ${String(row.created_at)}  ${row.name}  evidence=${String(row.evidence)} overlays=${String(row.overlays)}\n`,
+      `${row.id}  ${String(row.created_at)}  ${row.name}${row.parent_id === null ? "" : `  parent=${String(row.parent_id)}`}  evidence=${String(row.evidence)} overlays=${String(row.overlays)}\n`,
     );
 };
 
@@ -221,6 +253,7 @@ const remove = async () => {
 const usage = `usage: node scripts/checkpoint.mjs <command> [options]
 
   create   --name <text> [--evidence <file>]... [--overlay-dir <dir>]...
+  branch   --id <cp_...> --name <text>
   list     [--json]
   show     --id <cp_...>
   restore  --id <cp_...> [--dest-dir <dir>] [--overlay-dir <dir>]
@@ -235,6 +268,7 @@ const main = async () => {
     return;
   }
   if (command === "create") return create();
+  if (command === "branch") return branch();
   if (command === "list") return list();
   if (command === "show") return show();
   if (command === "restore") return restore();

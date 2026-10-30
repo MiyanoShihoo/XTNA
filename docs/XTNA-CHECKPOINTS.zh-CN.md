@@ -11,6 +11,7 @@
 
 ```bash
 npm run checkpoint -- create --name "session-12" --evidence .verify/evidence.json --overlay-dir ~/.xtna/overlays
+npm run checkpoint -- branch --id cp_xxx --name "alternate-branch"
 npm run checkpoint -- list
 npm run checkpoint -- restore --id cp_xxx --dest-dir ./restored --overlay-dir ./restored/overlays
 npm run checkpoint -- show --id cp_xxx
@@ -33,5 +34,5 @@ npm run checkpoint -- delete --id cp_xxx
 ## 限制
 
 - 不做进程/容器状态快照,只到文件层
-- 暂无分支与 diff,每个检查点是独立快照
+- `branch` 会复制父检查点的文件并记录 `parent_id` 与 `branch`;暂无 diff 视图
 - 大证据包整体复制,磁盘占用随检查点数量增长

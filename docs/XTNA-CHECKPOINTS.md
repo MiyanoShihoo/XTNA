@@ -17,6 +17,7 @@ npm run checkpoint -- create --name "session-12" \
   --evidence .verify/evidence.json \
   --overlay-dir ~/.xtna/overlays
 
+npm run checkpoint -- branch --id cp_mvsd17ym_a7edb3 --name "alternate-branch"
 npm run checkpoint -- list
 npm run checkpoint -- list --json
 
@@ -30,12 +31,12 @@ npm run checkpoint -- delete --id cp_mvsd17ym_a7edb3
 
 ## What a checkpoint contains
 
-| Part            | Detail                                                        |
-| --------------- | ------------------------------------------------------------- |
-| `manifest.json` | schema, id, name, timestamp, and one entry per stored file    |
-| evidence copies | exact bytes, named `<n>-<original basename>`                  |
-| overlay copies  | exact bytes for every `*.json` in the given overlay directory |
-| hashes          | SHA-256 per file, verified on restore                         |
+| Part            | Detail                                                                        |
+| --------------- | ----------------------------------------------------------------------------- |
+| `manifest.json` | schema, id, name, parent/branch ids, timestamp, and one entry per stored file |
+| evidence copies | exact bytes, named `<n>-<original basename>`                                  |
+| overlay copies  | exact bytes for every `*.json` in the given overlay directory                 |
+| hashes          | SHA-256 per file, verified on restore                                         |
 
 ## Behaviour worth knowing
 
@@ -56,5 +57,6 @@ npm run checkpoint -- delete --id cp_mvsd17ym_a7edb3
 ## Limits
 
 - No process or container state: this is a file-level checkpoint.
-- No branching or diff yet; each checkpoint is a standalone snapshot.
+- `branch` clones the parent's stored files into a new checkpoint and records `parent_id` and
+  `branch`; there is no diff view yet.
 - Large evidence bundles are copied whole, so disk use grows with each checkpoint.
