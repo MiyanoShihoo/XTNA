@@ -1,5 +1,7 @@
 import { compareWasmInterfaces } from "../application/wasm/WasmInterfaceComparisonService.js";
+import { inspectWasmBridge } from "../application/wasm/WasmBridgeService.js";
 import { COMPARE_WASM_INTERFACES_CONTRACT } from "../contracts/wasm/wasmComparisonContracts.js";
+import { WASM_BRIDGE_CONTRACT } from "../contracts/wasm/wasmBridgeContracts.js";
 import { resolvePairedEvidenceRequest } from "../application/EvidenceInputResolver.js";
 import { recordEvidenceSources } from "../application/investigation/recordEvidenceSources.js";
 import type { EvidenceMcpServer } from "./EvidenceMcpServer.js";
@@ -61,6 +63,18 @@ export const registerWasmTools = (
     comparison.name,
     toolRegistrationOptions(comparison),
     compareHandler(comparison),
+  );
+  const bridgeHandler = createEvidenceToolHandler(
+    server,
+    (input, options) => inspectWasmBridge(input, options),
+    logger,
+    recordEvidence,
+    withAdmittedAnalysis,
+  )(WASM_BRIDGE_CONTRACT);
+  server.registerTool(
+    WASM_BRIDGE_CONTRACT.name,
+    toolRegistrationOptions(WASM_BRIDGE_CONTRACT),
+    bridgeHandler,
   );
   const contract = wasmArtifactModule.contract;
   const handler = createRetainedSummaryToolHandler(

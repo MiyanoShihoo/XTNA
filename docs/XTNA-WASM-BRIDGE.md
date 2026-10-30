@@ -1,7 +1,7 @@
 # Wasm ↔ JavaScript bridge
 
-`npm run wasm:link -- --wasm module.wasm --js glue.js` links a WebAssembly module to the
-JavaScript that instantiates it, in both directions.
+`npm run wasm:link -- --wasm module.wasm --js glue.js` and the MCP tool `wasm_bridge`
+link a WebAssembly module to the JavaScript that instantiates it, in both directions.
 
 ## Why
 
@@ -36,7 +36,9 @@ length. Nothing is instantiated, compiled, or executed.
 | `unusedExports`     | exports nothing in this glue reaches                           |
 | `instantiationLine` | where the import object is handed to `WebAssembly.instantiate` |
 
-`--json` returns the full structure plus the raw import/export tables.
+`--json` returns the full structure plus the raw import/export tables. The MCP tool
+`wasm_bridge` accepts `wasm_path` and `js_path` and returns the same facts as authenticated
+Evidence, with the exact file digests and explicit static-only limitations.
 
 ## Limits
 

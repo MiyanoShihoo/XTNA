@@ -1,4 +1,5 @@
 import { COMPARE_WASM_INTERFACES_CONTRACT } from "./wasmComparisonContracts.js";
+import { WASM_BRIDGE_CONTRACT } from "./wasmBridgeContracts.js";
 import {
   inspectWasmArtifactInputSchema,
   wasmArtifactSchema,
@@ -45,4 +46,5 @@ export const INSPECT_WASM_ARTIFACT_CONTRACT = {
 export const WASM_TOOL_CONTRACTS = [
   INSPECT_WASM_ARTIFACT_CONTRACT,
   COMPARE_WASM_INTERFACES_CONTRACT,
+  WASM_BRIDGE_CONTRACT,
 ] as const;
