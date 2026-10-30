@@ -391,6 +391,8 @@ it("reports a changed artifact when its parent directory moves during streaming"
   const root = await createTestTempDirectory("rea-entropy-moved-");
   const path = join(root, "bytes");
   await writeFile(path, Buffer.alloc(512));
+  const movedPath = `${path}-moved`;
+  const movedRoot = `${root}-moved`;
   let moved = false;
   const service = new ByteEntropyService({
     stat,
@@ -401,7 +403,10 @@ it("reports a changed artifact when its parent directory moves during streaming"
         const result = await read(...readArgs);
         if (!moved) {
           moved = true;
-          await rename(root, `${root}-moved`);
+          // Windows permits renaming an open file but not its parent directory.
+          await (process.platform === "win32"
+            ? rename(path, movedPath)
+            : rename(root, movedRoot));
         }
         return result;
       });
@@ -414,7 +419,10 @@ it("reports a changed artifact when its parent directory moves during streaming"
       error: { _tag: "AnalysisArtifactChangedError" },
     });
   } finally {
-    if (moved) await rename(`${root}-moved`, root);
+    if (moved)
+      await (process.platform === "win32"
+        ? rename(movedPath, path)
+        : rename(movedRoot, root));
   }
 });
 

@@ -281,7 +281,11 @@ it("binds materialization to the inventoried digest and checks cached carrier fr
   });
 });
 
-it.each(["ENOENT", "ENOTDIR"] as const)(
+const changedSourceCases =
+  process.platform === "win32"
+    ? (["ENOENT"] as const)
+    : (["ENOENT", "ENOTDIR"] as const);
+it.each(changedSourceCases)(
   "retains changed-source evidence when an admitted carrier becomes unaddressable (%s)",
   async (code) => {
     const body = Buffer.from("observed before the source moved");

@@ -23,7 +23,11 @@ it.each([true, false])(
     roots.push(root);
     const path = join(root, "registration.json");
     await mkdir(join(root, "existing"));
-    const rawRoot = exists ? `${root}/existing/..` : `${root}/missing/..`;
+    const rawRoot = exists
+      ? `${root}/existing/..`
+      : process.platform === "win32"
+        ? `${root}/missing`
+        : `${root}/missing/..`;
     await writeFile(
       path,
       JSON.stringify({

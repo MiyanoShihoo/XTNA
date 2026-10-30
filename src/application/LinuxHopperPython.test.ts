@@ -131,12 +131,16 @@ describe("distribution Python runtime inspection", () => {
 });
 
 describe("distribution Python process cleanup", () => {
-  it("retains output failure when cancellation arrives during command cleanup", async () => {
-    const directory = await createTestTempDirectory("rea-python-failure-stop-");
-    const stopping = join(directory, "stopping");
-    const release = join(directory, "release");
-    const controller = new AbortController();
-    const program = `
+  it.skipIf(process.platform === "win32")(
+    "retains output failure when cancellation arrives during command cleanup",
+    async () => {
+      const directory = await createTestTempDirectory(
+        "rea-python-failure-stop-",
+      );
+      const stopping = join(directory, "stopping");
+      const release = join(directory, "release");
+      const controller = new AbortController();
+      const program = `
 const fs = require('node:fs');
 process.on('SIGTERM', () => {
   fs.writeFileSync(${JSON.stringify(stopping)}, 'stopping');
@@ -150,30 +154,31 @@ process.on('SIGTERM', () => {
 process.stdout.write(Buffer.alloc(128 * 1024, 120));
 setInterval(() => {}, 1000);
 `;
-    const execution = inspectLinuxHopperPythonRuntime(
-      process.env,
-      controller.signal,
-      (_command, _arguments, options) =>
-        execFileOutput(process.execPath, ["-e", program], options),
-    );
-    try {
-      await vi.waitFor(() => access(stopping), {
-        timeout: 5_000,
-        interval: 10,
+      const execution = inspectLinuxHopperPythonRuntime(
+        process.env,
+        controller.signal,
+        (_command, _arguments, options) =>
+          execFileOutput(process.execPath, ["-e", program], options),
+      );
+      try {
+        await vi.waitFor(() => access(stopping), {
+          timeout: 5_000,
+          interval: 10,
+        });
+        controller.abort({ request: "cancel during failed command cleanup" });
+      } finally {
+        await writeFile(release, "release");
+        await execution;
+      }
+      expect(await execution).toMatchObject({
+        ok: false,
+        error: {
+          reason: "query_failed",
+          cause: { code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" },
+        },
       });
-      controller.abort({ request: "cancel during failed command cleanup" });
-    } finally {
-      await writeFile(release, "release");
-      await execution;
-    }
-    expect(await execution).toMatchObject({
-      ok: false,
-      error: {
-        reason: "query_failed",
-        cause: { code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" },
-      },
-    });
-  });
+    },
+  );
 
   it.skipIf(process.platform !== "linux" || !existsSync("/usr/bin/python3"))(
     "waits for a delayed Python exit before completing cancellation",

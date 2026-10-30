@@ -196,7 +196,12 @@ it("preserves the exact abort reason before external mutation admission", async 
 it("drains session calls and retires analysis after an admitted external mutation", async () => {
   const [target] = await createBinarySessionTargets();
   const alias = join(dirname(target), "first-alias.hop");
-  await symlink(target, alias);
+  try {
+    await symlink(target, alias);
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code !== "EPERM") throw cause;
+    await link(target, alias);
+  }
   const calls: string[] = [];
   const clients: { closed: number; targetSha256: string }[] = [];
   const base = createCacheProvider(calls);

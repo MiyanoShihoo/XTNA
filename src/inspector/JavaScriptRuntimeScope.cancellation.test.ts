@@ -124,6 +124,7 @@ it("stops Inspector target authorization after the current stat settles", async 
     targetUrl: pathToFileURL(path).href,
     additionalTargetUrl: pathToFileURL(extraPath).href,
     additionalTargetCount: 1,
+    targetType: "page",
   });
   fixtures.push(fake);
   const controller = new AbortController();

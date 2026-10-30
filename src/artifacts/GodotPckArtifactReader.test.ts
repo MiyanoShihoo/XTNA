@@ -307,15 +307,14 @@ describe("GodotPckArtifactReader member streams", () => {
           descriptor,
         ).godotPck();
         if (location === undefined) throw new Error("expected a pack location");
-        // Replace the selected directory without changing the admitted inode's
-        // metadata. Moving the file itself would change its validated ctime.
-        await rename(selected, join(root, "original"));
-        await mkdir(selected);
+        // Point the reader at a different path without changing the admitted
+        // inode's metadata. Reopening that path would read the wrong pack.
+        const replacement = join(root, "replacement");
         await writeFile(
-          path,
+          replacement,
           buildGodotPck(3, [{ path: "other.gd", data: "" }]),
         );
-        const reader = new GodotPckArtifactReader(path, {
+        const reader = new GodotPckArtifactReader(replacement, {
           kind: "godot-pck",
           source: descriptor,
           location,
