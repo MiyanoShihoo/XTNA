@@ -48,8 +48,19 @@ it("reads a byte limit and the unlimited token", () => {
   expect(parseLinuxCgroupMemoryMax("3g\n")).toBeUndefined();
 });
 
+/**
+ * Encode a mountinfo field the way the kernel does for whitespace. Backslashes
+ * stay literal here: the fixture embeds a Windows path, and rewriting them
+ * would also re-escape deliberate `\040` sequences used by the mount tests.
+ */
+const mountInfoField = (value: string): string =>
+  value
+    .replace(/ /gu, "\\040")
+    .replace(/\t/gu, "\\011")
+    .replace(/\n/gu, "\\012");
+
 const mountInfoRow = (root: string, mountPoint: string, type = "cgroup2") =>
-  `35 24 0:30 ${root} ${mountPoint} rw,nosuid,nodev,noexec,relatime shared:9 - ${type} cgroup2 rw,nsdelegate`;
+  `35 24 0:30 ${mountInfoField(root)} ${mountInfoField(mountPoint)} rw,nosuid,nodev,noexec,relatime shared:9 - ${type} cgroup2 rw,nsdelegate`;
 
 it("lists cgroup2 mounts and decodes escaped paths", () => {
   const mounts = parseLinuxCgroup2Mounts(

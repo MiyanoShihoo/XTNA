@@ -234,7 +234,7 @@ const environmentName = (
 };
 
 /** A path as one shell word; a Windows drive path needs no quoting when it has no spaces. */
-const shellWord = (path: string): string =>
+export const shellWord = (path: string): string =>
   /^(?:[\w./@%+=:,-]+|[A-Za-z]:[\\/][^'"\s]*)$/u.test(path)
     ? path
     : `'${path.replaceAll("'", "'\\''")}'`;

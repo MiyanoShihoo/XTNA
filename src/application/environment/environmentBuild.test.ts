@@ -35,6 +35,7 @@ import {
   buildEnvironment,
   canonicalTemplateRules,
   classifyBuildCapture,
+  shellWord,
   type EnvironmentBuildInput,
 } from "./environmentBuild.js";
 import {
@@ -192,7 +193,7 @@ describe("buildEnvironment", () => {
       package_source: reference.exported.package_source,
       files: reference.exported.files,
       warnings: [],
-      next: [`agent-env run ${input.directory!}`],
+      next: [`agent-env run ${shellWord(input.directory!)}`],
     });
   });
 
@@ -465,7 +466,7 @@ describe("buildEnvironment cancellation and input checks", () => {
     );
     if (!built.ok) throw built.error;
     expect(built.value.next).toEqual([
-      `agent-env run '${join(root, "my bundle")}'`,
+      `agent-env run ${shellWord(join(root, "my bundle"))}`,
     ]);
   });
 });
