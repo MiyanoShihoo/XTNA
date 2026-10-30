@@ -18,12 +18,12 @@ const evidencePath = flag("evidence");
 const format = flag("format") ?? "markdown";
 if (evidencePath === undefined) {
   process.stderr.write(
-    "usage: node scripts/dossier.mjs --evidence <bundle.json> [--overlay <binary>] [--out report.md|report.html] [--format markdown|html] [--title text]\n",
+    "usage: node scripts/dossier.mjs --evidence <bundle.json> [--overlay <binary>] [--api-spec <openapi.json>] [--out report.md|report.html|report.pdf] [--format markdown|html|pdf] [--title text]\n",
   );
   process.exit(2);
 }
-if (!["markdown", "html"].includes(format)) {
-  process.stderr.write("--format must be markdown or html\n");
+if (!["markdown", "html", "pdf"].includes(format)) {
+  process.stderr.write("--format must be markdown, html or pdf\n");
   process.exit(2);
 }
 
@@ -213,6 +213,80 @@ if (overlayBinary !== undefined) {
   }
 }
 
+const apiSpecPath = flag("api-spec");
+if (apiSpecPath !== undefined) {
+  const spec = JSON.parse(await readFile(resolve(apiSpecPath), "utf8"));
+  const operations = [];
+  for (const [path, item] of Object.entries(spec.paths ?? {})) {
+    if (item === null || typeof item !== "object") continue;
+    for (const [method, operation] of Object.entries(item)) {
+      if (operation === null || typeof operation !== "object") continue;
+      if (
+        !["get", "put", "post", "delete", "patch", "head", "options"].includes(
+          method,
+        )
+      )
+        continue;
+      const parameters = [
+        ...(item.parameters ?? []),
+        ...(operation.parameters ?? []),
+      ]
+        .map((parameter) => parameter?.name ?? parameter?.$ref ?? "?")
+        .join(", ");
+      operations.push({
+        method: method.toUpperCase(),
+        path,
+        operationId: operation.operationId ?? "—",
+        parameters: parameters.length === 0 ? "—" : parameters,
+        responses: Object.keys(operation.responses ?? {}).join(", ") || "—",
+      });
+    }
+  }
+  operations.sort(
+    (left, right) =>
+      left.path.localeCompare(right.path) ||
+      left.method.localeCompare(right.method),
+  );
+  lines.push("## Interface dictionary", "");
+  if (operations.length === 0)
+    lines.push("The supplied OpenAPI document declares no operations.", "");
+  else {
+    lines.push(
+      "| Method | Path | Operation | Parameters | Responses |",
+      "| --- | --- | --- | --- | --- |",
+    );
+    for (const operation of operations.slice(0, 200))
+      lines.push(
+        `| ${operation.method} | \`${operation.path}\` | ${operation.operationId} | ${operation.parameters} | ${operation.responses} |`,
+      );
+    lines.push("");
+  }
+}
+
+lines.push("## Remediation suggestions", "");
+const remediation = [];
+for (const unknown of unknowns)
+  for (const probe of unknown.recommended_probes ?? [])
+    if (probe !== null && typeof probe === "object")
+      remediation.push({
+        question: String(unknown.question ?? "—"),
+        probe: String(probe.operation ?? "—"),
+        rationale: String(probe.rationale ?? "—"),
+      });
+if (remediation.length === 0)
+  lines.push(
+    "The bundle records no suggested probes. Limitations above state what is unverified; add probes to the unknown records to populate this section.",
+    "",
+  );
+else {
+  lines.push("| Unknown | Suggested probe | Why |", "| --- | --- | --- |");
+  for (const item of remediation.slice(0, 100))
+    lines.push(
+      `| ${item.question.replaceAll("|", "\\|")} | \`${item.probe}\` | ${item.rationale.replaceAll("|", "\\|")} |`,
+    );
+  lines.push("");
+}
+
 lines.push("## Reproduction", "");
 lines.push("```bash");
 lines.push(`git clone https://github.com/MiyanoShihoo/XTNA.git`);
@@ -338,10 +412,120 @@ ${markdownToHtml(markdown)}
 </html>
 `;
 
+const pdfEscape = (value) =>
+  value
+    .replace(/\\/gu, "\\\\")
+    .replace(/\(/gu, "\\(")
+    .replace(/\)/gu, "\\)")
+    .replace(/[^\x20-\x7e]/gu, "?");
+
+const wrapPdfLine = (line, width = 95) => {
+  if (line.length === 0) return [""];
+  const rows = [];
+  let current = "";
+  for (const word of line.split(" ")) {
+    const candidate = current.length === 0 ? word : current + " " + word;
+    if (candidate.length > width && current.length > 0) {
+      rows.push(current);
+      current = word;
+    } else current = candidate;
+  }
+  rows.push(current);
+  return rows;
+};
+
+const plainDossierLines = (markdown) => {
+  const out = [];
+  const source = markdown.split("\n");
+  for (let index = 0; index < source.length; index += 1) {
+    const line = source[index] ?? "";
+    if (line.startsWith("```")) {
+      for (
+        index += 1;
+        index < source.length && source[index] !== "```";
+        index += 1
+      );
+      continue;
+    }
+    if (line.trim().length === 0) {
+      out.push("");
+      continue;
+    }
+    let text = line
+      .replace(/^#+\s*/u, "")
+      .replace(/`/gu, "")
+      .replace(/^\|\s*/u, "")
+      .replace(/\s*\|$/u, "")
+      .replace(/\s*\|\s*/gu, " | ");
+    if (text.startsWith("- ")) text = "- " + text.slice(2);
+    out.push(text);
+  }
+  return out;
+};
+
+/** Minimal text-only PDF 1.4 writer: Helvetica, A4, 52 lines per page. */
+const buildPdf = (documentTitle, bodyLines) => {
+  const wrapped = [documentTitle, "", ...bodyLines].flatMap((line) =>
+    wrapPdfLine(line),
+  );
+  const perPage = 52;
+  const pages = [];
+  for (let index = 0; index < wrapped.length; index += perPage)
+    pages.push(wrapped.slice(index, index + perPage));
+  if (pages.length === 0) pages.push([""]);
+  const firstPageId = 4;
+  const objects = [];
+  objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+  objects[2] = `<< /Type /Pages /Kids [${pages
+    .map((_page, index) => `${String(firstPageId + index * 2)} 0 R`)
+    .join(" ")}] /Count ${String(pages.length)} >>`;
+  objects[3] =
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+  pages.forEach((pageLines, index) => {
+    const pageId = firstPageId + index * 2;
+    const contentId = pageId + 1;
+    objects[pageId] =
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${String(contentId)} 0 R >>`;
+    const content = [
+      "BT",
+      "/F1 10 Tf",
+      "14 TL",
+      "50 800 Td",
+      ...pageLines.flatMap((line) => [`(${pdfEscape(line)}) Tj`, "T*"]),
+      "ET",
+    ].join("\n");
+    objects[contentId] =
+      `<< /Length ${String(Buffer.byteLength(content, "latin1"))} >>\nstream\n${content}\nendstream`;
+  });
+  let pdf = "%PDF-1.4\n";
+  const offsets = [];
+  for (let id = 1; id < objects.length; id += 1) {
+    offsets[id] = Buffer.byteLength(pdf, "latin1");
+    pdf += `${String(id)} 0 obj\n${objects[id]}\nendobj\n`;
+  }
+  const xrefOffset = Buffer.byteLength(pdf, "latin1");
+  let xref = `xref\n0 ${String(objects.length)}\n0000000000 65535 f \n`;
+  for (let id = 1; id < objects.length; id += 1)
+    xref += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
+  pdf +=
+    xref +
+    `trailer\n<< /Size ${String(objects.length)} /Root 1 0 R >>\nstartxref\n${String(xrefOffset)}\n%%EOF\n`;
+  return Buffer.from(pdf, "latin1");
+};
+
 const markdown = `${lines.join("\n")}\n`;
-const rendered = format === "html" ? renderHtml(markdown) : markdown;
+if (format === "pdf" && outPath === undefined) {
+  process.stderr.write("--format pdf requires --out <report.pdf>\n");
+  process.exit(2);
+}
+const rendered =
+  format === "html"
+    ? renderHtml(markdown)
+    : format === "pdf"
+      ? buildPdf(title, plainDossierLines(markdown))
+      : markdown;
 if (outPath === undefined) process.stdout.write(rendered);
 else {
-  await writeFile(resolve(outPath), rendered, "utf8");
+  await writeFile(resolve(outPath), rendered);
   process.stderr.write(`dossier written to ${String(outPath)}\n`);
 }

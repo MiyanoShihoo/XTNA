@@ -36,6 +36,9 @@ const bundle = {
       severity: "medium",
       status: "open",
       question: "Which caller reaches this function?",
+      recommended_probes: [
+        { operation: "trace_call_path", rationale: "walk callers" },
+      ],
     },
   ],
 };
@@ -77,6 +80,69 @@ it("emits Mermaid architecture and an HTML dossier", async () => {
     expect(rendered).toContain('<pre class="mermaid">');
     expect(rendered).toContain("<table>");
     expect(rendered).toContain("ghidra");
+  } finally {
+    await rm(root, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 20,
+    });
+  }
+});
+
+it("renders the interface dictionary, remediation and a text PDF", async () => {
+  const root = await mkdtemp(join(tmpdir(), "rea-dossier-pdf-"));
+  const evidence = join(root, "bundle.json");
+  const spec = join(root, "openapi.json");
+  const markdown = join(root, "report.md");
+  const pdf = join(root, "report.pdf");
+  await writeFile(evidence, JSON.stringify(bundle));
+  await writeFile(
+    spec,
+    JSON.stringify({
+      paths: {
+        "/users/{id}": {
+          get: {
+            operationId: "getUser",
+            parameters: [{ name: "id" }],
+            responses: { "200": {}, "404": {} },
+          },
+        },
+      },
+    }),
+  );
+  try {
+    await run(
+      process.execPath,
+      [
+        script,
+        "--evidence",
+        evidence,
+        "--api-spec",
+        spec,
+        "--format",
+        "markdown",
+        "--out",
+        markdown,
+      ],
+      { env: process.env },
+    );
+    const md = await readFile(markdown, "utf8");
+    expect(md).toContain("## Interface dictionary");
+    expect(md).toContain("| GET | `/users/{id}` | getUser |");
+    expect(md).toContain("## Remediation suggestions");
+    expect(md).toContain("trace_call_path");
+
+    await run(
+      process.execPath,
+      [script, "--evidence", evidence, "--format", "pdf", "--out", pdf],
+      { env: process.env },
+    );
+    const rendered = await readFile(pdf);
+    expect(rendered.subarray(0, 8).toString("latin1")).toBe("%PDF-1.4");
+    const text = rendered.toString("latin1");
+    expect(text).toContain("/Type /Page");
+    expect(text).toContain("%%EOF");
   } finally {
     await rm(root, {
       recursive: true,
