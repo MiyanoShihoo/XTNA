@@ -115,6 +115,22 @@ Boundary rules, all enforced before a request leaves the panel:
 The relay cannot open a binary: `open_binary` is deliberately not allowlisted, so a query only
 answers inside a session an agent or CLI already opened on that server.
 
+### Write and attach tools (default off)
+
+Session metadata and target attachment are reachable only when the operator names each tool:
+`--allow-write-tools set_comment,set_address_name`. The flag refuses to start on a tool that has
+no write or attach tier, and every such call takes two steps:
+
+1. `POST /api/query` answers `202 {status:"pending", requestId, expiresAt}` and prints one line to
+   the panel's terminal: `APPROVAL <id> tool=<tool> code=<six digits>`.
+2. The operator types that code into the page; the second `POST` carries
+   `confirm: {requestId, code}` and executes the call.
+
+A code is single-use, expires after 120 seconds, and is bound to the exact tool plus argument
+object, so a captured code cannot be replayed against a different query. At most eight approvals
+wait at once. Argument rules still apply, so tools that need a file, URL or shell command stay
+unusable whatever their tier. The query log records the tier of every call.
+
 ## Stability properties
 
 - Read-only by default: without `--annotations` the server never writes.

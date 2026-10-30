@@ -96,6 +96,7 @@ const startFakeMcp = async (): Promise<FakeMcp> => {
 interface Panel {
   readonly port: number;
   readonly child: ReturnType<typeof spawn>;
+  readonly stderrText: () => string;
 }
 
 const startPanel = (args: readonly string[]): Promise<Panel> =>
@@ -105,6 +106,10 @@ const startPanel = (args: readonly string[]): Promise<Panel> =>
       stdio: ["ignore", "pipe", "pipe"],
     });
     let buffer = "";
+    let errors = "";
+    child.stderr?.on("data", (chunk: Buffer) => {
+      errors += chunk.toString("utf8");
+    });
     const timer = setTimeout(() => {
       child.kill();
       reject(new Error(`panel did not start: ${buffer}`));
@@ -117,7 +122,7 @@ const startPanel = (args: readonly string[]): Promise<Panel> =>
       if (line === undefined) return;
       clearTimeout(timer);
       const parsed = JSON.parse(line) as { port: number };
-      resolve({ port: parsed.port, child });
+      resolve({ port: parsed.port, child, stderrText: () => errors });
     });
     child.on("error", reject);
   });
@@ -151,6 +156,7 @@ describe("panel query policy", () => {
       ok: true,
       tool: "analyze_function",
       args: { procedure: "0x140001008" },
+      tier: "read",
     });
   });
 
@@ -322,4 +328,118 @@ describe("panel without a relay", () => {
       await rm(root, { recursive: true, force: true, maxRetries: 5 });
     }
   }, 40_000);
+});
+
+const waitForApproval = async (
+  panel: Panel,
+): Promise<{ id: string; code: string }> => {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const matches = [
+      ...panel.stderrText().matchAll(/APPROVAL (\S+) tool=\S+ code=(\d{6})/gu),
+    ];
+    const match = matches.at(-1);
+    if (match !== undefined)
+      return { id: match[1] as string, code: match[2] as string };
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("approval line never appeared");
+};
+
+describe("write tools need an explicit flag and terminal approval", () => {
+  let fake: FakeMcp;
+  let panel: Panel;
+  let root: string;
+
+  beforeAll(async () => {
+    root = await mkdtemp(join(tmpdir(), "rea-panel-write-"));
+    const evidence = join(root, "bundle.json");
+    await writeFile(evidence, JSON.stringify(bundle));
+    fake = await startFakeMcp();
+    panel = await startPanel([
+      "--evidence",
+      evidence,
+      "--port",
+      "0",
+      "--mcp-url",
+      fake.url,
+      "--query-token",
+      TOKEN,
+      "--allow-write-tools",
+      "set_comment",
+    ]);
+  }, 40_000);
+
+  afterAll(async () => {
+    if (panel !== undefined) await stopPanel(panel);
+    if (fake !== undefined) await fake.close();
+    if (root !== undefined)
+      await rm(root, { recursive: true, force: true, maxRetries: 5 });
+  });
+
+  const post = (body: unknown) =>
+    fetch(`http://127.0.0.1:${String(panel.port)}/api/query`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-xtna-token": TOKEN },
+      body: JSON.stringify(body),
+    });
+
+  it("refuses a write tool that was not named on the command line", async () => {
+    const response = await post({
+      tool: "set_bookmark",
+      args: { address: "0x1" },
+    });
+    expect(response.status).toBe(400);
+    expect(fake.calls).toHaveLength(0);
+  });
+
+  it("parks an allowed write tool until the terminal code is entered", async () => {
+    const response = await post({
+      tool: "set_comment",
+      args: { address: "0x140001008", comment: "entry" },
+    });
+    expect(response.status).toBe(202);
+    const pending = (await response.json()) as {
+      status: string;
+      requestId: string;
+    };
+    expect(pending.status).toBe("pending");
+    expect(fake.calls).toHaveLength(0);
+    const approval = await waitForApproval(panel);
+    expect(approval.id).toBe(pending.requestId);
+
+    const wrong = await post({
+      tool: "set_comment",
+      args: { address: "0x140001008", comment: "entry" },
+      confirm: { requestId: pending.requestId, code: "000000" },
+    });
+    expect(wrong.status).toBe(403);
+    expect(fake.calls).toHaveLength(0);
+
+    const parked = await post({
+      tool: "set_comment",
+      args: { address: "0x140001008", comment: "entry" },
+    });
+    const second = (await parked.json()) as { requestId: string };
+    const secondApproval = await waitForApproval(panel);
+    expect(secondApproval.id).toBe(second.requestId);
+    const approved = await post({
+      tool: "set_comment",
+      args: { address: "0x140001008", comment: "entry" },
+      confirm: { requestId: second.requestId, code: secondApproval.code },
+    });
+    expect(approved.status).toBe(200);
+    expect(fake.calls).toEqual([
+      {
+        name: "set_comment",
+        args: { address: "0x140001008", comment: "entry" },
+      },
+    ]);
+
+    const replay = await post({
+      tool: "set_comment",
+      args: { address: "0x140001008", comment: "entry" },
+      confirm: { requestId: second.requestId, code: secondApproval.code },
+    });
+    expect(replay.status).toBe(403);
+  });
 });

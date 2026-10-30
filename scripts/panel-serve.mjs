@@ -9,7 +9,7 @@
  * lets a human mark a node for the agent to read back.
  */
 import { createServer } from "node:http";
-import { createHash } from "node:crypto";
+import { createHash, randomInt, randomUUID } from "node:crypto";
 import { watch } from "node:fs";
 import { appendFile, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -38,6 +38,7 @@ const queryToken = flag("query-token");
 const queryLogPath =
   flag("query-log") === undefined ? undefined : resolve(flag("query-log"));
 const requestedTools = flag("query-tools");
+const requestedWriteTools = flag("allow-write-tools");
 
 if ((mcpUrl === undefined) !== (queryToken === undefined)) {
   process.stderr.write(
@@ -46,9 +47,8 @@ if ((mcpUrl === undefined) !== (queryToken === undefined)) {
   process.exit(2);
 }
 
-const { DEFAULT_READ_ONLY_TOOLS, validatePanelQuery } = await import(
-  new URL("./lib/panel-query-policy.mjs", import.meta.url).href
-);
+const { DEFAULT_READ_ONLY_TOOLS, TOOL_TIERS, validatePanelQuery } =
+  await import(new URL("./lib/panel-query-policy.mjs", import.meta.url).href);
 const { createMcpHttpClient } = await import(
   new URL("./lib/mcp-http-client.mjs", import.meta.url).href
 );
@@ -60,6 +60,22 @@ const allowedTools =
         .split(",")
         .map((entry) => entry.trim())
         .filter((entry) => entry.length > 0);
+const allowWriteTools =
+  requestedWriteTools === undefined
+    ? []
+    : requestedWriteTools
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+for (const tool of allowWriteTools) {
+  if (TOOL_TIERS[tool] === undefined) {
+    process.stderr.write(
+      `--allow-write-tools names ${tool}, which is not a write or attach tool
+`,
+    );
+    process.exit(2);
+  }
+}
 const queryClient =
   mcpUrl === undefined ? undefined : createMcpHttpClient({ url: mcpUrl });
 if (queryClient !== undefined) {
@@ -152,6 +168,7 @@ const page = `<!doctype html>
     </select>
     <input id="query-arg" placeholder="address or symbol" size="26">
     <input id="query-token" type="password" placeholder="query token" size="18">
+    <input id="query-code" placeholder="approval code from terminal" size="12">
     <button id="run-query">Query</button>
     <span class="muted" id="query-status"></span>
     <pre id="query-result"></pre>
@@ -359,12 +376,21 @@ const loadQuery = async () => {
   try { info = await (await fetch("/api/query")).json(); } catch {}
   if (!info.enabled) return;
   queryBox.classList.remove("hidden");
+  const writable = info.writeTools ?? [];
   queryTool.innerHTML = info.tools
     .map((tool) => '<option value="' + esc(tool) + '">' + esc(tool) + "</option>")
+    .concat(
+      writable.map(
+        (tool) =>
+          '<option value="' + esc(tool) + '">' + esc(tool) + " (approval)</option>",
+      ),
+    )
     .join("");
 };
+let pendingQuery = null;
 document.getElementById("run-query").addEventListener("click", async () => {
   const token = document.getElementById("query-token").value;
+  const code = document.getElementById("query-code").value.trim();
   const tool = queryTool.value;
   const key = document.getElementById("query-key").value;
   const raw = document.getElementById("query-arg").value.trim();
@@ -373,13 +399,24 @@ document.getElementById("run-query").addEventListener("click", async () => {
   document.getElementById("query-result").textContent = "";
   const args = {};
   if (raw.length > 0) args[key] = raw;
+  const request = { tool, args };
+  if (pendingQuery !== null && pendingQuery.tool === tool && code.length > 0)
+    request.confirm = { requestId: pendingQuery.requestId, code };
   try {
     const response = await fetch("/api/query", {
       method: "POST",
       headers: { "content-type": "application/json", "x-xtna-token": token },
-      body: JSON.stringify({ tool, args }),
+      body: JSON.stringify(request),
     });
     const payload = await response.json();
+    if (response.status === 202) {
+      pendingQuery = { requestId: payload.requestId, tool };
+      status.textContent = "approve in the panel terminal, then enter the code";
+      document.getElementById("query-result").textContent = JSON.stringify(payload, null, 2);
+      return;
+    }
+    pendingQuery = null;
+    document.getElementById("query-code").value = "";
     status.textContent = response.ok ? "ok" : "rejected (" + response.status + ")";
     document.getElementById("query-result").textContent = JSON.stringify(
       response.ok ? payload.result : payload.error,
@@ -528,6 +565,40 @@ const admitQuery = () => {
   queryInFlight = true;
 };
 
+const APPROVAL_TTL_MS = 120_000;
+const MAX_PENDING_APPROVALS = 8;
+const pendingApprovals = new Map();
+
+const issueApproval = (tool, args) => {
+  if (pendingApprovals.size >= MAX_PENDING_APPROVALS)
+    throw rejectStatus(429, "too many pending approvals");
+  const id = randomUUID();
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const expiresAt = Date.now() + APPROVAL_TTL_MS;
+  pendingApprovals.set(id, { tool, args, code, expiresAt });
+  process.stderr.write(
+    `APPROVAL ${id} tool=${tool} code=${code} expiresIn=${String(APPROVAL_TTL_MS)}ms\n`,
+  );
+  return { requestId: id, expiresAt: new Date(expiresAt).toISOString() };
+};
+
+const consumeApproval = (confirm, tool, args) => {
+  const pending = pendingApprovals.get(confirm.requestId);
+  if (pending === undefined)
+    throw rejectStatus(403, "unknown or already used approval");
+  pendingApprovals.delete(confirm.requestId);
+  if (Date.now() > pending.expiresAt)
+    throw rejectStatus(403, "approval expired");
+  if (
+    pending.tool !== tool ||
+    JSON.stringify(pending.args) !== JSON.stringify(args)
+  )
+    throw rejectStatus(403, "approval does not match this query");
+  if (pending.code !== confirm.code)
+    throw rejectStatus(403, "wrong approval code");
+  return true;
+};
+
 const logQuery = async (record) => {
   if (queryLogPath === undefined) return;
   const size = await stat(queryLogPath).then(
@@ -601,7 +672,7 @@ const server = createServer(async (request, response) => {
           "content-type": "application/json; charset=utf-8",
         });
         response.end(
-          `${JSON.stringify({ enabled: true, tools: allowedTools })}\n`,
+          `${JSON.stringify({ enabled: true, tools: allowedTools, writeTools: allowWriteTools })}\n`,
         );
         return;
       }
@@ -614,16 +685,33 @@ const server = createServer(async (request, response) => {
         throw rejectStatus(401, "missing or invalid x-xtna-token");
       admitQuery();
       try {
-        const verdict = validatePanelQuery(await body(request), {
+        const payload = await body(request);
+        const verdict = validatePanelQuery(payload, {
           allowedTools,
+          allowWriteTools,
         });
         if (!verdict.ok) throw rejectStatus(400, verdict.reason);
+        if (verdict.tier !== "read") {
+          const confirm = payload?.confirm;
+          if (confirm === undefined || confirm === null) {
+            const pending = issueApproval(verdict.tool, verdict.args);
+            response.writeHead(202, {
+              "content-type": "application/json; charset=utf-8",
+            });
+            response.end(
+              `${JSON.stringify({ status: "pending", ...pending })}\n`,
+            );
+            return;
+          }
+          consumeApproval(confirm, verdict.tool, verdict.args);
+        }
         const startedAt = Date.now();
         try {
           const result = await queryClient.callTool(verdict.tool, verdict.args);
           await logQuery({
             at: new Date().toISOString(),
             tool: verdict.tool,
+            tier: verdict.tier,
             args: verdict.args,
             ok: true,
             elapsedMs: Date.now() - startedAt,
@@ -638,6 +726,7 @@ const server = createServer(async (request, response) => {
           await logQuery({
             at: new Date().toISOString(),
             tool: verdict.tool,
+            tier: verdict.tier,
             args: verdict.args,
             ok: false,
             error: String(error.message ?? error),
