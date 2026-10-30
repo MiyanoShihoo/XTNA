@@ -47,7 +47,7 @@ not implemented here.
 |  15 | Sub-agent orchestration             | planned                                     | No role contracts or shared-ledger worker registration; the bounded ReAct DAG scheduler is a prototype, not a sub-agent system                                             |
 |  16 | Live web investigation UI           | **partial** (live read-only)                | `npm run panel:serve`: loopback HTML + `/api/state` + SSE refresh over stored artefacts; no topology graph, waterfall, evidence cards or editing                           |
 |  17 | Investigation checkpoints           | **partial** (file-level)                    | scripts/checkpoint.mjs: hash-verified create/branch/restore of named Evidence/overlay files; no diff view, process or container state                                      |
-|  18 | Dossier exporter                    | **partial** (Markdown)                      | `scripts/dossier.mjs` emits Markdown from an Evidence bundle; no HTML/PDF, Mermaid diagrams, interface dictionary or remediation section                                   |
+|  18 | Dossier exporter                    | **partial** (Markdown + HTML)               | `scripts/dossier.mjs` emits Markdown or HTML with a Mermaid architecture projection and module matrix; no PDF, interface dictionary or remediation section                 |
 
 ## Agent architecture (Plan-and-Execute, sandbox tiers)
 

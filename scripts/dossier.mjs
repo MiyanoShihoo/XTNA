@@ -15,10 +15,15 @@ const flag = (name) => {
 };
 
 const evidencePath = flag("evidence");
+const format = flag("format") ?? "markdown";
 if (evidencePath === undefined) {
   process.stderr.write(
-    "usage: node scripts/dossier.mjs --evidence <bundle.json> [--overlay <binary>] [--out report.md] [--title text]\n",
+    "usage: node scripts/dossier.mjs --evidence <bundle.json> [--overlay <binary>] [--out report.md|report.html] [--format markdown|html] [--title text]\n",
   );
+  process.exit(2);
+}
+if (!["markdown", "html"].includes(format)) {
+  process.stderr.write("--format must be markdown or html\n");
   process.exit(2);
 }
 
@@ -58,6 +63,67 @@ else {
     lines.push(
       `| ${artifact.format ?? "unknown"} | ${artifact.architecture ?? "—"} | \`${artifact.digest?.sha256 ?? "—"}\` |`,
     );
+  lines.push("");
+}
+
+const diagramLabel = (value) =>
+  String(value ?? "unknown")
+    .replaceAll('"', "'")
+    .replaceAll("`", "'")
+    .replace(/\s+/gu, " ")
+    .slice(0, 120);
+lines.push("## Architecture", "");
+lines.push("```mermaid", "flowchart LR");
+const graphArtifacts = artifacts.slice(0, 8);
+const graphProviders = providers.slice(0, 8);
+const graphRecords = records.slice(0, 16);
+if (graphArtifacts.length === 0) lines.push(`  B["Evidence bundle"]`);
+else
+  for (const [index, artifact] of graphArtifacts.entries())
+    lines.push(
+      `  A${String(index)}["${diagramLabel(`${artifact.format ?? "unknown"} ${artifact.architecture ?? ""}`.trim())}"]`,
+    );
+if (graphProviders.length === 0) lines.push(`  P0["provider unknown"]`);
+else
+  for (const [index, provider] of graphProviders.entries())
+    lines.push(
+      `  P${String(index)}["${diagramLabel(`${provider.id ?? "unknown"}${provider.version ? ` v${provider.version}` : ""}`)}"]`,
+    );
+for (const [index, record] of graphRecords.entries())
+  lines.push(
+    `  R${String(index)}["${diagramLabel(record.operation ?? "record")}"]`,
+  );
+const providerIndex = new Map(
+  graphProviders.map((provider, index) => [provider.id ?? "unknown", index]),
+);
+for (let index = 0; index < Math.max(graphArtifacts.length, 1); index += 1)
+  lines.push(
+    `  ${graphArtifacts.length === 0 ? "B" : `A${String(index)}`} --> P0`,
+  );
+for (const [index, record] of graphRecords.entries()) {
+  const target = providerIndex.get(record.provider?.id ?? "unknown") ?? 0;
+  lines.push(`  P${String(target)} --> R${String(index)}`);
+}
+lines.push("```", "");
+
+lines.push("## Module responsibility matrix", "");
+if (records.length === 0)
+  lines.push("No provider operations are recorded.", "");
+else {
+  const modules = new Map();
+  for (const record of records) {
+    const operation = String(record.operation ?? "unknown");
+    const provider = String(record.provider?.id ?? "unknown");
+    const key = `${provider}\0${operation}`;
+    modules.set(key, (modules.get(key) ?? 0) + 1);
+  }
+  lines.push("| Provider | Operation | Records |", "| --- | --- | ---: |");
+  for (const [key, count] of [...modules].sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    const [provider, operation] = key.split("\0");
+    lines.push(`| ${provider} | ${operation} | ${String(count)} |`);
+  }
   lines.push("");
 }
 
@@ -156,9 +222,126 @@ lines.push(
 );
 lines.push("```", "");
 
+const escapeHtml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+const inlineHtml = (value) =>
+  escapeHtml(value).replaceAll(
+    /`([^`]+)`/gu,
+    (_match, code) => `<code>${code}</code>`,
+  );
+const tableCells = (line) =>
+  line
+    .trim()
+    .replace(/^\|/u, "")
+    .replace(/\|$/u, "")
+    .split("|")
+    .map((cell) => cell.trim());
+const isTable = (lines, index) =>
+  lines[index]?.startsWith("|") === true &&
+  /^\|[\s:|-]+\|$/u.test(lines[index + 1] ?? "");
+const markdownToHtml = (markdown) => {
+  const lines = markdown.split("\n");
+  const output = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    if (line.startsWith("```")) {
+      const language = line.slice(3).trim();
+      const body = [];
+      for (index += 1; index < lines.length; index += 1) {
+        if (lines[index] === "```") break;
+        body.push(lines[index] ?? "");
+      }
+      output.push(
+        language === "mermaid"
+          ? `<pre class="mermaid">${escapeHtml(body.join("\n"))}</pre>`
+          : `<pre><code class="language-${escapeHtml(language)}">${escapeHtml(body.join("\n"))}</code></pre>`,
+      );
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      output.push(`<h2>${inlineHtml(line.slice(3))}</h2>`);
+      continue;
+    }
+    if (line.startsWith("# ")) {
+      output.push(`<h1>${inlineHtml(line.slice(2))}</h1>`);
+      continue;
+    }
+    if (isTable(lines, index)) {
+      const headers = tableCells(line);
+      index += 2;
+      const rows = [];
+      for (; index < lines.length && lines[index]?.startsWith("|"); index += 1)
+        rows.push(tableCells(lines[index]));
+      output.push(
+        `<table><thead><tr>${headers.map((cell) => `<th>${inlineHtml(cell)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${inlineHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>`,
+      );
+      index -= 1;
+      continue;
+    }
+    if (line.startsWith("- ")) {
+      const items = [];
+      for (; index < lines.length && lines[index]?.startsWith("- "); index += 1)
+        items.push(lines[index].slice(2));
+      output.push(
+        `<ul>${items.map((item) => `<li>${inlineHtml(item)}</li>`).join("")}</ul>`,
+      );
+      index -= 1;
+      continue;
+    }
+    if (line.trim().length === 0) continue;
+    const paragraph = [line];
+    for (
+      index += 1;
+      index < lines.length &&
+      lines[index]?.trim().length > 0 &&
+      !lines[index]?.startsWith("#") &&
+      !lines[index]?.startsWith("|") &&
+      !lines[index]?.startsWith("- ") &&
+      !lines[index]?.startsWith("```");
+      index += 1
+    )
+      paragraph.push(lines[index] ?? "");
+    output.push(`<p>${inlineHtml(paragraph.join(" "))}</p>`);
+    index -= 1;
+  }
+  return output.join("\n");
+};
+const renderHtml = (markdown) => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body { font: 15px/1.55 system-ui, sans-serif; margin: 2rem auto; max-width: 72rem; padding: 0 1.25rem; color: #1f2328; }
+    h1, h2 { line-height: 1.25; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #d0d7de; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+    code, pre { background: #f6f8fa; border-radius: 6px; }
+    code { padding: .1rem .3rem; }
+    pre { padding: .8rem; overflow: auto; }
+    .mermaid { background: transparent; }
+  </style>
+</head>
+<body>
+${markdownToHtml(markdown)}
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+</body>
+</html>
+`;
+
 const markdown = `${lines.join("\n")}\n`;
-if (outPath === undefined) process.stdout.write(markdown);
+const rendered = format === "html" ? renderHtml(markdown) : markdown;
+if (outPath === undefined) process.stdout.write(rendered);
 else {
-  await writeFile(resolve(outPath), markdown, "utf8");
+  await writeFile(resolve(outPath), rendered, "utf8");
   process.stderr.write(`dossier written to ${String(outPath)}\n`);
 }
