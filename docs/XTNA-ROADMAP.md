@@ -65,7 +65,7 @@ not implemented here.
 - `npm run docs:check`: passed.
 - `npm run verify:xtna`: 8/8 checks passed.
 - `npm run test:local` focused lifecycle: `SourceMapCommand.test.ts` 11/11 and `WebBundleAnalysisWorker.test.ts` 25/25.
-- Real Ghidra verification was not rerun in this pass; the prior handoff records Ghidra 12.2 / 388 functions.
+- Real Ghidra verification (2026-10-30): Ghidra 12.2 headless on `C:\Windows\System32\notepad.exe` (SHA-256 `49f096cb…`) reported 915 procedures / 635 strings; `decompile 0x140001008` returned real pseudocode (`FUN_140001008`, ETW write transfer).
 
 ## Sequencing used here
 
