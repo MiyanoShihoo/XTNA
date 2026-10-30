@@ -41,6 +41,10 @@ export interface HeapSummaryRow {
   readonly largestSize: number;
 }
 
+export interface HeapRetainedNode extends HeapNode {
+  readonly retainedSize: number;
+}
+
 export interface HeapSummaryOptions {
   /** Only rows with at least this many instances. Defaults to 2. */
   readonly minCount?: number;
@@ -212,4 +216,159 @@ export function incomingReferenceCounts(
     counts.set(ordinal, (counts.get(ordinal) ?? 0) + 1);
   }
   return counts;
+}
+
+const MAX_DOMINATOR_NODES = 500_000;
+
+const reachableGraph = (
+  document: HeapSnapshotDocument,
+): {
+  readonly nodeCount: number;
+  readonly children: readonly (readonly number[])[];
+  readonly predecessors: readonly (readonly number[])[];
+  readonly reversePostorder: readonly number[];
+} => {
+  const nodeFields = document.snapshot.meta.node_fields;
+  const edgeFields = document.snapshot.meta.edge_fields;
+  const nodeStride = nodeFields.length;
+  const edgeStride = edgeFields.length;
+  const edgeCountOffset = nodeFields.indexOf("edge_count");
+  const toOffset = edgeFields.indexOf("to_node");
+  if (edgeCountOffset < 0)
+    throw new Error('heap snapshot meta is missing "edge_count"');
+  if (toOffset < 0) throw new Error('heap snapshot meta is missing "to_node"');
+  const nodeCount = document.nodes.length / nodeStride;
+  if (!Number.isSafeInteger(nodeCount) || nodeCount < 1)
+    throw new Error("heap snapshot has no nodes");
+  if (nodeCount > MAX_DOMINATOR_NODES)
+    throw new RangeError(
+      `dominance analysis is limited to ${String(MAX_DOMINATOR_NODES)} nodes; this snapshot has ${String(nodeCount)}`,
+    );
+  const children = Array.from({ length: nodeCount }, (): number[] => []);
+  const predecessors = Array.from({ length: nodeCount }, (): number[] => []);
+  let edgeOffset = 0;
+  for (let ordinal = 0; ordinal < nodeCount; ordinal += 1) {
+    const count = document.nodes[ordinal * nodeStride + edgeCountOffset] ?? 0;
+    if (!Number.isSafeInteger(count) || count < 0)
+      throw new Error(
+        `heap snapshot node ${String(ordinal)} has an invalid edge count`,
+      );
+    for (let edge = 0; edge < count; edge += 1) {
+      if (edgeOffset + toOffset >= document.edges.length)
+        throw new Error("heap snapshot edges end before their declared count");
+      const targetNode = document.edges[edgeOffset + toOffset] ?? 0;
+      const target = targetNode / nodeStride;
+      if (!Number.isSafeInteger(target) || target < 0 || target >= nodeCount)
+        throw new Error("heap snapshot edge names an invalid target node");
+      children[ordinal]?.push(target);
+      predecessors[target]?.push(ordinal);
+      edgeOffset += edgeStride;
+    }
+  }
+  const postorder: number[] = [];
+  const visited = new Set<number>([0]);
+  const stack: { node: number; next: number }[] = [{ node: 0, next: 0 }];
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1]!;
+    const next = children[frame.node]?.[frame.next];
+    if (next === undefined) {
+      postorder.push(frame.node);
+      stack.pop();
+      continue;
+    }
+    frame.next += 1;
+    if (visited.has(next)) continue;
+    visited.add(next);
+    stack.push({ node: next, next: 0 });
+  }
+  return {
+    nodeCount,
+    children,
+    predecessors,
+    reversePostorder: postorder.reverse(),
+  };
+};
+
+/**
+ * Compute immediate dominators and retained sizes from the V8 root (ordinal 0).
+ * Retained size counts each reachable object once through the dominator tree;
+ * unreachable nodes are not assigned a retained size.
+ */
+export function retainedSizes(
+  document: HeapSnapshotDocument,
+): ReadonlyMap<number, number> {
+  const graph = reachableGraph(document);
+  const index = buildIndex(document);
+  const order = new Map(
+    graph.reversePostorder.map((node, position) => [node, position]),
+  );
+  const idom = new Int32Array(graph.nodeCount);
+  idom.fill(-1);
+  idom[0] = 0;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const node of graph.reversePostorder.slice(1)) {
+      let candidate: number | undefined;
+      for (const predecessor of graph.predecessors[node] ?? []) {
+        if (idom[predecessor] === -1) continue;
+        if (candidate === undefined) {
+          candidate = predecessor;
+          continue;
+        }
+        let left = predecessor;
+        let right = candidate;
+        while (left !== right) {
+          while ((order.get(left) ?? -1) > (order.get(right) ?? -1))
+            left = idom[left] ?? -1;
+          while ((order.get(right) ?? -1) > (order.get(left) ?? -1))
+            right = idom[right] ?? -1;
+          if (left < 0 || right < 0) break;
+        }
+        candidate = left < 0 ? right : left;
+      }
+      if (candidate !== undefined && idom[node] !== candidate) {
+        idom[node] = candidate;
+        changed = true;
+      }
+    }
+  }
+  const dominatorChildren = Array.from(
+    { length: graph.nodeCount },
+    (): number[] => [],
+  );
+  for (const node of graph.reversePostorder.slice(1)) {
+    const parent = idom[node];
+    if (parent !== undefined && parent >= 0)
+      dominatorChildren[parent]?.push(node);
+  }
+  const retained = new Map<number, number>();
+  for (const node of [...graph.reversePostorder].reverse()) {
+    let size = nodeAt(index, node).selfSize;
+    for (const child of dominatorChildren[node] ?? [])
+      size += retained.get(child) ?? 0;
+    retained.set(node, size);
+  }
+  return retained;
+}
+
+/** Reachable nodes sorted by retained size, then self size and id. */
+export function topRetainedNodes(
+  document: HeapSnapshotDocument,
+  limit = 25,
+): HeapRetainedNode[] {
+  const retained = retainedSizes(document);
+  const index = buildIndex(document);
+  return [...retained.entries()]
+    .map(([nodeIndex, retainedSize]) => ({
+      ...nodeAt(index, nodeIndex),
+      retainedSize,
+    }))
+    .sort(
+      (left, right) =>
+        right.retainedSize - left.retainedSize ||
+        right.selfSize - left.selfSize ||
+        left.id - right.id,
+    )
+    .slice(0, Math.max(0, limit));
 }

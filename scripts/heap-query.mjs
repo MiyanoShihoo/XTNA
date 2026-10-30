@@ -21,10 +21,11 @@ const name = flag("name");
 const minCount = flag("min-count");
 const limit = flag("limit");
 const asJson = args.includes("--json");
+const dominators = args.includes("--dominators");
 
 if (input === undefined) {
   process.stderr.write(
-    "usage: node scripts/heap-query.mjs --in <snapshot.heapsnapshot> [--name Constructor] [--min-count 2] [--limit 25] [--json]\n",
+    "usage: node scripts/heap-query.mjs --in <snapshot.heapsnapshot> [--name Constructor] [--dominators] [--min-count 2] [--limit 25] [--json]\n",
   );
   process.exit(2);
 }
@@ -38,7 +39,37 @@ const document = JSON.parse(
 );
 const total = heap.heapNodeCount(document);
 
-if (name !== undefined) {
+if (dominators) {
+  const rows = heap.topRetainedNodes(
+    document,
+    limit === undefined ? 25 : Number(limit),
+  );
+  if (asJson) {
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          input: resolve(input),
+          nodes: total,
+          retained: rows.map((node) => ({
+            id: node.id,
+            type: node.type,
+            name: node.name,
+            self_size: node.selfSize,
+            retained_size: node.retainedSize,
+          })),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  } else {
+    process.stdout.write(`# nodes: ${String(total)}\n`);
+    for (const node of rows)
+      process.stdout.write(
+        `  id=${String(node.id)} type=${node.type} self=${String(node.selfSize)}B retained=${String(node.retainedSize)}B ${node.name || "(anonymous)"}\n`,
+      );
+  }
+} else if (name !== undefined) {
   const nodes = heap.findHeapNodes(
     document,
     name,

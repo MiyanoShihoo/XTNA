@@ -4,7 +4,9 @@ import {
   findHeapNodes,
   heapNodeCount,
   incomingReferenceCounts,
+  retainedSizes,
   summarizeHeap,
+  topRetainedNodes,
   type HeapSnapshotDocument,
 } from "./HeapSnapshotQuery.js";
 
@@ -90,6 +92,59 @@ describe("references", () => {
     expect(counts.get(1)).toBe(1);
     expect(counts.get(2)).toBe(1);
     expect(counts.get(0)).toBeUndefined();
+  });
+});
+
+describe("dominators and retained size", () => {
+  it("assigns each reachable node to its immediate dominator tree", () => {
+    const retained = retainedSizes(snapshot);
+    expect(retained.get(0)).toBe(170);
+    expect(retained.get(1)).toBe(50);
+    expect(retained.get(2)).toBe(20);
+  });
+
+  it("uses the nearest common dominator for a joined child", () => {
+    const joined: HeapSnapshotDocument = {
+      ...snapshot,
+      snapshot: {
+        ...snapshot.snapshot,
+        node_count: 4,
+        edge_count: 4,
+      },
+      nodes: [
+        3, 1, 1, 100, 2, 0, 0, 3, 2, 2, 10, 1, 0, 0, 3, 3, 3, 20, 1, 0, 0, 3, 4,
+        4, 40, 0, 0, 0,
+      ],
+      edges: [2, 1, 7, 2, 2, 14, 2, 3, 21, 2, 4, 21],
+      strings: ["", "Root", "A", "B", "C"],
+    };
+    const retained = retainedSizes(joined);
+    expect(retained.get(0)).toBe(170);
+    expect(retained.get(3)).toBe(40);
+    expect(
+      topRetainedNodes(joined).map(({ name, retainedSize }) => ({
+        name,
+        retainedSize,
+      })),
+    ).toEqual([
+      { name: "Root", retainedSize: 170 },
+      { name: "C", retainedSize: 40 },
+      { name: "B", retainedSize: 20 },
+      { name: "A", retainedSize: 10 },
+    ]);
+  });
+
+  it("sorts the dominator tree by retained size", () => {
+    expect(
+      topRetainedNodes(snapshot).map(({ name, retainedSize }) => ({
+        name,
+        retainedSize,
+      })),
+    ).toEqual([
+      { name: "Foo", retainedSize: 170 },
+      { name: "Foo", retainedSize: 50 },
+      { name: "bar", retainedSize: 20 },
+    ]);
   });
 });
 
