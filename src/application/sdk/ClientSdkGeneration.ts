@@ -62,6 +62,14 @@ export interface SdkOAuth {
   readonly path: string;
   readonly grantType: string;
   readonly fields: readonly string[];
+  /** Scopes observed in a captured token request, split on whitespace. */
+  readonly scopes?: readonly string[];
+  /** Present only when the capture shows a `grant_type=refresh_token` exchange. */
+  readonly refresh?: {
+    readonly path: string;
+    readonly grantType: string;
+    readonly fields: readonly string[];
+  };
 }
 
 export interface ClientSdk {
@@ -355,6 +363,8 @@ const collect = (
 } => {
   const operations = new Map<string, Sampled>();
   let oauth: SdkOAuth | undefined;
+  let refreshOAuth: SdkOAuth["refresh"];
+  const scopes = new Set<string>();
   for (const entry of entriesOf(document)) {
     if (!isRecord(entry) || !isRecord(entry.request)) continue;
     const request = entry.request;
@@ -408,16 +418,25 @@ const collect = (
         bodyText.includes("grant_type="))
         ? new URLSearchParams(bodyText)
         : undefined;
-    if (
-      oauth === undefined &&
-      formBody?.has("grant_type") === true &&
-      method === "POST"
-    )
-      oauth = {
-        path: template,
-        grantType: formBody.get("grant_type") ?? "",
-        fields: [...new Set(formBody.keys())],
-      };
+    if (formBody !== undefined && method === "POST") {
+      const grantType = formBody.get("grant_type");
+      const scope = formBody.get("scope");
+      if (scope !== null && scope.trim().length > 0)
+        for (const entry of scope.split(/\s+/u))
+          if (entry.length > 0) scopes.add(entry);
+      if (grantType === "refresh_token" && refreshOAuth === undefined)
+        refreshOAuth = {
+          path: template,
+          grantType,
+          fields: [...new Set(formBody.keys())],
+        };
+      else if (grantType !== null && oauth === undefined)
+        oauth = {
+          path: template,
+          grantType,
+          fields: [...new Set(formBody.keys())],
+        };
+    }
     const bodyJson = parseJson(bodyText);
     if (bodyJson !== undefined) existing.bodies.push(shapeOf(bodyJson));
     if (response !== undefined) {
@@ -440,7 +459,15 @@ const collect = (
       }
     operations.set(key, existing);
   }
-  return { operations, oauth };
+  const oauthResult: SdkOAuth | undefined =
+    oauth === undefined
+      ? undefined
+      : {
+          ...oauth,
+          ...(scopes.size === 0 ? {} : { scopes: [...scopes].sort() }),
+          ...(refreshOAuth === undefined ? {} : { refresh: refreshOAuth }),
+        };
+  return { operations, oauth: oauthResult };
 };
 
 const renderTypeScript = (
@@ -622,10 +649,15 @@ const renderTypeScript = (
     }
   }
   if (oauth !== undefined) {
+    const scopes = oauth.scopes ?? [];
+    const defaults = {
+      grant_type: oauth.grantType,
+      ...(scopes.length === 0 ? {} : { scope: scopes.join(" ") }),
+    };
     lines.push(
-      "  async authenticate(credentials: Record<string, string> = {}): Promise<void> {",
-      `    const body = new URLSearchParams({ grant_type: ${JSON.stringify(oauth.grantType)}, ...credentials });`,
-      `    const response = await fetch(new URL(this.baseUrl + ${JSON.stringify(oauth.path)}), {`,
+      "  private async tokenRequest(path: string, fields: Record<string, string>): Promise<void> {",
+      `    const body = new URLSearchParams(fields);`,
+      "    const response = await fetch(new URL(this.baseUrl + path), {",
       '      method: "POST",',
       '      headers: { "content-type": "application/x-www-form-urlencoded" },',
       "      body,",
@@ -638,7 +670,18 @@ const renderTypeScript = (
       "    this.bearerToken = payload.access_token;",
       "  }",
       "",
+      "  async authenticate(credentials: Record<string, string> = {}): Promise<void> {",
+      `    await this.tokenRequest(${JSON.stringify(oauth.path)}, { ...${JSON.stringify(defaults)}, ...credentials });`,
+      "  }",
+      "",
     );
+    if (oauth.refresh !== undefined)
+      lines.push(
+        `  async refresh(credentials: Record<string, string> = {}): Promise<void> {`,
+        `    await this.tokenRequest(${JSON.stringify(oauth.refresh.path)}, { grant_type: ${JSON.stringify(oauth.refresh.grantType)}, ...credentials });`,
+        "  }",
+        "",
+      );
   }
   lines.push("}", "");
   return lines.join("\n");
@@ -779,14 +822,16 @@ const renderPython = (
     }
   }
   if (oauth !== undefined) {
-    const method = "authenticate";
+    const scopes = oauth.scopes ?? [];
+    const scopeDefault =
+      scopes.length === 0
+        ? ""
+        : `, 'scope': ${JSON.stringify(scopes.join(" "))}`;
     lines.push(
-      `    def ${method}(self, credentials: Optional[Dict[str, str]] = None) -> None:`,
-      `        fields = {'grant_type': ${JSON.stringify(oauth.grantType)}}`,
-      "        fields.update(credentials or {})",
+      "    def _token_request(self, path: str, fields: Dict[str, str]) -> None:",
       "        data = urllib.parse.urlencode(fields).encode('utf-8')",
       "        request = urllib.request.Request(",
-      `            self.base_url + ${JSON.stringify(oauth.path)},`,
+      "            self.base_url + path,",
       "            data=data,",
       "            headers={'content-type': 'application/x-www-form-urlencoded'},",
       "            method='POST',",
@@ -801,7 +846,20 @@ const renderPython = (
       "            raise RuntimeError('token response has no access_token')",
       "        self.bearer_token = token",
       "",
+      "    def authenticate(self, credentials: Optional[Dict[str, str]] = None) -> None:",
+      `        fields = {'grant_type': ${JSON.stringify(oauth.grantType)}${scopeDefault}}`,
+      "        fields.update(credentials or {})",
+      `        self._token_request(${JSON.stringify(oauth.path)}, fields)`,
+      "",
     );
+    if (oauth.refresh !== undefined)
+      lines.push(
+        "    def refresh(self, credentials: Optional[Dict[str, str]] = None) -> None:",
+        `        fields = {'grant_type': ${JSON.stringify(oauth.refresh.grantType)}}`,
+        "        fields.update(credentials or {})",
+        `        self._token_request(${JSON.stringify(oauth.refresh.path)}, fields)`,
+        "",
+      );
   }
   return lines.join("\n");
 };

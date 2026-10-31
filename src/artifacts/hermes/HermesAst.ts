@@ -23,6 +23,7 @@ import type {
   HermesInstruction,
 } from "./HermesDisassembly.js";
 import type { HermesTables } from "./HermesBytecodeTables.js";
+import type { HermesFunctionExceptions } from "./HermesExceptionTables.js";
 
 export type HermesExpression =
   | {
@@ -100,6 +101,12 @@ export type HermesStatement =
       readonly kind: "while";
       readonly test: HermesExpression;
       readonly body: readonly HermesStatement[];
+      readonly at: number;
+    }
+  | {
+      readonly kind: "try";
+      readonly block: readonly HermesStatement[];
+      readonly catchBody: readonly HermesStatement[];
       readonly at: number;
     }
   | {
@@ -320,6 +327,16 @@ export function renderHermesStatement(
       lines.push(`${pad}}`);
       return lines.join("\n");
     }
+    case "try": {
+      const lines = [`${pad}try {`];
+      for (const child of statement.block)
+        lines.push(renderHermesStatement(child, indent + 1));
+      lines.push(`${pad}} catch {`);
+      for (const child of statement.catchBody)
+        lines.push(renderHermesStatement(child, indent + 1));
+      lines.push(`${pad}}`);
+      return lines.join("\n");
+    }
     case "switch": {
       const lines = [
         `${pad}switch (${renderHermesExpression(statement.test)}) {`,
@@ -350,7 +367,6 @@ interface RegisterState {
 
 const CONTROL_FLOW_UNMODELLED = new Set([
   "SwitchImm",
-  "Catch",
   "SaveGenerator",
   "SaveGeneratorLong",
   "StartGenerator",
@@ -557,6 +573,10 @@ const applyInstruction = (
   if (name === "Throw") {
     return { kind: "throw", at: offset, expression: read(operands[0] ?? 0) };
   }
+  if (name === "Catch") {
+    set(operands[0] ?? 0, { kind: "unknown", opcode: name, operands });
+    return undefined;
+  }
   if (CONTROL_FLOW_UNMODELLED.has(name))
     return {
       kind: "unknown",
@@ -584,6 +604,7 @@ export function buildHermesFunctionAst(
   },
   tables: HermesTables,
   code?: { readonly bytes: Uint8Array },
+  exceptions?: HermesFunctionExceptions,
 ): HermesFunctionAst {
   const limitations: string[] = [];
   if (!fn.decoded || fn.instructions.length === 0)
@@ -852,8 +873,50 @@ export function buildHermesFunctionAst(
     return { test, body, next: exit };
   };
 
-  const top = parseRange(0, instructions.length, 0);
-  statements.push(...top);
+  let tryStructured = false;
+  if (exceptions?.status === "parsed" && exceptions.handlers.length === 1) {
+    const handler = exceptions.handlers[0]!;
+    const base = fn.bytecodeOffset;
+    const startIndex = offsetToIndex.get(base + handler.start);
+    const endIndex = offsetToIndex.get(base + handler.end);
+    const targetIndexValue = offsetToIndex.get(base + handler.target);
+    if (
+      startIndex !== undefined &&
+      endIndex !== undefined &&
+      targetIndexValue !== undefined &&
+      startIndex <= endIndex
+    ) {
+      let jumpIndex = -1;
+      for (
+        let probe = targetIndexValue;
+        probe < instructions.length;
+        probe += 1
+      )
+        if (UNCONDITIONAL.has(instructions[probe]?.name ?? "")) {
+          jumpIndex = probe;
+          break;
+        }
+      const catchEnd = jumpIndex >= 0 ? jumpIndex : instructions.length;
+      const joinIndex =
+        jumpIndex >= 0
+          ? (targetIndex(instructions[jumpIndex]!) ?? instructions.length)
+          : instructions.length;
+      statements.push(...parseRange(0, startIndex, 0));
+      statements.push({
+        kind: "try",
+        at: instructions[startIndex]?.offset ?? 0,
+        block: parseRange(startIndex, endIndex, 1),
+        catchBody: parseRange(targetIndexValue, catchEnd, 1),
+      });
+      if (joinIndex > catchEnd)
+        statements.push(...parseRange(joinIndex, instructions.length, 0));
+      tryStructured = true;
+      limitations.push(
+        "try/catch recovered for a single handler; break placement inside the arm is not recovered",
+      );
+    }
+  }
+  if (!tryStructured) statements.push(...parseRange(0, instructions.length, 0));
   const structured = !statements.some(
     (statement) => statement.kind === "unknown",
   );
@@ -861,7 +924,12 @@ export function buildHermesFunctionAst(
     limitations.push(
       "unrecognised control flow is reported as unknown statements",
     );
-  limitations.push("no exception-table (try/catch) recovery");
+  if (!tryStructured)
+    limitations.push(
+      exceptions?.status === "parsed" && exceptions.handlers.length > 0
+        ? "exception handlers exist but were not nested"
+        : "no exception handlers in this function",
+    );
   return {
     index: fn.index,
     name: fn.name,
@@ -933,12 +1001,19 @@ const buildBlocks = (
 export function buildHermesAst(
   disassembly: HermesDisassembly,
   bytes?: Uint8Array,
+  exceptions?: {
+    readonly functions: readonly HermesFunctionExceptions[];
+  },
 ): HermesAst {
+  const byIndex = new Map(
+    (exceptions?.functions ?? []).map((entry) => [entry.index, entry] as const),
+  );
   const functions = disassembly.functions.map((fn) =>
     buildHermesFunctionAst(
       fn,
       disassembly.tables,
       bytes === undefined ? undefined : { bytes },
+      byIndex.get(fn.index),
     ),
   );
   const unstructuredFunctions = functions

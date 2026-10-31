@@ -48,16 +48,17 @@ Two facts are inferred from the capture and turned into code:
   header, and otherwise backs off 100 ms × 2^attempt. Python sleeps between attempts; the
   TypeScript client uses `setTimeout`.
 
-## Why refresh and scopes stay partial
+## Refresh and scopes (evidence-gated)
 
-An evidence audit on 2026-10-31 found **no capture in the repository or fixtures** containing a
-`refresh_token` exchange or an OAuth `scope` parameter; the only OAuth evidence is a captured
-`grant_type` form post. Generating refresh loops or scope negotiation from that would be
-invention, so both remain out of scope and the roadmap keeps #11 partial.
+A `grant_type=refresh_token` request in the capture produces a `refresh(credentials)` method in
+both languages; without that request no refresh method is generated. A captured `scope` value is
+split on whitespace and sent as the default `scope` of `authenticate`, and is reported as
+`oauth.scopes`. Nothing is inferred from the mere presence of `access_token` or `refresh_token`
+in a response.
 
-A guard test (`does not invent refresh or scopes from a token capture`) feeds a token capture that
-also carries `scope=read` and asserts the generated TypeScript/Python never mentions
-`refresh_token` or `scope`.
+An evidence audit on 2026-10-31 found no refresh exchange or scope parameter in the repository's
+captures or fixtures, so the roadmap keeps #11 partial until such a capture exists; the guard test
+`does not invent refresh or scopes from a token capture` pins that boundary.
 
 ## OAuth token flow
 

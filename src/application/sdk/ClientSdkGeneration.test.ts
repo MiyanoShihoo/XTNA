@@ -398,8 +398,65 @@ describe("oauth inference", () => {
     const sdk = generateClientSdk(capture);
     expect(sdk.typescript).not.toContain("refresh_token");
     expect(sdk.python).not.toContain("refresh_token");
-    expect(sdk.typescript).not.toContain("scope");
-    expect(sdk.python).not.toContain("scope");
+    expect(sdk.typescript).not.toContain("async refresh(");
+    expect(sdk.python).not.toContain("def refresh(");
+    // The captured scope is evidence and is sent as a default, not invented.
+    expect(sdk.oauth?.scopes).toEqual(["read"]);
+    expect(sdk.typescript).toContain('"scope":"read"');
+    expect(sdk.python).toContain("'scope': \"read\"");
+  });
+
+  it("emits a refresh method only when the capture shows a refresh exchange", () => {
+    const capture = {
+      log: {
+        entries: [
+          {
+            request: {
+              method: "POST",
+              url: "https://api.test/oauth/token",
+              postData: {
+                mimeType: "application/x-www-form-urlencoded",
+                text: "grant_type=authorization_code&code=abc&scope=read write",
+              },
+            },
+            response: {
+              status: 200,
+              content: {
+                text: JSON.stringify({
+                  access_token: "tok",
+                  refresh_token: "ref",
+                }),
+              },
+            },
+          },
+          {
+            request: {
+              method: "POST",
+              url: "https://api.test/oauth/token",
+              postData: {
+                mimeType: "application/x-www-form-urlencoded",
+                text: "grant_type=refresh_token&refresh_token=ref",
+              },
+            },
+            response: {
+              status: 200,
+              content: { text: JSON.stringify({ access_token: "tok2" }) },
+            },
+          },
+        ],
+      },
+    };
+    const sdk = generateClientSdk(capture);
+    expect(sdk.oauth?.refresh).toEqual({
+      path: "/oauth/token",
+      grantType: "refresh_token",
+      fields: ["grant_type", "refresh_token"],
+    });
+    expect(sdk.oauth?.scopes).toEqual(["read", "write"]);
+    expect(sdk.typescript).toContain("async refresh(");
+    expect(sdk.python).toContain("def refresh(");
+    expect(sdk.typescript).toContain('grant_type: "refresh_token"');
+    expect(sdk.python).toContain("'grant_type': \"refresh_token\"");
   });
 
   it("emits authenticate in both languages", () => {

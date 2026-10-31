@@ -77,7 +77,13 @@ const exceptions =
     : undefined;
 const ast =
   withAst && disassembly !== undefined && disassembly.ok
-    ? buildHermesAst(disassembly.value, bytes)
+    ? buildHermesAst(
+        disassembly.value,
+        bytes,
+        exceptions !== undefined && exceptions.ok
+          ? exceptions.value
+          : undefined,
+      )
     : undefined;
 const report = {
   path,

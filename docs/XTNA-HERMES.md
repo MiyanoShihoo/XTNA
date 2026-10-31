@@ -110,12 +110,15 @@ exception tables: 1 parsed, 0 unknown
   fun: [0,5) -> 5
 ```
 
+The AST wraps that handler as `try { … } catch { … }` when exactly one handler maps cleanly onto
+instruction boundaries.
+
 ## What it does not do
 
-- **No try/catch nesting in the AST yet.** Handler tables are read and reported, but the structurer
-  does not wrap the protected range in a `try` block; `Catch` still appears as an unmodelled
-  statement. No real-world handler sample exists in the benchmark set, so only the synthetic fixture
-  and the upstream layout prove this reader.
+- **Single-handler try/catch only.** The structurer wraps one protected range in `try { } catch { }`,
+  parsing the handler arm up to its first unconditional jump. Multiple handlers, nested handlers and
+  the exact `break` placement inside an arm are not recovered. No real-world handler sample exists in
+  the benchmark set, so only the synthetic fixture and the upstream layout prove this reader.
 - **`switch` bodies lose break/fallthrough.** Case values and their target blocks are recovered from
   the `SwitchImm` table, but a case body is delimited by the next case target, so an explicit `break`
   versus fallthrough is not distinguished.
