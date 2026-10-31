@@ -101,7 +101,7 @@ paths. The [generated tool catalog](docs/mcp-contracts.md#generated-catalog) lis
 
 Utilities worth knowing: `npm run mock:gen`, `npm run sdk:gen`, `npm run dossier`,
 `npm run checkpoint`, `npm run panel:serve`, `npm run wasm:scan`, `npm run hermes:inspect`,
-`npm run v8:inspect`.
+`npm run v8:inspect`, `npm run worker:run`.
 Each has its own document under [docs/](docs/README.md).
 
 ## Evidence model
