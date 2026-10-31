@@ -28,9 +28,15 @@ export interface WorkerTaskInput {
   readonly attempt: number;
 }
 
+export interface WorkerProcessIdentity {
+  readonly runId: string;
+  readonly pid?: number;
+}
+
 export interface WorkerReport {
   readonly evidenceIds?: readonly string[];
   readonly summary?: string;
+  readonly process?: WorkerProcessIdentity;
 }
 
 /** A worker either resolves a report or throws; throwing is a failed attempt. */
@@ -48,6 +54,7 @@ export interface WorkerTaskResult {
   readonly attempts: number;
   readonly evidenceIds: readonly string[];
   readonly summary?: string;
+  readonly process?: WorkerProcessIdentity;
   readonly reason?: string;
 }
 
@@ -280,6 +287,7 @@ const runTask = async (
         attempts: attempt,
         evidenceIds: bounded(report.evidenceIds),
         ...(report.summary === undefined ? {} : { summary: report.summary }),
+        ...(report.process === undefined ? {} : { process: report.process }),
       };
     } catch (error) {
       if (error instanceof AttemptAborted && error.cancelled)

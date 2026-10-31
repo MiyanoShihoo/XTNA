@@ -41,6 +41,8 @@ describe("process worker", () => {
     );
     expect(report.evidenceIds).toEqual(["ev_static-1"]);
     expect(report.summary).toBe("objective for static-1");
+    expect(report.process?.runId).toContain("xtna-worker-static-1-");
+    expect(report.process?.pid).toBeTypeOf("number");
   });
 
   it("surfaces a nonzero exit as a failed worker", async () => {

@@ -5,9 +5,9 @@
  * The plan names an explicit command for every task. Nothing is inferred from a
  * role, and no plan runs without `--yes` or an interactive confirmation.
  *
- * usage: node scripts/worker-run.mjs --plan <plan.json> [--yes] [--json]
+ * usage: node scripts/worker-run.mjs --plan <plan.json> [--yes] [--json] [--ledger <report.json>]
  */
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -21,7 +21,7 @@ const flag = (name) => {
 const planPath = flag("plan");
 if (planPath === undefined) {
   process.stderr.write(
-    "usage: node scripts/worker-run.mjs --plan <plan.json> [--yes] [--json]\n",
+    "usage: node scripts/worker-run.mjs --plan <plan.json> [--yes] [--json] [--ledger <report.json>]\n",
   );
   process.exit(2);
 }
@@ -114,6 +114,23 @@ const report = await runWorkerPlan(tasks, {
   maxAttempts: Math.max(1, Number(plan.maxAttempts ?? 1)),
   timeoutMs: Math.max(1, Number(plan.timeoutMs ?? 15_000)),
 });
+
+const ledgerPath = flag("ledger");
+if (ledgerPath !== undefined) {
+  await writeFile(
+    resolve(ledgerPath),
+    `${JSON.stringify(
+      {
+        plan: planPath,
+        generatedAt: new Date().toISOString(),
+        report,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+}
 
 if (args.includes("--json")) {
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

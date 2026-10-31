@@ -97,10 +97,11 @@ export async function runProcessWorkerTask(
     1024,
     command.maxOutputBytes ?? DEFAULT_OUTPUT_BYTES,
   );
+  const runId = `xtna-worker-${task.id}-${randomUUID()}`;
   const child = await spawnOwnedProviderProcess({
     command: command.command,
     arguments: command.arguments ?? [],
-    runId: `xtna-worker-${task.id}-${randomUUID()}`,
+    runId,
     ...(command.cwd === undefined ? {} : { cwd: command.cwd }),
     ...(command.env === undefined ? {} : { env: command.env }),
     stdin: "pipe",
@@ -140,7 +141,14 @@ export async function runProcessWorkerTask(
         `Worker ${task.id} exited ${String(snapshot.exitCode)}${detail.length === 0 ? "" : `: ${detail}`}`,
       );
     }
-    return parseReport(snapshot.stdout.text, task.id);
+    const report = parseReport(snapshot.stdout.text, task.id);
+    return {
+      ...report,
+      process: {
+        runId,
+        ...(child.process.pid === undefined ? {} : { pid: child.process.pid }),
+      },
+    };
   } catch (error) {
     throw error;
   } finally {
