@@ -125,6 +125,13 @@ const inputs = {
   ...(flag("title") === undefined ? {} : { title: flag("title") }),
 };
 
+try {
+  await stat(inputs.evidencePath);
+} catch {
+  process.stderr.write(`evidence bundle not found: ${inputs.evidencePath}\n`);
+  process.exit(2);
+}
+
 const page = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>XTNA investigation panel</title>

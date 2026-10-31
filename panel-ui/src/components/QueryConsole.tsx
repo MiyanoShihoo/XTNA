@@ -6,6 +6,7 @@ import {
   setQueryToken,
   type QueryInfo,
 } from "../panel";
+import { useI18n } from "../i18n";
 
 interface Pending {
   requestId: string;
@@ -14,6 +15,7 @@ interface Pending {
 }
 
 export function QueryConsole() {
+  const { t } = useI18n();
   const [info, setInfo] = useState<QueryInfo>({ enabled: false, tools: [] });
   const [token, setToken] = useState("");
   const [tool, setTool] = useState("");
@@ -36,17 +38,16 @@ export function QueryConsole() {
   if (!info.enabled)
     return (
       <section className="panel">
-        <h2>Provider query</h2>
-        <p className="muted">
-          Disabled. Start the panel with <code>--mcp-url</code> and{" "}
-          <code>--query-token</code>.
-        </p>
+        <div className="panelHead">
+          <h2>{t("providerQuery")}</h2>
+        </div>
+        <p className="muted">{t("queryDisabled")}</p>
       </section>
     );
 
   const submit = async () => {
     const args = value.trim().length === 0 ? {} : { [key]: value.trim() };
-    setStatus("running…");
+    setStatus(t("running"));
     setResult("");
     try {
       const response = await runQuery(
@@ -60,14 +61,16 @@ export function QueryConsole() {
       if (response.status === 202) {
         const requestId = response.body.requestId ?? "";
         setPending({ requestId, tool, args });
-        setStatus("approve in the panel terminal, then paste the code");
+        setStatus(t("approvePending"));
         setResult(JSON.stringify(response.body, null, 2));
         return;
       }
       setPending(null);
       setCode("");
       setStatus(
-        response.status === 200 ? "ok" : `rejected (${response.status})`,
+        response.status === 200
+          ? t("ok")
+          : `${t("rejected")} (${response.status})`,
       );
       setResult(
         JSON.stringify(
@@ -83,12 +86,11 @@ export function QueryConsole() {
 
   return (
     <section className="panel">
-      <h2>Provider query</h2>
-      <p className="muted">
-        Read-only allowlist; write tools need <code>--allow-write-tools</code>{" "}
-        plus a terminal approval code.
-      </p>
-      <div className="query-row">
+      <div className="panelHead">
+        <h2>{t("providerQuery")}</h2>
+      </div>
+      <p className="muted">{t("queryHint")}</p>
+      <div className="queryRow">
         <select value={tool} onChange={(event) => setTool(event.target.value)}>
           {info.tools.map((entry) => (
             <option key={entry} value={entry}>
@@ -108,15 +110,15 @@ export function QueryConsole() {
           <option value="pattern">pattern</option>
         </select>
         <input
-          placeholder="value"
+          placeholder={t("value")}
           value={value}
           onChange={(event) => setValue(event.target.value)}
         />
       </div>
-      <div className="query-row">
+      <div className="queryRow">
         <input
           type="password"
-          placeholder="x-xtna-token"
+          placeholder={t("token")}
           value={token}
           onChange={(event) => {
             setToken(event.target.value);
@@ -124,11 +126,13 @@ export function QueryConsole() {
           }}
         />
         <input
-          placeholder="approval code (if pending)"
+          placeholder={t("approvalCode")}
           value={code}
           onChange={(event) => setCode(event.target.value)}
         />
-        <button onClick={() => void submit()}>Query</button>
+        <button type="button" onClick={() => void submit()}>
+          {t("query")}
+        </button>
         <span className="muted">{status}</span>
       </div>
       {result.length > 0 && <pre className="result">{result}</pre>}

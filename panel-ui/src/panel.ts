@@ -100,7 +100,10 @@ export interface QueryResult {
 
 export const fetchState = async (): Promise<PanelSnapshot> => {
   const response = await fetch("/api/state");
-  if (!response.ok) throw new Error(`state ${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 400);
+    throw new Error(`state ${response.status}: ${detail}`);
+  }
   return (await response.json()) as PanelSnapshot;
 };
 

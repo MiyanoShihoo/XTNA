@@ -108,3 +108,6 @@ panel-ui/.env
 
 # TypeScript build info
 *.tsbuildinfo
+
+# panel UI local model settings
+panel-ui/.runtime-config.json

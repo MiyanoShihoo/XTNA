@@ -1,8 +1,9 @@
 import type { PanelGraph, PanelWaterfall } from "../panel";
+import { useI18n } from "../i18n";
 
 export function Topology({ graph }: { graph: PanelGraph }) {
-  if (graph.nodes.length === 0)
-    return <p className="empty">No call-graph records in this bundle.</p>;
+  const { t } = useI18n();
+  if (graph.nodes.length === 0) return <p className="empty">{t("noGraph")}</p>;
   const columns = new Map<number, typeof graph.nodes>();
   for (const node of graph.nodes) {
     const depth = node.depth ?? 0;
@@ -66,8 +67,9 @@ export function Topology({ graph }: { graph: PanelGraph }) {
 }
 
 export function Waterfall({ waterfall }: { waterfall: PanelWaterfall }) {
+  const { t } = useI18n();
   if (waterfall.entries.length === 0)
-    return <p className="empty">No network transactions in this bundle.</p>;
+    return <p className="empty">{t("noWaterfall")}</p>;
   const starts = waterfall.entries
     .map((entry) =>
       entry.startedAt === null ? null : Date.parse(entry.startedAt),

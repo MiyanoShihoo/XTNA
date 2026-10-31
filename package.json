@@ -361,7 +361,8 @@
     "panel": "node scripts/panel.mjs",
     "sandbox:probe": "node scripts/sandbox.mjs",
     "prefilter": "node scripts/prefilter.mjs",
-    "hypothesis:board": "node scripts/hypothesis-board.mjs"
+    "hypothesis:board": "node scripts/hypothesis-board.mjs",
+    "panel:dev": "node panel-ui/dev.mjs"
   },
   "lint-staged": {
     "*.{cjs,cts,js,jsx,mjs,mts,ts,tsx}": [

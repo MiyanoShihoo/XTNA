@@ -11,21 +11,26 @@ contract (`docs/XTNA-PANEL-CONTRACT.md`, v1.0.0) and adds a CopilotKit chat side
 - Provider query console (read-only allowlist; write tools need the panel's terminal approval code)
 - CopilotKit `CopilotSidebar` for chat
 
-## Run
+## Run (one window)
 
 ```bash
-# 1) the panel server (owns /api/state, /api/query, /events)
-cd ..            # repository root
-npm run panel:serve -- --evidence E:/path/to/bundle.json --port 4399 \
-  [--mcp-url http://127.0.0.1:8765/mcp --query-token <token>]
-
-# 2) this UI
-cd panel-ui
-npm install
-npm run dev      # http://localhost:5173 (Vite proxies /api and /events to 4399)
+cd "E:\deepseek project\XTNA"
+npm run panel:dev -- --evidence "E:\path\to\bundle.json"
+# optional query relay:
+#   --mcp-url http://127.0.0.1:8765/mcp --query-token <token>
+# optional write tools:
+#   --allow-write-tools set_comment,set_address_name
 ```
 
-The Vite dev server binds `localhost`; open `http://localhost:5173`, not `127.0.0.1`.
+That single command starts the panel server (4399), the UI (5173) and the model-control API
+(4398). Open `http://localhost:5173`. The terminal owns every child: Ctrl+C, or closing the
+window, terminates them; nothing is detached or kept alive.
+
+Model settings are edited in the UI (gear / “Model settings”): base URL, API key, model id and
+API style. Saving writes `panel-ui/.runtime-config.json` (gitignored) and restarts only the chat
+runtime; without a configured key the data views still work and the chat stays off.
+
+The UI has an EN / 中文 toggle (persisted in localStorage) for security reviewers.
 
 ## Chat runtime (optional)
 

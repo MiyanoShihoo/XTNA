@@ -17,6 +17,11 @@ export default defineConfig({
           proxy.on("proxyReq", (request) => request.removeHeader("origin"));
         },
       },
+      "/control": {
+        target: "http://127.0.0.1:4398",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/control/u, "/api"),
+      },
       "/events": {
         target: "http://127.0.0.1:4399",
         changeOrigin: true,

@@ -1,4 +1,5 @@
 import type { PanelSnapshot } from "../panel";
+import { useI18n } from "../i18n";
 
 const Table = ({
   rows,
@@ -28,12 +29,13 @@ const Table = ({
 );
 
 export function StateTables({ snapshot }: { snapshot: PanelSnapshot }) {
+  const { t } = useI18n();
   return (
     <>
       <section className="panel">
-        <h2>Evidence cards</h2>
+        <h2>{t("evidenceCards")}</h2>
         <p className="muted">
-          records {snapshot.records?.length ?? 0}
+          {t("records")} {snapshot.records?.length ?? 0}
           {snapshot.recordsTruncated === true ? " (truncated at 200)" : ""}
         </p>
         <div className="cards">
@@ -50,25 +52,25 @@ export function StateTables({ snapshot }: { snapshot: PanelSnapshot }) {
         </div>
       </section>
       <section className="panel">
-        <h2>Limitations</h2>
+        <h2>{t("limitations")}</h2>
         <Table rows={snapshot.limitations} columns={["operation", "text"]} />
       </section>
       <section className="panel">
-        <h2>Symbols</h2>
+        <h2>{t("symbols")}</h2>
         <Table
           rows={snapshot.symbols}
           columns={["address", "name", "kind", "confidence"]}
         />
       </section>
       <section className="panel">
-        <h2>Hypotheses</h2>
+        <h2>{t("hypotheses")}</h2>
         <Table
           rows={snapshot.hypotheses}
           columns={["id", "claim", "status", "confidence"]}
         />
       </section>
       <section className="panel">
-        <h2>Checkpoints</h2>
+        <h2>{t("checkpoints")}</h2>
         <Table
           rows={snapshot.checkpoints}
           columns={["name", "bytes", "modifiedAt"]}
