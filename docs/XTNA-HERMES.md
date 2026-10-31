@@ -94,10 +94,28 @@ ast: 1/1 functions structured
 Anything that does not match a known shape becomes an `unknown` statement and marks the function
 `structured: false`; the AST is never repaired by guessing.
 
+## Exception tables (`--exceptions`, bytecode version 84)
+
+`FunctionHeader.infoOffset` is an **absolute file offset** (proven from
+`BCProviderFromBuffer::getExceptionTableAndDebugOffsets` in Hermes v0.11.0). The table is
+4-byte aligned: a `uint32 count` followed by `count` × `{start, end, target}` uint32 entries,
+each relative to the function's bytecode start.
+
+The reader validates every entry (start < end, end and target inside the function body); one bad
+entry marks the whole function `unknown` rather than reporting a partial table. Overflowed
+headers stay `unknown`.
+
+```text
+exception tables: 1 parsed, 0 unknown
+  fun: [0,5) -> 5
+```
+
 ## What it does not do
 
-- **No try/catch recovery.** Hermes keeps exception handlers in a function-level table, not in the
-  instruction stream; `Catch` is reported as an unmodelled control-flow statement.
+- **No try/catch nesting in the AST yet.** Handler tables are read and reported, but the structurer
+  does not wrap the protected range in a `try` block; `Catch` still appears as an unmodelled
+  statement. No real-world handler sample exists in the benchmark set, so only the synthetic fixture
+  and the upstream layout prove this reader.
 - **`switch` bodies lose break/fallthrough.** Case values and their target blocks are recovered from
   the `SwitchImm` table, but a case body is delimited by the next case target, so an explicit `break`
   versus fallthrough is not distinguished.

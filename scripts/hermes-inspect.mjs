@@ -18,7 +18,7 @@ const flag = (name) => {
 const input = flag("in");
 if (input === undefined) {
   process.stderr.write(
-    "usage: node scripts/hermes-inspect.mjs --in <index.android.bundle|file.hbc> [--tables] [--disassemble] [--ast] [--json]\n",
+    "usage: node scripts/hermes-inspect.mjs --in <index.android.bundle|file.hbc> [--tables] [--disassemble] [--ast] [--exceptions] [--json]\n",
   );
   process.exit(2);
 }
@@ -32,6 +32,10 @@ const { readHermesTables } = await import(
 );
 const { disassembleHermes } = await import(
   pathToFileURL(resolve("dist/artifacts/hermes/HermesDisassembly.js")).href
+);
+const { readHermesExceptionTables } = await import(
+  new URL("../dist/artifacts/hermes/HermesExceptionTables.js", import.meta.url)
+    .href
 );
 const { buildHermesAst, renderHermesStatement } = await import(
   pathToFileURL(resolve("dist/artifacts/hermes/HermesAst.js")).href
@@ -55,6 +59,7 @@ try {
 }
 
 const withAst = args.includes("--ast");
+const withExceptions = args.includes("--exceptions");
 const withDisassembly = args.includes("--disassemble") || withAst;
 const withTables = args.includes("--tables") || withDisassembly;
 const observation = observeHermesBytecode(bytes);
@@ -65,6 +70,10 @@ const tables =
 const disassembly =
   withDisassembly && observation.state === "parsed"
     ? disassembleHermes(bytes)
+    : undefined;
+const exceptions =
+  (withExceptions || withAst) && observation.state === "parsed"
+    ? readHermesExceptionTables(bytes)
     : undefined;
 const ast =
   withAst && disassembly !== undefined && disassembly.ok
@@ -118,6 +127,23 @@ const report = {
           })),
         },
       }),
+  ...(exceptions === undefined
+    ? {}
+    : exceptions.ok
+      ? {
+          exceptions: {
+            parsedFunctions: exceptions.value.parsedFunctions,
+            unknownFunctions: exceptions.value.unknownFunctions,
+            functions: exceptions.value.functions.map((fn) => ({
+              index: fn.index,
+              name: fn.name,
+              status: fn.status,
+              handlers: fn.handlers,
+              ...(fn.reason === undefined ? {} : { reason: fn.reason }),
+            })),
+          },
+        }
+      : { exceptionsError: exceptions.error }),
   ...(tables === undefined
     ? {}
     : tables.ok
@@ -192,6 +218,19 @@ if (args.includes("--json")) {
       `string storage: ${f.stringStorageSize} bytes`,
       `declared length: ${f.fileLength} bytes; file: ${info.size} bytes`,
       ...tableLines,
+      ...(exceptions !== undefined && exceptions.ok
+        ? [
+            `exception tables: ${String(exceptions.value.parsedFunctions)} parsed, ${String(exceptions.value.unknownFunctions.length)} unknown`,
+            ...exceptions.value.functions
+              .filter((fn) => fn.status === "parsed")
+              .flatMap((fn) =>
+                fn.handlers.map(
+                  (handler) =>
+                    `  ${fn.name ?? "#" + String(fn.index)}: [${String(handler.start)},${String(handler.end)}) -> ${String(handler.target)}`,
+                ),
+              ),
+          ]
+        : []),
       ...codeLines,
       withAst
         ? "limits: if/else and while only; no try/catch, switch or cross-block data flow"
