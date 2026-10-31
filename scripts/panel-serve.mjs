@@ -49,6 +49,12 @@ if ((mcpUrl === undefined) !== (queryToken === undefined)) {
 
 const { DEFAULT_READ_ONLY_TOOLS, TOOL_TIERS, validatePanelQuery } =
   await import(new URL("./lib/panel-query-policy.mjs", import.meta.url).href);
+const {
+  panelContract,
+  validatePanelState,
+  validateQueryRequestShape,
+  validateQueryResponseShape,
+} = await import(new URL("./lib/panel-contract.mjs", import.meta.url).href);
 const { createMcpHttpClient } = await import(
   new URL("./lib/mcp-http-client.mjs", import.meta.url).href
 );
@@ -688,6 +694,9 @@ const server = createServer(async (request, response) => {
       admitQuery();
       try {
         const payload = await body(request);
+        const shapeIssues = validateQueryRequestShape(payload);
+        if (shapeIssues.length > 0)
+          throw rejectStatus(400, shapeIssues.join("; "));
         const verdict = validatePanelQuery(payload, {
           allowedTools,
           allowWriteTools,
@@ -727,12 +736,17 @@ const server = createServer(async (request, response) => {
             ok: true,
             elapsedMs: Date.now() - startedAt,
           });
+          const success = { ok: true, tool: verdict.tool, result };
+          const responseIssues = validateQueryResponseShape(success);
+          if (responseIssues.length > 0)
+            throw rejectStatus(
+              500,
+              `query result violates the panel contract: ${responseIssues.join("; ")}`,
+            );
           response.writeHead(200, {
             "content-type": "application/json; charset=utf-8",
           });
-          response.end(
-            `${JSON.stringify({ ok: true, tool: verdict.tool, result })}\n`,
-          );
+          response.end(`${JSON.stringify(success)}\n`);
         } catch (error) {
           await logQuery({
             at: new Date().toISOString(),
@@ -762,8 +776,21 @@ const server = createServer(async (request, response) => {
       response.end(page);
       return;
     }
+    if (url.pathname === "/api/contract") {
+      response.writeHead(200, {
+        "content-type": "application/json; charset=utf-8",
+      });
+      response.end(`${JSON.stringify(panelContract(), null, 2)}\n`);
+      return;
+    }
     if (url.pathname === "/api/state") {
       const snapshot = await state();
+      const issues = validatePanelState(snapshot);
+      if (issues.length > 0)
+        throw rejectStatus(
+          500,
+          `state violates the panel contract: ${issues.join("; ")}`,
+        );
       lastDigest = snapshotDigest(snapshot);
       response.writeHead(200, {
         "content-type": "application/json; charset=utf-8",

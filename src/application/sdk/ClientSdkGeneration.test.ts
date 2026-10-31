@@ -374,6 +374,34 @@ describe("oauth inference", () => {
     expect(generateClientSdk(har).oauth).toBeUndefined();
   });
 
+  it("does not invent refresh or scopes from a token capture", () => {
+    const capture = {
+      log: {
+        entries: [
+          {
+            request: {
+              method: "POST",
+              url: "https://api.test/oauth/token",
+              postData: {
+                mimeType: "application/x-www-form-urlencoded",
+                text: "grant_type=client_credentials&scope=read&client_id=demo",
+              },
+            },
+            response: {
+              status: 200,
+              content: { text: JSON.stringify({ access_token: "tok" }) },
+            },
+          },
+        ],
+      },
+    };
+    const sdk = generateClientSdk(capture);
+    expect(sdk.typescript).not.toContain("refresh_token");
+    expect(sdk.python).not.toContain("refresh_token");
+    expect(sdk.typescript).not.toContain("scope");
+    expect(sdk.python).not.toContain("scope");
+  });
+
   it("emits authenticate in both languages", () => {
     const sdk = generateClientSdk(tokenHar);
     expect(sdk.typescript).toContain("async authenticate(");

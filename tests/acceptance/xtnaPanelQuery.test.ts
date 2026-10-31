@@ -11,6 +11,11 @@ import {
   DEFAULT_READ_ONLY_TOOLS,
   validatePanelQuery,
 } from "../../scripts/lib/panel-query-policy.mjs";
+import {
+  PANEL_CONTRACT_VERSION,
+  validatePanelState,
+  validateQueryRequestShape,
+} from "../../scripts/lib/panel-contract.mjs";
 
 const script = fileURLToPath(
   new URL("../../scripts/panel-serve.mjs", import.meta.url),
@@ -441,5 +446,94 @@ describe("write tools need an explicit flag and terminal approval", () => {
       confirm: { requestId: second.requestId, code: secondApproval.code },
     });
     expect(replay.status).toBe(403);
+  });
+});
+
+describe("panel wire contract", () => {
+  let fake: FakeMcp;
+  let panel: Panel;
+  let root: string;
+
+  beforeAll(async () => {
+    root = await mkdtemp(join(tmpdir(), "rea-panel-contract-"));
+    const evidence = join(root, "bundle.json");
+    await writeFile(evidence, JSON.stringify(bundle));
+    fake = await startFakeMcp();
+    panel = await startPanel([
+      "--evidence",
+      evidence,
+      "--port",
+      "0",
+      "--mcp-url",
+      fake.url,
+      "--query-token",
+      TOKEN,
+    ]);
+  }, 40_000);
+
+  afterAll(async () => {
+    if (panel !== undefined) await stopPanel(panel);
+    if (fake !== undefined) await fake.close();
+    if (root !== undefined)
+      await rm(root, { recursive: true, force: true, maxRetries: 5 });
+  });
+
+  it("accepts the served state snapshot", async () => {
+    const response = await fetch(
+      `http://127.0.0.1:${String(panel.port)}/api/state`,
+    );
+    expect(response.status).toBe(200);
+    const snapshot = await response.json();
+    expect(validatePanelState(snapshot)).toEqual([]);
+  });
+
+  it("describes the contract version and shape", async () => {
+    const response = await fetch(
+      `http://127.0.0.1:${String(panel.port)}/api/contract`,
+    );
+    const contract = (await response.json()) as {
+      version: string;
+      state: { required: string[] };
+    };
+    expect(contract.version).toBe(PANEL_CONTRACT_VERSION);
+    expect(contract.state.required).toContain("graph");
+    expect(contract.state.required).toContain("counts");
+  });
+
+  it("refuses a query body with the wrong shape", async () => {
+    const response = await fetch(
+      `http://127.0.0.1:${String(panel.port)}/api/query`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-xtna-token": TOKEN,
+        },
+        body: JSON.stringify({ tool: 7, args: {} }),
+      },
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects a state object missing required counts", () => {
+    const issues = validatePanelState({
+      generatedAt: "x",
+      title: "t",
+      sources: { evidence: "bundle.json" },
+      counts: { records: 0 },
+      graph: { nodes: [], edges: [], truncated: false },
+      waterfall: { entries: [], timed: false, truncated: false },
+      limitations: [],
+      symbols: [],
+      hypotheses: [],
+      checkpoints: [],
+    });
+    expect(issues.join("; ")).toContain("state.counts.artifacts");
+  });
+
+  it("rejects a query request without a tool string", () => {
+    expect(validateQueryRequestShape({ tool: 1 }).join("; ")).toContain(
+      "query.tool",
+    );
   });
 });
