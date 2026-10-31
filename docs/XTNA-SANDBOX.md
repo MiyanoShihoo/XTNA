@@ -31,9 +31,20 @@ best executable isolation.
 A refusal exits `4` and names the missing capability. This is the point: no backend means no
 L2/L3, even when the caller asks politely.
 
+## Execution adapter (L2/L3)
+
+`npm run sandbox:run -- --image <image> --tier L2|L3 [--diff-preview] [--approval-token token] -- <command> [args...]`
+turns an admitted request into a Docker/Podman `run` argv array and executes it only when a
+container backend answered the probe. It refuses without a backend; there is no host fallback.
+
+The invocation is argv-only (no shell), disables the network, mounts the selected `--cwd` at
+`/work:ro`, drops capabilities, sets `no-new-privileges`, limits pids/memory/cpus and uses `--rm`.
+The backend process remains a separate owned command; admission is still owned by
+`SandboxCapability`.
+
 ## What it does not do
 
-- It does not start a container, create a Windows Sandbox, or run the command inside one. The
-  probe answers "what exists"; execution inside that boundary is a later slice.
+- It does not implement a Windows Sandbox command runner; Windows Sandbox is interactive-only.
+- It does not treat WSL2 as a command sandbox even when `wsl --status` answers.
 - It does not infer isolation from a configured name. A backend that does not answer is absent.
-- It does not treat Windows Sandbox as a command runner.
+- It does not claim the Docker path was verified on a host where Docker daemon is absent.

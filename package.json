@@ -362,6 +362,7 @@
     "hypothesis": "node scripts/hypothesis.mjs",
     "panel": "node scripts/panel.mjs",
     "sandbox:probe": "node scripts/sandbox.mjs",
+    "sandbox:run": "node scripts/sandbox-run.mjs",
     "prefilter": "node scripts/prefilter.mjs",
     "hypothesis:board": "node scripts/hypothesis-board.mjs",
     "panel:dev": "node panel-ui/dev.mjs"
