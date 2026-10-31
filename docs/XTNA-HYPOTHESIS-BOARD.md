@@ -52,6 +52,7 @@ Nothing is written outside that path.
 
 ## What it does not do
 
-- No MCP tool yet; the typed contract is wired to the CLI first.
+- MCP exposes `hypothesis_board_inspect` (read-only): it validates the store and returns records,
+  optionally filtered by id or evidence. Writes stay in the CLI.
 - No confidence scores: the board records evidence and state, not a probability.
 - No deletion command: a refuted or backtracked record stays in history.

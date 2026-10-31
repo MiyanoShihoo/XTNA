@@ -53,6 +53,8 @@ const browserEvidence = effects({
 /** Explicit effect audit for every public tool. */
 export const TOOL_EFFECTS: Readonly<Record<string, ToolEffects>> = {
   inspect_analysis_settings: effects(),
+  openapi_from_capture: effects(),
+  hypothesis_board_inspect: effects(),
   update_analysis_settings: effects({ mutatesSession: true }),
   run_plan: effects({
     mutatesSession: true,

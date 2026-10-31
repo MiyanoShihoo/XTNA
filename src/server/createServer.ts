@@ -2,6 +2,7 @@ import { AnalysisSettings } from "../application/AnalysisSettings.js";
 import { registerAnalysisSettingsTools } from "./registerAnalysisSettingsTools.js";
 import { registerExecutionTools } from "./registerExecutionTools.js";
 import { registerSubagentTools } from "./registerSubagentTools.js";
+import { registerWiringTools } from "./registerWiringTools.js";
 import type { DevicetreeService } from "../application/binaryDiagnostics/DevicetreeService.js";
 import { registerDevicetreeTool } from "./registerDevicetreeTool.js";
 import { pcapCaptureHostSupported } from "../domain/pcap/pcapAnalysis.js";
@@ -528,6 +529,7 @@ export const createServer = (
   registerAnalysisSettingsTools(server, analysisSettings);
   registerExecutionTools(server);
   registerSubagentTools(server);
+  registerWiringTools(server);
   if (options.mcpServer !== undefined) {
     server.attachRuntime(
       session === undefined

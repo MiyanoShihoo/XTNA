@@ -1,5 +1,6 @@
 import { ANALYSIS_SETTINGS_TOOL_CONTRACTS } from "./analysisSettingsContracts.js";
 import { ENVIRONMENT_TOOL_CONTRACTS } from "./environmentToolContracts.js";
+import { WIRING_TOOL_CONTRACTS } from "./wiringToolContracts.js";
 import { RUN_PLAN_CONTRACT } from "./executionToolContracts.js";
 import {
   SUBAGENT_FINISH_CONTRACT,
@@ -165,6 +166,7 @@ export const TOOL_FAMILY_DEFINITIONS = [
       SUBAGENT_FINISH_CONTRACT,
       ...ANALYSIS_SETTINGS_TOOL_CONTRACTS,
       ...ENVIRONMENT_TOOL_CONTRACTS,
+      ...WIRING_TOOL_CONTRACTS,
       ...ANALYSIS_VIEW_TOOL_CONTRACTS,
       ...WEB_SCRIPT_TOOL_CONTRACTS,
       ...JAVASCRIPT_RECOVERY_TOOL_CONTRACTS,

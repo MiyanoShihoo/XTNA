@@ -48,3 +48,10 @@ typed result with its dialect, sample count, evidence, ambiguities and enum cand
   not a closed-world `anyOf` guess.
 - The typed synthesis result is OPT-IN (`--synthesis`); without it the document stays compact.
 - The document describes what was recorded, not what the server accepts.
+
+## MCP
+
+`openapi_from_capture` exposes the same builder over MCP: input is `capture_path`, optional
+`title`/`version`/`server_url`, and `with_synthesis`. It reads one local capture and never
+replays requests or contacts the recorded origin. Missing or malformed captures are returned as a
+typed input error, not an empty document.

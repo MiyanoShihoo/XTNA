@@ -43,6 +43,7 @@ import { GDB_TOOL_CONTRACTS } from "./gdbToolContracts.js";
 import { RIZIN_DEBUG_TOOL_CONTRACTS } from "./rizinDebugToolContracts.js";
 import { FRIDA_TOOL_CONTRACTS } from "./fridaToolContracts.js";
 import { ENVIRONMENT_TOOL_CONTRACTS } from "./environmentToolContracts.js";
+import { WIRING_TOOL_CONTRACTS } from "./wiringToolContracts.js";
 import { RUN_PLAN_CONTRACT } from "./executionToolContracts.js";
 import {
   SUBAGENT_FINISH_CONTRACT,
@@ -92,6 +93,7 @@ export const TOOL_CONTRACTS = [
   ...WEB_RUNTIME_TOOL_CONTRACTS,
   ...WEB_NETWORK_CAPTURE_TOOL_CONTRACTS,
   ...ENVIRONMENT_TOOL_CONTRACTS,
+  ...WIRING_TOOL_CONTRACTS,
   ...JAVASCRIPT_RECOVERY_TOOL_CONTRACTS,
   ...SESSION_TOOL_CONTRACTS,
   ...CUTTER_TOOL_CONTRACTS,
