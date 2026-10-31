@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useAgentContext } from "@copilotkit/react-core/v2";
+import type { JsonSerializable } from "@copilotkit/react-core/v2";
 
 import { fetchState, type PanelSnapshot } from "./panel";
 import { QueryConsole } from "./components/QueryConsole";
@@ -12,6 +14,12 @@ const runtimeUrl =
 export function Dashboard() {
   const [snapshot, setSnapshot] = useState<PanelSnapshot | null>(null);
   const [error, setError] = useState("");
+
+  useAgentContext({
+    description:
+      "Current XTNA panel snapshot (wire contract v1.0.0). Answer questions about counts, topology nodes, waterfall requests, evidence and hypotheses from this state only.",
+    value: (snapshot ?? {}) as unknown as JsonSerializable,
+  });
 
   useEffect(() => {
     let cancelled = false;
