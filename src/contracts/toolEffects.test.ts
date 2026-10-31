@@ -115,6 +115,8 @@ const EXECUTION_WORDING_EXCEPTIONS: Readonly<Record<string, string>> = {
   inspect_apk_signature: "states that no Android code executes",
   run_plan:
     "states that foreign-code execution and device mutation are excluded",
+  subagent_plan:
+    "states planning-only without launching a process or remote agent",
   subagent_task_start:
     "registers session task state without launching an external worker",
   subagent_task_finish:

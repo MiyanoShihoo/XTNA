@@ -3,6 +3,10 @@
 `npm run worker:run -- --plan <plan.json> [--yes] [--json]` runs the existing
 `runWorkerPlan` dependency scheduler with **owned OS processes** as workers.
 
+The MCP tool `subagent_plan` exposes the same dependency-wave planner as a planning-only surface:
+it validates a task list and returns the waves without launching anything. The process execution
+path remains the human-gated CLI above.
+
 ## Plan format
 
 ```json

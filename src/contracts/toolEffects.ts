@@ -62,6 +62,7 @@ export const TOOL_EFFECTS: Readonly<Record<string, ToolEffects>> = {
     accessesNetwork: true,
     idempotent: false,
   }),
+  subagent_plan: effects(),
   subagent_task_start: effects({ mutatesSession: true, idempotent: false }),
   subagent_task_finish: effects({ mutatesSession: true, idempotent: false }),
   wasm_bridge: effects({ mutatesSession: true }),

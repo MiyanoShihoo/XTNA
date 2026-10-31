@@ -72,6 +72,26 @@ it("exposes role tasks and refuses completion without Evidence", async () => {
   });
 });
 
+it("plans dependency waves without launching a worker", async () => {
+  const server = new FakeServer();
+  registerSubagentTools(server as unknown as EvidenceMcpServer);
+  const planned = await invoke(server, "subagent_plan", {
+    tasks: [
+      { id: "static", role: "static-worker", objective: "map" },
+      {
+        id: "runtime",
+        role: "runtime-worker",
+        objective: "observe",
+        dependencies: ["static"],
+      },
+    ],
+  });
+  expect(planned.isError).not.toBe(true);
+  expect(planned.structuredContent).toEqual({
+    waves: [["static"], ["runtime"]],
+  });
+});
+
 it("refuses a dependent task until its dependency completes", async () => {
   const server = new FakeServer();
   registerSubagentTools(server as unknown as EvidenceMcpServer);

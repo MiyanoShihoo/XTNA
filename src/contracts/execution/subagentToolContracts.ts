@@ -43,6 +43,48 @@ export const subagentTaskFinishInputSchema = z.strictObject({
   summary: z.string().max(2_000).optional(),
 });
 
+export const subagentPlanInputSchema = z.strictObject({
+  tasks: z
+    .array(
+      z.strictObject({
+        id: z.string().min(1).max(128),
+        role: roleSchema,
+        objective: z.string().min(1).max(2_000),
+        dependencies: z.array(z.string().min(1).max(128)).max(16).optional(),
+      }),
+    )
+    .min(1)
+    .max(32),
+});
+
+export const SUBAGENT_PLAN_CONTRACT = {
+  name: "subagent_plan",
+  ...toolContractMetadata("subagent_plan"),
+  kind: "application",
+  description:
+    "Plan dependency waves for a bounded set of sub-agent tasks. This is a planning-only MCP surface: it does not launch a process, LLM or remote agent. Use the worker:run CLI with an explicit plan to execute process workers.",
+  inputSchema: subagentPlanInputSchema,
+  outputSchema: z.strictObject({
+    waves: z.array(z.array(z.string().min(1))),
+  }),
+  examples: [
+    {
+      title: "Plan two dependency waves",
+      input: {
+        tasks: [
+          { id: "static-map", role: "static-worker", objective: "map" },
+          {
+            id: "runtime-map",
+            role: "runtime-worker",
+            objective: "observe",
+            dependencies: ["static-map"],
+          },
+        ],
+      },
+    },
+  ],
+} as const satisfies ToolContract;
+
 export const SUBAGENT_START_CONTRACT = {
   name: "subagent_task_start",
   ...toolContractMetadata("subagent_task_start"),

@@ -1,6 +1,8 @@
 import {
   SUBAGENT_FINISH_CONTRACT,
+  SUBAGENT_PLAN_CONTRACT,
   SUBAGENT_START_CONTRACT,
+  subagentPlanInputSchema,
   subagentTaskFinishInputSchema,
   subagentTaskStartInputSchema,
 } from "../contracts/execution/subagentToolContracts.js";
@@ -8,6 +10,7 @@ import {
   SubagentTaskBoard,
   type SubagentTask,
 } from "../application/execution/SubagentTaskBoard.js";
+import { planWaves } from "../application/execution/WorkerScheduler.js";
 import { AnalysisInputError } from "../domain/analysisErrorCore.js";
 import type { JsonValue } from "../domain/jsonValue.js";
 import { err, ok } from "../domain/result.js";
@@ -44,6 +47,48 @@ const snapshot = (board: SubagentTaskBoard, task: SubagentTask): JsonValue => {
 /** Register session-scoped role/task contracts; no external worker is launched. */
 export const registerSubagentTools = (server: EvidenceMcpServer): void => {
   const board = new SubagentTaskBoard();
+  server.registerTool(
+    SUBAGENT_PLAN_CONTRACT.name,
+    toolRegistrationOptions(SUBAGENT_PLAN_CONTRACT),
+    async (rawInput) => {
+      const parsed = subagentPlanInputSchema.safeParse(rawInput);
+      if (!parsed.success)
+        return server.delivery.toCallToolResult(
+          err(
+            new AnalysisInputError("subagent_plan", {
+              userMessage:
+                "The plan does not match the subagent plan contract.",
+            }),
+          ),
+          SUBAGENT_PLAN_CONTRACT,
+        );
+      const planned = planWaves(
+        parsed.data.tasks.map((task) => ({
+          id: task.id,
+          role: task.role,
+          objective: task.objective,
+          ...(task.dependencies === undefined
+            ? {}
+            : { dependencies: [...task.dependencies] }),
+        })),
+      );
+      return planned.ok
+        ? server.delivery.toCallToolResult(
+            ok({
+              waves: planned.value.map((wave) => [...wave]),
+            } as JsonValue),
+            SUBAGENT_PLAN_CONTRACT,
+          )
+        : server.delivery.toCallToolResult(
+            err(
+              new AnalysisInputError("subagent_plan", {
+                userMessage: planned.error.message,
+              }),
+            ),
+            SUBAGENT_PLAN_CONTRACT,
+          );
+    },
+  );
   server.registerTool(
     SUBAGENT_START_CONTRACT.name,
     toolRegistrationOptions(SUBAGENT_START_CONTRACT),

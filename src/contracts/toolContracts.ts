@@ -47,6 +47,7 @@ import { WIRING_TOOL_CONTRACTS } from "./wiringToolContracts.js";
 import { RUN_PLAN_CONTRACT } from "./executionToolContracts.js";
 import {
   SUBAGENT_FINISH_CONTRACT,
+  SUBAGENT_PLAN_CONTRACT,
   SUBAGENT_START_CONTRACT,
 } from "./execution/subagentToolContracts.js";
 
@@ -54,6 +55,7 @@ import {
 export const TOOL_CONTRACTS = [
   ...ANALYSIS_SETTINGS_TOOL_CONTRACTS,
   RUN_PLAN_CONTRACT,
+  SUBAGENT_PLAN_CONTRACT,
   SUBAGENT_START_CONTRACT,
   SUBAGENT_FINISH_CONTRACT,
   ...OFFICIAL_TOOL_CONTRACTS,
