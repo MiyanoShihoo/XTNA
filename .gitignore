@@ -102,3 +102,6 @@ website/.i18n-*/
 .tmp-provider/
 .verify/
 rea-ghidra-*/
+
+# panel UI local secrets
+panel-ui/.env

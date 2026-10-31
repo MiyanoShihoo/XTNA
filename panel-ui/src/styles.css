@@ -1,0 +1,260 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0f14;
+  --panel: #111821;
+  --line: #1f2b38;
+  --text: #d7e2ee;
+  --muted: #7c8fa3;
+  --accent: #4a9eff;
+  --danger: #ff6b6b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.shell {
+  padding: 24px 28px 64px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+}
+
+/* The CopilotKit Inspector orb is a dev tool; keep it off the dashboard. */
+cpk-web-inspector {
+  display: none !important;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 6px;
+}
+
+h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.counts {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.count strong {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.graph svg {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+}
+
+.edge {
+  stroke: #46617d;
+  stroke-width: 1.6;
+}
+
+.node {
+  fill: var(--accent);
+}
+
+.label {
+  fill: var(--text);
+  font-size: 11px;
+}
+
+.waterfall {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-row {
+  display: grid;
+  grid-template-columns: 320px 1fr 48px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.wf-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-track {
+  position: relative;
+  height: 10px;
+  background: #0e141b;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.wf-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.wf-bar.error {
+  background: var(--danger);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 4px 10px 4px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #0e141b;
+}
+
+.card .id {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.query-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+select,
+input,
+button {
+  background: #0e141b;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+button {
+  cursor: pointer;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+button:hover {
+  background: #132234;
+}
+
+.result {
+  max-height: 260px;
+  overflow: auto;
+  background: #0e141b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .wide {
+    grid-column: span 1;
+  }
+}
