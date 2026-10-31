@@ -4,9 +4,13 @@ import type { CallToolResult } from "@modelcontextprotocol/server";
 
 import {
   RUN_PLAN_CONTRACT,
+  SANDBOX_EXEC_CONTRACT,
   runPlanInputSchema,
+  sandboxExecInputSchema,
 } from "../contracts/executionToolContracts.js";
 import { TOOL_EFFECTS } from "../contracts/toolEffects.js";
+import { probeSandboxCapability } from "../application/sandbox/SandboxCapability.js";
+import { executeSandboxCommand } from "../application/sandbox/SandboxExecution.js";
 import {
   executeReActDag,
   type PlanTask,
@@ -69,6 +73,39 @@ const projectTaskOutput = (result: CallToolResult): JsonValue => {
 
 /** Register the bounded in-process plan executor. */
 export const registerExecutionTools = (server: EvidenceMcpServer): void => {
+  server.registerTool(
+    SANDBOX_EXEC_CONTRACT.name,
+    toolRegistrationOptions(SANDBOX_EXEC_CONTRACT),
+    async (rawInput) => {
+      const parsed = sandboxExecInputSchema.safeParse(rawInput);
+      if (!parsed.success)
+        return server.delivery.toCallToolResult(
+          err(
+            new AnalysisInputError("sandbox_exec", {
+              userMessage:
+                "The command does not match the sandbox execution contract.",
+            }),
+          ),
+          SANDBOX_EXEC_CONTRACT,
+        );
+      const capability = await probeSandboxCapability();
+      const result = await executeSandboxCommand(capability, {
+        tier: parsed.data.tier,
+        image: parsed.data.image,
+        command: parsed.data.command,
+        arguments: parsed.data.arguments,
+        diffPreview: parsed.data.diff_preview,
+        ...(parsed.data.approval_token === undefined
+          ? {}
+          : { approvalToken: parsed.data.approval_token }),
+        timeoutMs: parsed.data.timeout_ms,
+      });
+      return server.delivery.toCallToolResult(
+        ok(result as unknown as JsonValue),
+        SANDBOX_EXEC_CONTRACT,
+      );
+    },
+  );
   server.registerTool(
     RUN_PLAN_CONTRACT.name,
     toolRegistrationOptions(RUN_PLAN_CONTRACT),

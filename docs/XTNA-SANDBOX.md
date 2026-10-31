@@ -42,6 +42,10 @@ The invocation is argv-only (no shell), disables the network, mounts the selecte
 The backend process remains a separate owned command; admission is still owned by
 `SandboxCapability`.
 
+The MCP tool `sandbox_exec` exposes the same admission and execution boundary. It accepts no
+working-directory selection, requires the L2 `diff_preview` or L3 approval token, and returns the
+refusal result when no container backend exists. It is not a host command runner.
+
 ## What it does not do
 
 - It does not implement a Windows Sandbox command runner; Windows Sandbox is interactive-only.

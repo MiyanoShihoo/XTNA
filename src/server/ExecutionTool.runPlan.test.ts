@@ -103,3 +103,15 @@ it("rejects tools outside the read-only plan surface", async () => {
   expect(result.isError).toBe(true);
   expect(JSON.stringify(result.content)).toContain("read-only plan surface");
 });
+
+it("rejects a malformed sandbox command before probing a backend", async () => {
+  const server = new FakeServer();
+  registerExecutionTools(server as unknown as EvidenceMcpServer);
+  const sandbox = server.callbacks.get("sandbox_exec");
+  if (sandbox === undefined) throw new Error("sandbox_exec was not registered");
+  const result = await sandbox({}, context);
+  expect(result.isError).toBe(true);
+  expect(JSON.stringify(result.content)).toContain(
+    "sandbox execution contract",
+  );
+});

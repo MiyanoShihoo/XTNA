@@ -44,7 +44,10 @@ import { RIZIN_DEBUG_TOOL_CONTRACTS } from "./rizinDebugToolContracts.js";
 import { FRIDA_TOOL_CONTRACTS } from "./fridaToolContracts.js";
 import { ENVIRONMENT_TOOL_CONTRACTS } from "./environmentToolContracts.js";
 import { WIRING_TOOL_CONTRACTS } from "./wiringToolContracts.js";
-import { RUN_PLAN_CONTRACT } from "./executionToolContracts.js";
+import {
+  RUN_PLAN_CONTRACT,
+  SANDBOX_EXEC_CONTRACT,
+} from "./executionToolContracts.js";
 import {
   SUBAGENT_FINISH_CONTRACT,
   SUBAGENT_PLAN_CONTRACT,
@@ -55,6 +58,7 @@ import {
 export const TOOL_CONTRACTS = [
   ...ANALYSIS_SETTINGS_TOOL_CONTRACTS,
   RUN_PLAN_CONTRACT,
+  SANDBOX_EXEC_CONTRACT,
   SUBAGENT_PLAN_CONTRACT,
   SUBAGENT_START_CONTRACT,
   SUBAGENT_FINISH_CONTRACT,

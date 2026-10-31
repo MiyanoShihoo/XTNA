@@ -1,7 +1,10 @@
 import { ANALYSIS_SETTINGS_TOOL_CONTRACTS } from "./analysisSettingsContracts.js";
 import { ENVIRONMENT_TOOL_CONTRACTS } from "./environmentToolContracts.js";
 import { WIRING_TOOL_CONTRACTS } from "./wiringToolContracts.js";
-import { RUN_PLAN_CONTRACT } from "./executionToolContracts.js";
+import {
+  RUN_PLAN_CONTRACT,
+  SANDBOX_EXEC_CONTRACT,
+} from "./executionToolContracts.js";
 import {
   SUBAGENT_FINISH_CONTRACT,
   SUBAGENT_PLAN_CONTRACT,
@@ -163,6 +166,7 @@ export const TOOL_FAMILY_DEFINITIONS = [
     contracts: [
       ...APPLICATION_TOOL_CONTRACTS,
       RUN_PLAN_CONTRACT,
+      SANDBOX_EXEC_CONTRACT,
       SUBAGENT_PLAN_CONTRACT,
       SUBAGENT_START_CONTRACT,
       SUBAGENT_FINISH_CONTRACT,
