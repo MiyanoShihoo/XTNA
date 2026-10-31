@@ -11,6 +11,7 @@
     "runtime:plain": "tsx server.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.135",
     "@copilotkit/react-core": "1.83.0",
     "@copilotkit/runtime": "1.83.0",
     "react": "19.3.1",
