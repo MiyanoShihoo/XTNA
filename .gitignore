@@ -105,3 +105,6 @@ rea-ghidra-*/
 
 # panel UI local secrets
 panel-ui/.env
+
+# TypeScript build info
+*.tsbuildinfo
