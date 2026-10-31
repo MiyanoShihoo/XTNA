@@ -3,13 +3,31 @@
 React + CopilotKit front end for the live investigation panel. It consumes the frozen panel wire
 contract (`docs/XTNA-PANEL-CONTRACT.md`, v1.0.0) and adds a CopilotKit chat sidebar.
 
-## Data views
+## Workbench views
 
-- Topology (`/api/state` graph projection)
-- Network waterfall
-- Evidence cards, limitations, symbols, hypotheses, checkpoints
-- Provider query console (read-only allowlist; write tools need the panel's terminal approval code)
+- Full-bleed call topology: glowing nodes, wheel zoom, drag pan, Fit, keyboard selection
+- Left inspector drawer: node detail, bundle evidence (searchable), limitations, notes
+- Network waterfall, provider query console, symbols / hypotheses / checkpoints strip
 - CopilotKit `CopilotSidebar` for chat
+
+Click a node to open the drawer. Notes need the panel server started with
+`--annotations notes.jsonl`; without it the Notes tab explains the flag. Notes are
+bundle-global, anchored to the target string you pick (node address by default).
+
+The workbench uses the graphite/emerald design tokens in `src/styles.css`
+(`#0A0A0A`, `#141414`, `#10B981`, `#F59E0B`). Verify them with:
+
+```bash
+npm run build
+npm run audit:design
+# with panel server :4399 and Vite :5173 running, plus a Playwright browser:
+# playwright-core comes from the repository-root devDependencies (root `npm ci`);
+# a standalone panel-ui install needs it installed separately.
+PLAYWRIGHT_BROWSERS_PATH=../.tmp-build/pw-browsers npm run smoke:visual
+```
+
+`smoke:visual` writes `panel-workbench.png` and `panel-drawer.png` under `.tmp-build/`
+and reports computed styles, drawer focus behaviour, note de-duplication and console errors.
 
 ## Run (one window)
 

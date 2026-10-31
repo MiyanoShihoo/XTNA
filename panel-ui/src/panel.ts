@@ -46,6 +46,11 @@ export interface PanelWaterfall {
   truncated: boolean;
 }
 
+export interface PanelLimitation {
+  operation: string;
+  text: string;
+}
+
 export interface PanelRecord {
   id: string;
   operation: string;
@@ -69,7 +74,7 @@ export interface PanelSnapshot {
   waterfall: PanelWaterfall;
   records?: PanelRecord[];
   recordsTruncated?: boolean;
-  limitations: { operation: string; text: string }[];
+  limitations: PanelLimitation[];
   symbols: {
     address: string;
     name: string;
@@ -83,6 +88,17 @@ export interface PanelSnapshot {
     confidence: string;
   }[];
   checkpoints: { name: string; bytes: number; modifiedAt: string }[];
+}
+
+export interface Annotation {
+  created_at: string;
+  target: string;
+  note: string;
+}
+
+export interface AnnotationsResponse {
+  enabled: boolean;
+  annotations: Annotation[];
 }
 
 export interface QueryInfo {
@@ -105,6 +121,58 @@ export const fetchState = async (): Promise<PanelSnapshot> => {
     throw new Error(`state ${response.status}: ${detail}`);
   }
   return (await response.json()) as PanelSnapshot;
+};
+
+export interface AnnotationsState extends AnnotationsResponse {
+  total: number;
+  truncated: boolean;
+  error?: string;
+}
+
+export const fetchAnnotations = async (): Promise<AnnotationsState> => {
+  const response = await fetch("/api/annotations");
+  if (response.status === 404)
+    return { enabled: false, annotations: [], total: 0, truncated: false };
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 300);
+    throw new Error(`annotations ${response.status}: ${detail}`);
+  }
+  const value = (await response.json()) as Partial<AnnotationsState>;
+  return {
+    enabled: value.enabled === true,
+    annotations: Array.isArray(value.annotations) ? value.annotations : [],
+    total:
+      typeof value.total === "number"
+        ? value.total
+        : Array.isArray(value.annotations)
+          ? value.annotations.length
+          : 0,
+    truncated: value.truncated === true,
+    ...(typeof value.error === "string" ? { error: value.error } : {}),
+  };
+};
+
+export const appendAnnotation = async (
+  target: string,
+  note: string,
+): Promise<{ status: number; record?: Annotation; error?: string }> => {
+  const response = await fetch("/api/annotations", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ target, note }),
+  });
+  const body = (await response.json().catch(() => ({}))) as
+    | Annotation
+    | { error?: string };
+  if (!response.ok)
+    return {
+      status: response.status,
+      error:
+        "error" in body && typeof body.error === "string"
+          ? body.error
+          : `annotations ${response.status}`,
+    };
+  return { status: response.status, record: body as Annotation };
 };
 
 export const fetchQueryInfo = async (): Promise<QueryInfo> => {

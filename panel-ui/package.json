@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "runtime": "tsx --env-file=.env server.ts",
-    "runtime:plain": "tsx server.ts"
+    "runtime:plain": "tsx server.ts",
+    "audit:design": "node scripts/design-audit.mjs",
+    "smoke:visual": "node scripts/visual-smoke.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.135",

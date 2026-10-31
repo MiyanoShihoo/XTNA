@@ -37,11 +37,12 @@ export function QueryConsole() {
 
   if (!info.enabled)
     return (
-      <section className="panel">
+      <section className="railPanel queryPanel">
         <div className="panelHead">
           <h2>{t("providerQuery")}</h2>
+          <span className="statusInline mono small dim">offline</span>
         </div>
-        <p className="muted">{t("queryDisabled")}</p>
+        <p className="dim small">{t("queryDisabled")}</p>
       </section>
     );
 
@@ -85,13 +86,20 @@ export function QueryConsole() {
   };
 
   return (
-    <section className="panel">
+    <section className="railPanel queryPanel">
       <div className="panelHead">
         <h2>{t("providerQuery")}</h2>
+        <span className="statusInline mono small emerald">
+          <span className="statusDot live" aria-hidden="true" /> {t("live")}
+        </span>
       </div>
-      <p className="muted">{t("queryHint")}</p>
+      <p className="dim small">{t("queryHint")}</p>
       <div className="queryRow">
-        <select value={tool} onChange={(event) => setTool(event.target.value)}>
+        <select
+          className="mono"
+          value={tool}
+          onChange={(event) => setTool(event.target.value)}
+        >
           {info.tools.map((entry) => (
             <option key={entry} value={entry}>
               {entry}
@@ -103,13 +111,20 @@ export function QueryConsole() {
             </option>
           ))}
         </select>
-        <select value={key} onChange={(event) => setKey(event.target.value)}>
+        <select
+          className="mono"
+          value={key}
+          onChange={(event) => setKey(event.target.value)}
+        >
           <option value="procedure">procedure</option>
           <option value="address">address</option>
           <option value="name">name</option>
           <option value="pattern">pattern</option>
         </select>
+      </div>
+      <div className="queryRow">
         <input
+          className="mono"
           placeholder={t("value")}
           value={value}
           onChange={(event) => setValue(event.target.value)}
@@ -117,6 +132,7 @@ export function QueryConsole() {
       </div>
       <div className="queryRow">
         <input
+          className="mono"
           type="password"
           placeholder={t("token")}
           value={token}
@@ -126,14 +142,19 @@ export function QueryConsole() {
           }}
         />
         <input
+          className="mono"
           placeholder={t("approvalCode")}
           value={code}
           onChange={(event) => setCode(event.target.value)}
         />
+      </div>
+      <div className="queryActions">
         <button type="button" onClick={() => void submit()}>
           {t("query")}
         </button>
-        <span className="muted">{status}</span>
+        <span className="dim mono small" aria-live="polite">
+          {status}
+        </span>
       </div>
       {result.length > 0 && <pre className="result">{result}</pre>}
     </section>

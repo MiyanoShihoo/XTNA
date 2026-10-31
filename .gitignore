@@ -111,3 +111,9 @@ panel-ui/.env
 
 # panel UI local model settings
 panel-ui/.runtime-config.json
+
+# local build/verification workspace (E: only)
+.tmp-build/
+
+# local orchestration artefacts (never committed)
+docs/agent-orchestrator/

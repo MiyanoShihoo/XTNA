@@ -45,7 +45,7 @@ export function SettingsDialog({
   if (!open) return null;
 
   const save = async () => {
-    setStatus("saving…");
+    setStatus(t("saving"));
     try {
       const response = await fetch("/control/config", {
         method: "POST",

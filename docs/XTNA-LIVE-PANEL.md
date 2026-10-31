@@ -17,7 +17,7 @@ live variant watches the same artefacts and refreshes the browser instead.
 | `/`                | GET    | HTML shell: tables, SVG topology graph, waterfall, annotation box           |
 | `/api/state`       | GET    | JSON snapshot of counts, graph, waterfall, symbols, hypotheses, checkpoints |
 | `/events`          | GET    | `text/event-stream`; one `refresh` event per change                         |
-| `/api/annotations` | GET    | `{enabled, annotations}`; last 200 records                                  |
+| `/api/annotations` | GET    | `{enabled, annotations, total, truncated}`; last 200 records                |
 | `/api/annotations` | POST   | Appends `{created_at, target, note}`; `403` without `--annotations`         |
 | `/api/query`       | GET    | `{enabled, tools}`; `404` without `--mcp-url` + `--query-token`             |
 | `/api/query`       | POST   | Relays one allowlisted read-only tool; token + same-origin required         |

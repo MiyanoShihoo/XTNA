@@ -501,10 +501,23 @@ const broadcast = async () => {
 };
 
 const readAnnotations = async () => {
-  if (annotationsPath === undefined) return [];
-  const text = await readFile(annotationsPath, "utf8").catch(() => "");
+  if (annotationsPath === undefined)
+    return { annotations: [], total: 0, truncated: false };
+  let text;
+  try {
+    text = await readFile(annotationsPath, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") text = "";
+    else
+      return {
+        annotations: [],
+        total: 0,
+        truncated: false,
+        error: "cannot read annotations file",
+      };
+  }
   const lines = text.split("\n").filter((line) => line.trim().length > 0);
-  return lines.slice(-MAX_ANNOTATIONS_RETURNED).flatMap((line) => {
+  const records = lines.flatMap((line) => {
     try {
       const parsed = JSON.parse(line);
       return parsed !== null && typeof parsed === "object" ? [parsed] : [];
@@ -512,6 +525,11 @@ const readAnnotations = async () => {
       return [];
     }
   });
+  return {
+    annotations: records.slice(-MAX_ANNOTATIONS_RETURNED),
+    total: records.length,
+    truncated: records.length > MAX_ANNOTATIONS_RETURNED,
+  };
 };
 
 const body = (request) =>
@@ -659,7 +677,10 @@ const server = createServer(async (request, response) => {
           "content-type": "application/json; charset=utf-8",
         });
         response.end(
-          `${JSON.stringify({ enabled: annotationsPath !== undefined, annotations })}\n`,
+          `${JSON.stringify({
+            enabled: annotationsPath !== undefined,
+            ...annotations,
+          })}\n`,
         );
         return;
       }
