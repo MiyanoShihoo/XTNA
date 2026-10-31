@@ -95,12 +95,13 @@ paths. The [generated tool catalog](docs/mcp-contracts.md#generated-catalog) lis
 | JavaScript / Electron | Application graphs, routes, source maps, Electron fuses, packaged ASAR/SEA                                      |
 | Browser               | Passive CDP inspection, recorded scenarios, network waterfalls, WebMCP discovery                                |
 | Android / Apple       | APK/AAB inspection, signing, JADX/apktool bridges, IPA/.app bundles, plists, Interface Builder                  |
-| Firmware / containers | ZIP, DMG, Godot PCK, PyInstaller, Node SEA, Hermes headers, firmware extraction                                 |
+| Firmware / containers | ZIP, DMG, Godot PCK, PyInstaller, Node SEA, Hermes headers, V8 snapshot inventory, firmware extraction          |
 | Traffic               | HAR, mitmproxy, SAZ and qlog inspection with credential redaction                                               |
 | Agent tooling         | Stateful mock servers, client SDK generation, dossiers (MD/HTML/PDF), checkpoints, live panel, worker scheduler |
 
 Utilities worth knowing: `npm run mock:gen`, `npm run sdk:gen`, `npm run dossier`,
-`npm run checkpoint`, `npm run panel:serve`, `npm run wasm:scan`, `npm run hermes:inspect`.
+`npm run checkpoint`, `npm run panel:serve`, `npm run wasm:scan`, `npm run hermes:inspect`,
+`npm run v8:inspect`.
 Each has its own document under [docs/](docs/README.md).
 
 ## Evidence model

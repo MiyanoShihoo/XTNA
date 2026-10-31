@@ -124,7 +124,9 @@ instruction boundaries.
   versus fallthrough is not distinguished.
 - **No cross-block data flow.** Register values are tracked inside straight-line runs; a value that
   crosses a branch renders as `rN`.
-- **No V8 startup snapshots.** A V8 snapshot has no stable magic to recognise; it is not parsed.
+- **No V8 heap deserialization.** `npm run v8:inspect` recognizes the Chromium context-snapshot
+  header and declares bounded sections, but does not deserialize the heap or claim arbitrary V8
+  version support. See [XTNA-V8-SNAPSHOT.md](XTNA-V8-SNAPSHOT.md).
 - **No APK traversal.** Pass the extracted bundle; use `inspect_artifact`/`extract_artifact` first.
 
 ## Validation
