@@ -1110,6 +1110,16 @@ tbody tr:hover td {
   margin: 4px 0 10px;
 }
 
+.evidenceToggle {
+  margin: 0 0 6px;
+  padding: 0;
+  height: 22px;
+  color: var(--emerald);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .evidenceList,
 .limitationList,
 .noteList {

@@ -50,7 +50,7 @@ export function Dashboard() {
 
   useAgentContext({
     description:
-      "Current XTNA panel snapshot (wire contract v1.0.0). Answer questions about counts, topology nodes, waterfall requests, evidence and hypotheses from this state only.",
+      "Current XTNA panel snapshot (wire contract v1.1.0). Answer questions about counts, topology nodes, waterfall requests, evidence and hypotheses from this state only.",
     value: (snapshot ?? {}) as unknown as JsonSerializable,
   });
 

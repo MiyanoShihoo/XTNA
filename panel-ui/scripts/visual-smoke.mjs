@@ -76,6 +76,22 @@ await page.waitForSelector("[data-testid='drawer']", { timeout: 5000 });
 await page.waitForTimeout(350);
 const drawerBox = await page.locator("[data-testid='drawer']").boundingBox();
 
+await page.locator("[data-testid='drawer'] [role='tab']").nth(1).click();
+const scopedEvidence = await page.evaluate(() => ({
+  head: document.querySelector("[data-testid='drawer'] .panelHead")
+    ?.textContent,
+  rows: document.querySelectorAll("[data-testid='drawer'] .evidenceList li")
+    .length,
+}));
+await page.getByRole("button", { name: "ALL BUNDLE RECORDS" }).click();
+const allEvidence = await page.evaluate(() => ({
+  head: document.querySelector("[data-testid='drawer'] .panelHead")
+    ?.textContent,
+  rows: document.querySelectorAll("[data-testid='drawer'] .evidenceList li")
+    .length,
+}));
+await page.locator("[data-testid='drawer'] [role='tab']").nth(0).click();
+
 const tabTrail = [];
 for (let index = 0; index < 6; index += 1) {
   await page.keyboard.press("Tab");
@@ -127,6 +143,8 @@ const result = {
   computed,
   drawerLeft: drawerBox?.x ?? null,
   drawerWidth: drawerBox?.width ?? null,
+  scopedEvidence,
+  allEvidence,
   tabTrail,
   focusAfterEscape,
   zoomChanged,

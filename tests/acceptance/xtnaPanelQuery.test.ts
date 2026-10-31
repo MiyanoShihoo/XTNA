@@ -531,6 +531,31 @@ describe("panel wire contract", () => {
     expect(issues.join("; ")).toContain("state.counts.artifacts");
   });
 
+  it("rejects non-string record node ids", () => {
+    const issues = validatePanelState({
+      generatedAt: "x",
+      title: "t",
+      sources: { evidence: "bundle.json" },
+      counts: {
+        records: 1,
+        artifacts: 0,
+        unknowns: 0,
+        limitations: 0,
+        symbols: 0,
+        hypotheses: 0,
+        checkpoints: 0,
+      },
+      graph: { nodes: [], edges: [], truncated: false },
+      waterfall: { entries: [], timed: false, truncated: false },
+      records: [{ node_ids: [7] }],
+      limitations: [],
+      symbols: [],
+      hypotheses: [],
+      checkpoints: [],
+    });
+    expect(issues.join("; ")).toContain("state.records[0].node_ids");
+  });
+
   it("rejects a query request without a tool string", () => {
     expect(validateQueryRequestShape({ tool: 1 }).join("; ")).toContain(
       "query.tool",

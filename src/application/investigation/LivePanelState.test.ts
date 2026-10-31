@@ -278,6 +278,8 @@ describe("topology and waterfall projection", () => {
       { source: "0x401000", target: "0x401050" },
     ]);
     expect(snapshot.graph.truncated).toBe(false);
+    expect(snapshot.records[0]?.node_ids).toEqual(["0x401000", "0x401050"]);
+    expect(snapshot.records[1]?.node_ids).toBeUndefined();
 
     expect(snapshot.waterfall.entries).toHaveLength(3);
     expect(snapshot.waterfall.entries[0]).toEqual({
@@ -297,6 +299,36 @@ describe("topology and waterfall projection", () => {
     expect(snapshot.waterfall.timed).toBe(true);
     expect(snapshot.counts.graphNodes).toBe(2);
     expect(snapshot.counts.transactions).toBe(3);
+  });
+
+  it("maps edge-only records onto graph nodes from another record", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "xtna-visual-"));
+    const evidencePath = join(directory, "bundle.json");
+    await writeFile(
+      evidencePath,
+      JSON.stringify({
+        records: [
+          {
+            normalized_result: {
+              nodes: [{ address: "0x401000" }, { address: "0x401050" }],
+            },
+          },
+          {
+            normalized_result: {
+              edges: [
+                {
+                  source_address: "0x401000",
+                  target_address: "0x401050",
+                },
+              ],
+            },
+          },
+        ],
+      }),
+      "utf8",
+    );
+    const snapshot = await loadInvestigationState({ evidencePath });
+    expect(snapshot.records[1]?.node_ids).toEqual(["0x401000", "0x401050"]);
   });
 
   it("changes the digest when the graph changes", async () => {
@@ -403,6 +435,8 @@ describe("panel annotations", () => {
       expect(await listed.json()).toEqual({
         enabled: false,
         annotations: [],
+        total: 0,
+        truncated: false,
       });
       const posted = await fetch(`${panel.base}/api/annotations`, {
         method: "POST",
@@ -410,6 +444,29 @@ describe("panel annotations", () => {
         body: JSON.stringify({ target: "0x401000", note: "check" }),
       });
       expect(posted.status).toBe(403);
+    } finally {
+      await panel.stop();
+    }
+  }, 30_000);
+
+  it("reports an unreadable annotations file instead of a false empty list", async () => {
+    const { evidencePath, directory } = await writeFixture();
+    const panel = await startPanel(evidencePath, ["--annotations", directory]);
+    try {
+      const listed = await fetch(`${panel.base}/api/annotations`);
+      expect(listed.status).toBe(200);
+      const body = (await listed.json()) as {
+        enabled: boolean;
+        annotations: unknown[];
+        total: number;
+        truncated: boolean;
+        error?: string;
+      };
+      expect(body.enabled).toBe(true);
+      expect(body.annotations).toEqual([]);
+      expect(body.total).toBe(0);
+      expect(body.truncated).toBe(false);
+      expect(body.error).toBe("cannot read annotations file");
     } finally {
       await panel.stop();
     }

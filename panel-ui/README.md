@@ -1,12 +1,12 @@
 # XTNA panel UI
 
 React + CopilotKit front end for the live investigation panel. It consumes the frozen panel wire
-contract (`docs/XTNA-PANEL-CONTRACT.md`, v1.0.0) and adds a CopilotKit chat sidebar.
+contract (`docs/XTNA-PANEL-CONTRACT.md`, v1.1.0) and adds a CopilotKit chat sidebar.
 
 ## Workbench views
 
 - Full-bleed call topology: glowing nodes, wheel zoom, drag pan, Fit, keyboard selection
-- Left inspector drawer: node detail, bundle evidence (searchable), limitations, notes
+- Left inspector drawer: node detail, node-scoped evidence when `node_ids` exist (with an all-records toggle), limitations, notes
 - Network waterfall, provider query console, symbols / hypotheses / checkpoints strip
 - CopilotKit `CopilotSidebar` for chat
 

@@ -92,6 +92,38 @@ const edgeOf = (
     : { source, target };
 };
 
+/**
+ * Node ids observed in one record's payload. This is the same narrow
+ * recognition used by `projectGraph`, exposed so a record card can name the
+ * graph nodes it actually carried instead of inferring a relation in the UI.
+ * `allowed` keeps only ids that exist in the projected graph.
+ */
+export function recordNodeIds(
+  record: unknown,
+  allowed?: ReadonlySet<string>,
+): string[] {
+  const payload = payloadOf(record);
+  if (payload === undefined) return [];
+  const ids = new Set<string>();
+  const add = (id: string | undefined) => {
+    if (id === undefined) return;
+    if (allowed !== undefined && !allowed.has(id)) return;
+    ids.add(id);
+  };
+  for (const raw of asArray(payload.nodes)) {
+    if (!isRecord(raw)) continue;
+    add(nodeIdOf(raw));
+  }
+  for (const raw of asArray(payload.edges)) {
+    if (!isRecord(raw)) continue;
+    const edge = edgeOf(raw);
+    if (edge === undefined) continue;
+    add(edge.source);
+    add(edge.target);
+  }
+  return [...ids].slice(0, PANEL_LIMITS.nodes);
+}
+
 /** Merge every recognized graph shape into one bounded node/edge set. */
 export function projectGraph(records: readonly unknown[]): PanelGraph {
   const nodes = new Map<string, PanelGraphNode>();

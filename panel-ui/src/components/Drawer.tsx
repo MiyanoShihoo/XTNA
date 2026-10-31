@@ -57,6 +57,7 @@ export function Drawer({
   const nodeRef = useRef(node);
   const originRef = useRef(origin);
   const [search, setSearch] = useState("");
+  const [showAllEvidence, setShowAllEvidence] = useState(false);
 
   useEffect(() => {
     originRef.current = origin;
@@ -83,16 +84,28 @@ export function Drawer({
     return { inbound: inbound.length, outbound: outbound.length, labels };
   }, [graph, node]);
 
+  const nodeRecords = useMemo(
+    () =>
+      node === null
+        ? []
+        : records.filter(
+            (record) => record.node_ids?.includes(node.id) === true,
+          ),
+    [node, records],
+  );
+  const scopedEvidence =
+    node !== null && nodeRecords.length > 0 && !showAllEvidence;
+  const evidenceSource = scopedEvidence ? nodeRecords : records;
   const filteredRecords = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (needle.length === 0) return records;
-    return records.filter((record) =>
+    if (needle.length === 0) return evidenceSource;
+    return evidenceSource.filter((record) =>
       [record.operation, record.provider, record.id]
         .join(" ")
         .toLowerCase()
         .includes(needle),
     );
-  }, [records, search]);
+  }, [evidenceSource, search]);
 
   useEffect(() => {
     if (!open) return;
@@ -157,7 +170,8 @@ export function Drawer({
 
   useEffect(() => {
     setSearch("");
-  }, [open, tab]);
+    setShowAllEvidence(false);
+  }, [open, tab, node?.id]);
 
   if (!open) return null;
 
@@ -245,6 +259,10 @@ export function Drawer({
                     <dt>{t("outbound")}</dt>
                     <dd className="mono bright">{nodeDetail.outbound}</dd>
                   </div>
+                  <div>
+                    <dt>{t("evidenceCards")}</dt>
+                    <dd className="mono bright">{nodeRecords.length}</dd>
+                  </div>
                 </dl>
                 <div>
                   <span className="eyebrow">{t("neighbors")}</span>
@@ -254,19 +272,31 @@ export function Drawer({
                       : nodeDetail.labels.join(" · ")}
                   </p>
                 </div>
-                <p className="scopeNote">{t("evidenceScope")}</p>
+                <p className="scopeNote">{t("nodeEvidenceScope")}</p>
               </div>
             ))}
 
           {tab === "evidence" && (
             <div>
               <div className="panelHead">
-                <span className="eyebrow">{t("allRecords")}</span>
+                <span className="eyebrow">
+                  {scopedEvidence ? t("nodeEvidence") : t("allRecords")}
+                </span>
                 <span className="dim mono">
-                  {filteredRecords.length}/{records.length}
+                  {filteredRecords.length}/
+                  {scopedEvidence ? nodeRecords.length : records.length}
                   {recordsTruncated ? " · 200" : ""}
                 </span>
               </div>
+              {nodeRecords.length > 0 && (
+                <button
+                  type="button"
+                  className="ghost small evidenceToggle"
+                  onClick={() => setShowAllEvidence((value) => !value)}
+                >
+                  {scopedEvidence ? t("allRecords") : t("nodeEvidence")}
+                </button>
+              )}
               <input
                 className="search"
                 placeholder={t("searchEvidence")}
@@ -293,6 +323,13 @@ export function Drawer({
                   ))}
                 </ul>
               )}
+              <p className="scopeNote">
+                {scopedEvidence
+                  ? t("nodeEvidenceScope")
+                  : node !== null && nodeRecords.length === 0
+                    ? t("noNodeEvidence")
+                    : t("evidenceScope")}
+              </p>
             </div>
           )}
 

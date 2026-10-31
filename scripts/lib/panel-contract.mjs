@@ -7,7 +7,7 @@
  * rather than re-deriving the projection.
  */
 
-export const PANEL_CONTRACT_VERSION = "1.0.0";
+export const PANEL_CONTRACT_VERSION = "1.1.0";
 
 const isRecord = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -87,6 +87,20 @@ export const validatePanelState = (snapshot) => {
       errors.push(`state.${field} must be an array`);
   if (snapshot.records !== undefined && !isArray(snapshot.records))
     errors.push("state.records must be an array when present");
+  if (isArray(snapshot.records))
+    for (const [index, record] of snapshot.records.entries()) {
+      if (!isRecord(record)) {
+        errors.push(`state.records[${String(index)}] must be an object`);
+        continue;
+      }
+      if (
+        record.node_ids !== undefined &&
+        !(isArray(record.node_ids) && record.node_ids.every(isString))
+      )
+        errors.push(
+          `state.records[${String(index)}].node_ids must be an array of strings when present`,
+        );
+    }
   return errors;
 };
 
@@ -150,6 +164,17 @@ export const panelContract = () => ({
     ],
     graph: ["nodes", "edges", "truncated"],
     waterfall: ["entries", "timed", "truncated"],
+    record: {
+      required: [
+        "id",
+        "operation",
+        "provider",
+        "authority",
+        "confidence",
+        "limitations",
+      ],
+      optional: ["node_ids"],
+    },
   },
   query: {
     request: { tool: "string", args: "object (scalar values only)" },

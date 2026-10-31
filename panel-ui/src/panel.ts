@@ -1,4 +1,4 @@
-/** Wire types for the frozen panel contract (v1.0.0). */
+/** Wire types for the frozen panel contract (v1.1.0). */
 
 export interface PanelCounts {
   records: number;
@@ -58,6 +58,8 @@ export interface PanelRecord {
   authority: string;
   confidence: string;
   limitations: number;
+  /** Graph node ids observed in the record payload (contract v1.1+). */
+  node_ids?: string[];
 }
 
 export interface PanelSnapshot {

@@ -83,6 +83,11 @@ const messages = {
     noEvidence: "No evidence records.",
     noLimitations: "No limitations recorded.",
     allRecords: "ALL BUNDLE RECORDS",
+    nodeEvidence: "NODE EVIDENCE",
+    nodeEvidenceScope:
+      "Records whose payload names this node. Switch to all bundle records for the global view.",
+    noNodeEvidence:
+      "No record payload names this node; showing all bundle records.",
     allLimitations: "ALL LIMITATIONS",
     node: "node",
     address: "address",
@@ -105,8 +110,7 @@ const messages = {
     noteChars: "chars",
     activity: "Activity",
     source: "source",
-    evidenceScope:
-      "Global bundle view — the panel contract exposes no node↔record key.",
+    evidenceScope: "Global bundle view across all records.",
     limitationScope: "Global bundle view.",
     checkpointAt: "modified",
     unknownCount: "open unknowns",
@@ -183,6 +187,10 @@ const messages = {
     noEvidence: "没有证据记录。",
     noLimitations: "没有记录限制。",
     allRecords: "全部证据包记录",
+    nodeEvidence: "节点证据",
+    nodeEvidenceScope:
+      "仅显示 payload 中直接指向该节点的记录；切换可查看全部证据包记录。",
+    noNodeEvidence: "没有记录直接指向该节点，当前显示全部证据包记录。",
     allLimitations: "全部限制",
     node: "节点",
     address: "地址",
@@ -204,7 +212,7 @@ const messages = {
     noteChars: "字符",
     activity: "活动",
     source: "来源",
-    evidenceScope: "全局证据包视图——面板契约没有节点↔记录键。",
+    evidenceScope: "全部记录的证据包视图。",
     limitationScope: "全局证据包视图。",
     checkpointAt: "修改于",
     unknownCount: "未解决未知",

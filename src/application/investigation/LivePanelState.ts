@@ -14,6 +14,7 @@ import { join, resolve } from "node:path";
 import {
   projectGraph,
   projectWaterfall,
+  recordNodeIds,
   type PanelGraph,
   type PanelWaterfall,
 } from "./PanelGraphProjection.js";
@@ -44,6 +45,8 @@ export interface PanelRecord {
   readonly authority: string;
   readonly confidence: string;
   readonly limitations: number;
+  /** Graph node ids observed in this record's payload (contract v1.1+). */
+  readonly node_ids?: readonly string[];
 }
 
 export interface PanelCheckpoint {
@@ -104,10 +107,14 @@ const asArray = (value: unknown): unknown[] =>
 
 const MAX_RECORD_CARDS = 200;
 
-const projectRecordCards = (records: readonly unknown[]): PanelRecord[] => {
+const projectRecordCards = (
+  records: readonly unknown[],
+  graphNodeIds: ReadonlySet<string>,
+): PanelRecord[] => {
   const cards: PanelRecord[] = [];
   for (const record of records.slice(0, MAX_RECORD_CARDS)) {
     if (!isRecord(record)) continue;
+    const nodeIds = recordNodeIds(record, graphNodeIds);
     cards.push({
       id: typeof record.evidence_id === "string" ? record.evidence_id : "—",
       operation:
@@ -119,6 +126,7 @@ const projectRecordCards = (records: readonly unknown[]): PanelRecord[] => {
       confidence:
         typeof record.confidence === "string" ? record.confidence : "—",
       limitations: asArray(record.limitations).length,
+      ...(nodeIds.length === 0 ? {} : { node_ids: nodeIds }),
     });
   }
   return cards;
@@ -133,8 +141,9 @@ export async function loadInvestigationState(
   const records = asArray(bundle.records);
   const artifacts = asArray(bundle.artifacts);
   const unknowns = asArray(bundle.unknowns);
-  const recordCards = projectRecordCards(records);
   const graph = projectGraph(records);
+  const graphNodeIds = new Set(graph.nodes.map((node) => node.id));
+  const recordCards = projectRecordCards(records, graphNodeIds);
   const waterfall = projectWaterfall(records);
 
   const limitations: PanelLimitation[] = [];
