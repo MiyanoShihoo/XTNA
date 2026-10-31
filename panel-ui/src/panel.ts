@@ -131,3 +131,12 @@ export const runQuery = async (
     body: (await response.json()) as QueryResult,
   };
 };
+
+let queryToken = "";
+
+/** Session-scoped token used by the chat frontend tools. */
+export const setQueryToken = (value: string): void => {
+  queryToken = value;
+};
+
+export const getQueryToken = (): string => queryToken;

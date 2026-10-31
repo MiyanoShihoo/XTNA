@@ -8,10 +8,18 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      "/api": "http://127.0.0.1:4399",
+      // The dev server has its own origin; the panel checks Origin on /api/query.
+      // Strip it on the local proxy so the request looks like a same-origin call.
+      "/api": {
+        target: "http://127.0.0.1:4399",
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("proxyReq", (request) => request.removeHeader("origin"));
+        },
+      },
       "/events": {
         target: "http://127.0.0.1:4399",
-        changeOrigin: false,
+        changeOrigin: true,
       },
     },
   },

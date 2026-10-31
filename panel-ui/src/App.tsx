@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAgentContext } from "@copilotkit/react-core/v2";
+import { usePanelTools } from "./tools";
 import type { JsonSerializable } from "@copilotkit/react-core/v2";
 
 import { fetchState, type PanelSnapshot } from "./panel";
@@ -14,6 +15,8 @@ const runtimeUrl =
 export function Dashboard() {
   const [snapshot, setSnapshot] = useState<PanelSnapshot | null>(null);
   const [error, setError] = useState("");
+
+  usePanelTools();
 
   useAgentContext({
     description:

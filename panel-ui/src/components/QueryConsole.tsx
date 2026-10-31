@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { fetchQueryInfo, runQuery, type QueryInfo } from "../panel";
+import {
+  fetchQueryInfo,
+  runQuery,
+  setQueryToken,
+  type QueryInfo,
+} from "../panel";
 
 interface Pending {
   requestId: string;
@@ -113,7 +118,10 @@ export function QueryConsole() {
           type="password"
           placeholder="x-xtna-token"
           value={token}
-          onChange={(event) => setToken(event.target.value)}
+          onChange={(event) => {
+            setToken(event.target.value);
+            setQueryToken(event.target.value);
+          }}
         />
         <input
           placeholder="approval code (if pending)"
