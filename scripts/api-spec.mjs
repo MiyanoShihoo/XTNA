@@ -8,7 +8,6 @@
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -21,13 +20,13 @@ const output = flag("out");
 
 if (input === undefined || output === undefined) {
   process.stderr.write(
-    "usage: node scripts/api-spec.mjs --in <capture.har> --out <openapi.json> [--title Name] [--version 1.0.0] [--server https://api.example]\n",
+    "usage: node scripts/api-spec.mjs --in <capture.har> --out <openapi.json> [--title Name] [--version 1.0.0] [--server https://api.example] [--synthesis]\n",
   );
   process.exit(2);
 }
 
 const { buildOpenApi } = await import(
-  pathToFileURL(resolve("dist/application/api/OpenApiFromCapture.js")).href
+  new URL("../dist/application/api/OpenApiFromCapture.js", import.meta.url).href
 );
 
 const document = JSON.parse(
@@ -37,6 +36,7 @@ const openapi = buildOpenApi(document, {
   ...(flag("title") === undefined ? {} : { title: flag("title") }),
   ...(flag("version") === undefined ? {} : { version: flag("version") }),
   ...(flag("server") === undefined ? {} : { serverUrl: flag("server") }),
+  ...(args.includes("--synthesis") ? { withSynthesis: true } : {}),
 });
 
 const target = resolve(output);
@@ -47,6 +47,7 @@ process.stdout.write(
       output: target,
       openapi: openapi.openapi,
       paths: Object.keys(openapi.paths).length,
+      synthesis: args.includes("--synthesis"),
       operations: Object.values(openapi.paths).reduce(
         (count, entry) => count + Object.keys(entry).length,
         0,

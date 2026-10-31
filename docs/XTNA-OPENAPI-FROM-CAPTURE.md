@@ -30,8 +30,13 @@ the recorded JSON bodies, gets a usable first draft — one a human still has to
 | requestBody   | merged schema of every recorded JSON request body                              |
 | responses     | merged schema of every recorded JSON response, keyed by the lowest status seen |
 
-Schema inference maps strings, integers, numbers, booleans, nulls, arrays and objects.
-`required` keeps only the fields present in **every** sample, so a field seen once is optional.
+Schema inference is delegated to the typed `synthesizeJsonSchema` contract
+(`src/domain/schemaSynthesis.ts`), not a second hand-rolled merge. It records per-pointer evidence,
+mixed-type ambiguities and enum candidates (visible enums are inferred, non-repeating strings are
+withheld with a reason). `required` keeps only fields present in every sample.
+
+With `--synthesis`, each operation carries `x-xtna-synthesis: {request?, response?}` — the complete
+typed result with its dialect, sample count, evidence, ambiguities and enum candidates.
 
 ## Limits
 
@@ -39,5 +44,7 @@ Schema inference maps strings, integers, numbers, booleans, nulls, arrays and ob
   modelled.
 - Path parameters are always `string`, even when the sample was numeric.
 - Query parameters are typed `string`, with `required: false`.
-- Merging incompatible types emits `anyOf` rather than a guess.
+- Incompatible observed types become a JSON Schema type union with a `mixed-types` ambiguity,
+  not a closed-world `anyOf` guess.
+- The typed synthesis result is OPT-IN (`--synthesis`); without it the document stays compact.
 - The document describes what was recorded, not what the server accepts.

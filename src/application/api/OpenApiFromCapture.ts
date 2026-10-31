@@ -6,6 +6,8 @@
  * recorded JSON bodies and merged across samples; they describe what was seen,
  * not what the server promises.
  */
+import { synthesizeJsonSchema } from "../../domain/schemaSynthesis.js";
+
 export type JsonValue =
   | string
   | number
@@ -18,6 +20,8 @@ export interface OpenApiOptions {
   readonly title?: string;
   readonly version?: string;
   readonly serverUrl?: string;
+  /** Attach the typed synthesis result (evidence and ambiguities) per operation. */
+  readonly withSynthesis?: boolean;
 }
 
 export interface OpenApiDocument {
@@ -203,10 +207,15 @@ export function buildOpenApi(
   )) {
     const status =
       operation.statuses.size === 0 ? 200 : Math.min(...operation.statuses);
-    const responseSchema =
+    const responseSynthesis =
       operation.responseSamples.length === 0
-        ? {}
-        : mergeSchemas(operation.responseSamples.map(schemaOf));
+        ? undefined
+        : synthesizeJsonSchema(operation.responseSamples as JsonValue[]);
+    const requestSynthesis =
+      operation.requestSamples.length === 0
+        ? undefined
+        : synthesizeJsonSchema(operation.requestSamples as JsonValue[]);
+    const responseSchema = responseSynthesis?.schema ?? {};
     const pathEntry = (paths[operation.template] ??= {});
     pathEntry[operation.method.toLowerCase()] = {
       operationId: `${operation.method.toLowerCase()}_${operation.template
@@ -226,15 +235,25 @@ export function buildOpenApi(
           schema: { type: "string" },
         })),
       ],
-      ...(operation.requestSamples.length === 0
+      ...(requestSynthesis === undefined
         ? {}
         : {
             requestBody: {
               content: {
-                "application/json": {
-                  schema: mergeSchemas(operation.requestSamples.map(schemaOf)),
-                },
+                "application/json": { schema: requestSynthesis.schema },
               },
+            },
+          }),
+      ...(options.withSynthesis !== true
+        ? {}
+        : {
+            "x-xtna-synthesis": {
+              ...(requestSynthesis === undefined
+                ? {}
+                : { request: requestSynthesis }),
+              ...(responseSynthesis === undefined
+                ? {}
+                : { response: responseSynthesis }),
             },
           }),
       responses: {

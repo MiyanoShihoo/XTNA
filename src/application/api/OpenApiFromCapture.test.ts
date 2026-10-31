@@ -128,3 +128,50 @@ describe("openapi document", () => {
     );
   });
 });
+
+describe("typed synthesis output", () => {
+  const document = buildOpenApi(har, {
+    title: "Users",
+    version: "1.0.0",
+    withSynthesis: true,
+  });
+
+  it("attaches the synthesis result with its dialect and sample count", () => {
+    const list = document.paths["/users"]?.get as {
+      "x-xtna-synthesis": {
+        response: {
+          schema_dialect: string;
+          sample_count: number;
+          ambiguities: { code: string }[];
+          enum_candidates: { json_pointer: string; status: string }[];
+        };
+      };
+    };
+    const synthesis = list["x-xtna-synthesis"].response;
+    expect(synthesis.schema_dialect).toBe(
+      "https://json-schema.org/draft/2020-12/schema",
+    );
+    expect(synthesis.sample_count).toBe(2);
+    expect(synthesis.ambiguities.map((entry) => entry.code)).toContain(
+      "enum-not-inferred",
+    );
+    expect(
+      synthesis.enum_candidates.find(
+        (entry) => entry.json_pointer === "/items/name",
+      )?.status,
+    ).toBe("withheld");
+  });
+
+  it("keeps request evidence for the POST body", () => {
+    const post = document.paths["/users"]?.post as {
+      "x-xtna-synthesis": { request: { sample_count: number } };
+    };
+    expect(post["x-xtna-synthesis"].request.sample_count).toBe(1);
+  });
+
+  it("omits the extension unless asked", () => {
+    const plain = buildOpenApi(har, { title: "Users", version: "1.0.0" });
+    const list = plain.paths["/users"]?.get as Record<string, unknown>;
+    expect(list["x-xtna-synthesis"]).toBeUndefined();
+  });
+});
