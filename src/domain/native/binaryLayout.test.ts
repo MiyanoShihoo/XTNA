@@ -122,11 +122,15 @@ it("retains high linked values and NOBITS without inventing file backing", () =>
 });
 
 it.each([
+  [{ machine: "EM_X86_64", bits: 64, byte_order: "little" }, true],
+  [{ machine: "EM_AARCH64", bits: 64, byte_order: "little" }, true],
   [{ machine: "EM_386", bits: 32, byte_order: "little" }, true],
   [{ machine: "EM_ARM", bits: 32, byte_order: "little" }, true],
   [{ machine: "EM_MIPS", bits: 32, byte_order: "little" }, true],
   [{ machine: "EM_MIPS", bits: 32, byte_order: "big" }, true],
   [{ machine: "EM_X86_64", bits: 32, byte_order: "little" }, false],
+  [{ machine: "EM_AARCH64", bits: 32, byte_order: "little" }, false],
+  [{ machine: "EM_AARCH64", bits: 64, byte_order: "big" }, false],
   [{ machine: "EM_ARM", bits: 32, byte_order: "big" }, false],
   [{ machine: "EM_386", bits: 64, byte_order: "little" }, false],
   [{ machine: "EM_MIPS", bits: 64, byte_order: "big" }, false],
@@ -150,7 +154,9 @@ it.each([
   if (problem === "file-backed-outside") section.file_backing = "file";
   if (problem === "header-outside") section.header_location.offset = "0x80";
   if (problem === "wrong-index") section.index = 1;
-  if (problem === "wrong-machine") value.architecture.machine = "EM_AARCH64";
+  // A machine outside every admitted profile; AArch64 is now an admitted profile.
+  if (problem === "wrong-machine")
+    (value.architecture as { machine: string }).machine = "EM_PPC64";
   if (problem === "outside-elf64")
     value.entry_point.reported_value = "0x10000000000000000";
   if (problem === "noncanonical-base64") section.name.bytes_base64 = "AR==";

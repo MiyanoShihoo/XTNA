@@ -1312,7 +1312,9 @@ try {
       }
     }
   }
-  unsupported.writeUInt16LE(183, 18);
+  // AArch64 (183) became an admitted profile, so this sample keeps a machine that
+  // stays outside every profile: EM_PPC64 (21) on an ELF64 little-endian object.
+  unsupported.writeUInt16LE(21, 18);
   const core = Buffer.from(object);
   core.writeUInt16LE(4, 16);
   for (const [name, bytes, category] of [
@@ -1337,7 +1339,7 @@ try {
       "invalid_input",
     ],
     ["undersized-program-header", undersizedProgramHeader, "invalid_input"],
-    ["arm64", unsupported, "unsupported_target"],
+    ["ppc64", unsupported, "unsupported_target"],
     ["core", core, "unsupported_target"],
   ]) {
     const path = join(root.path, name);

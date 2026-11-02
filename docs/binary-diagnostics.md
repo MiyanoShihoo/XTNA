@@ -10,8 +10,12 @@ ordinary binary inspection use the same modular capability.
 
 Real verification covers **Linux x64** hosts and **EXEC/DYN/REL** objects in
 these profiles: ELF64 x86-64, ELF32 i386, ELF32 little-endian ARM and ELF32
-little- or big-endian MIPS. Other machines, classes and byte orders, including
-AArch64 and big-endian ARM, return `unsupported_target`. Provide an absolute
+little- or big-endian MIPS. The layout profile additionally admits ELF64
+little-endian AArch64 `ET_EXEC`, `ET_DYN` and `ET_REL`; that admission is covered
+by deterministic tests only, because the real-verification lane still compiles
+ELF32 fixtures with the i686/ARM/MIPS cross toolchains. Other machines, classes
+and byte orders, including big-endian AArch64 and big-endian ARM, return
+`unsupported_target`. Provide an absolute
 Python executable whose environment already contains unchanged pwntools 4.15.0,
 pyelftools 0.33 and Unicorn 2.1.2:
 
