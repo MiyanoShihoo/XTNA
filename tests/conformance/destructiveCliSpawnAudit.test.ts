@@ -1,6 +1,5 @@
-import { readFile, glob, realpath } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { readFile, glob } from "node:fs/promises";
+import { basename, delimiter, join } from "node:path";
 import { expect, it } from "vitest";
 
 /**
@@ -66,12 +65,20 @@ it("keeps the reviewed fixture list free of removed files", async () => {
     expect(found.has(entry), `${entry} no longer spawns the CLI`).toBe(true);
 });
 
-it("a managed test run declares the roots a destructive CLI may write inside", async () => {
+it("a managed test run declares only the root it created", async () => {
   const declared = process.env.REA_TEST_ISOLATION_ROOTS;
+  const runRoot = process.env.REA_TEST_ISOLATION_RUN_ROOT;
   expect(
     declared,
     "REA_TEST_ISOLATION_ROOTS is missing: this suite ran outside the managed test entry",
   ).toBeTruthy();
-  const canonical = await realpath(tmpdir());
-  expect(declared?.split(delimiter)).toContain(canonical);
+  expect(
+    runRoot,
+    "REA_TEST_ISOLATION_RUN_ROOT is missing: the run did not create its own root",
+  ).toBeTruthy();
+  // The declared root is this run's own directory, not the whole OS temp directory: a
+  // sibling process writing elsewhere in temp must not be treated as test-owned.
+  const roots = (declared ?? "").split(delimiter);
+  expect(roots).toEqual([runRoot]);
+  expect(basename(runRoot ?? "")).toMatch(/^rea-test-run-/u);
 });

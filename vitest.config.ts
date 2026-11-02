@@ -1,4 +1,4 @@
-import { realpathSync } from "node:fs";
+import { mkdtempSync, realpathSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -24,6 +24,11 @@ if (
 }
 
 const CANONICAL_TEMPORARY_DIRECTORY = realpathSync(tmpdir());
+// One root per test run. Narrow on purpose: "inside the declared root" then means
+// "inside something this run created", not "anywhere in the OS temp directory".
+const TEST_RUN_ROOT = mkdtempSync(
+  join(CANONICAL_TEMPORARY_DIRECTORY, "rea-test-run-"),
+);
 // Use Vitest's option parser so explicit false and spaced shard values retain
 // their meaning. Unknown worker/embedding arguments are not Vitest options.
 const { options: testOptions } = parseCLI(
@@ -134,10 +139,13 @@ const projects = TEST_PROJECTS.map((project) => {
 export default defineConfig({
   test: {
     env: {
-      TMPDIR: CANONICAL_TEMPORARY_DIRECTORY,
+      TMPDIR: TEST_RUN_ROOT,
+      TMP: TEST_RUN_ROOT,
+      TEMP: TEST_RUN_ROOT,
+      REA_TEST_ISOLATION_RUN_ROOT: TEST_RUN_ROOT,
       // Every managed test run declares the only roots a destructive CLI may write
       // inside; the CLI refuses anything outside them while this is set.
-      REA_TEST_ISOLATION_ROOTS: CANONICAL_TEMPORARY_DIRECTORY,
+      REA_TEST_ISOLATION_ROOTS: TEST_RUN_ROOT,
     },
     maxWorkers: MAX_TEST_WORKERS,
     projects,
@@ -147,6 +155,7 @@ export default defineConfig({
     retry: 0,
     reporters: ["default"],
     runner: "./tests/processOwnershipRunner.ts",
+    globalSetup: "./tests/support/isolation/runRootCleanup.ts",
     // Boundary projects may compete with TypeScript, docs, and package checks
     // under Turbo. Keep the deadline bounded while avoiding false failures from
     // host-level CPU and filesystem contention.
