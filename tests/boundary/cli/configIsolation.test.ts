@@ -1,7 +1,8 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import { symlink } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { expect, it } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
@@ -161,4 +162,27 @@ it("leaves a relative redirect to the product to reject", () => {
       "win32",
     ),
   ).not.toThrow();
+});
+
+it("the CLI itself refuses a destructive command under a declared isolation root", () => {
+  const root = mkdtempSync(join(tmpdir(), "rea-cli-guard-"));
+  const outside = join(tmpdir(), "..", "rea-cli-guard-outside", ".dsh");
+  const result = spawnSync(
+    process.execPath,
+    [resolve("scripts/rea.mjs"), "uninstall", "--json"],
+    {
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH ?? "",
+        SystemRoot: process.env.SystemRoot,
+        HOME: root,
+        USERPROFILE: root,
+        DSH_HOME: outside,
+        REA_TEST_ISOLATION_ROOTS: root,
+      },
+    },
+  );
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("Refusing `uninstall` under test isolation");
+  expect(existsSync(outside)).toBe(false);
 });

@@ -92,7 +92,10 @@ describe("OMP integration maintenance", () => {
       JSON.stringify({ mcpServers: { rea: { ...entry, enabled: false } } }),
     );
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: [] });
     await writeClient(
       "omp",
@@ -102,7 +105,10 @@ describe("OMP integration maintenance", () => {
       }),
     );
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: ["omp"] });
   });
 
@@ -115,7 +121,10 @@ describe("OMP integration maintenance", () => {
       `disabled_mcp_servers = ["rea", "other"]\n${registration}`,
     );
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: [] });
     expect(await readFile(configPath, "utf8")).toContain(
       'disabled_mcp_servers = ["rea", "other"]',
@@ -125,7 +134,10 @@ describe("OMP integration maintenance", () => {
       `disabled_mcp_servers = ["other"]\n${registration}`,
     );
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: ["grok_build"] });
   });
 });
@@ -183,7 +195,10 @@ describe("maintenance activation and layered configuration", () => {
     await writeFile(lower, originalLower);
     const originalUpper = await readFile(upper, "utf8");
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: [] });
     expect(await readFile(lower, "utf8")).toBe(originalLower);
     expect(await readFile(upper, "utf8")).toBe(originalUpper);
@@ -202,7 +217,10 @@ describe("maintenance activation and layered configuration", () => {
     );
     const original = await readFile(configPath, "utf8");
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: [] });
     expect(await readFile(configPath, "utf8")).toBe(original);
   });
@@ -221,7 +239,10 @@ describe("maintenance activation and layered configuration", () => {
     // The fallback row is also FreeBuff's registration, and FreeBuff is the
     // setup action that rewrites it, so both views stay in maintenance scope.
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: ["freebuff", "zcode"] });
   });
 
@@ -236,7 +257,10 @@ describe("maintenance activation and layered configuration", () => {
     );
     await writeClient("opencode", JSON.stringify({ theme: "user-selected" }));
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: ["opencode"] });
   });
 });
@@ -294,7 +318,10 @@ describe("registration ownership in maintenance", () => {
       ]),
     );
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toEqual({
       clients: ["codex", "vscode"],
       skill: false,
@@ -306,7 +333,10 @@ describe("registration ownership in maintenance", () => {
 describe("existing REA integration maintenance", () => {
   it("does not install a missing skill or overwrite an unrelated skill", async () => {
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toEqual({
       clients: [],
       skill: false,
@@ -314,7 +344,10 @@ describe("existing REA integration maintenance", () => {
     });
     await writeSkill("---\nname: another-skill\n---\nUser-authored content\n");
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toEqual({
       clients: [],
       skill: false,
@@ -328,7 +361,10 @@ describe("existing REA integration maintenance", () => {
     );
     const original = await readFile(path, "utf8");
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toEqual({
       clients: [],
       skill: true,
@@ -445,7 +481,10 @@ describe("shared registration maintenance", () => {
       }),
     );
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toEqual({
       clients: ["freebuff"],
       skill: false,
@@ -473,7 +512,10 @@ describe("shared registration maintenance", () => {
     );
 
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toMatchObject({ clients: ["freebuff", "zcode"] });
   });
 
@@ -485,7 +527,10 @@ describe("shared registration maintenance", () => {
       }),
     );
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toEqual({
       clients: [],
       skill: false,
@@ -507,7 +552,10 @@ describe("shared registration maintenance", () => {
     );
     const original = await readFile(configPath, "utf8");
     await expect(
-      existingMaintenanceScope(home, entryPoint, process.env),
+      existingMaintenanceScope(home, entryPoint, {
+        ...process.env,
+        REA_TEST_ISOLATION_ROOTS: home,
+      }),
     ).resolves.toEqual({
       clients: [],
       skill: false,

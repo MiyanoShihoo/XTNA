@@ -1,5 +1,8 @@
-import { resolve } from "node:path";
-import { assertDestructiveIsolation } from "./configIsolation.js";
+import { delimiter, resolve } from "node:path";
+import {
+  assertDestructiveIsolation,
+  registeredRoots,
+} from "./configIsolation.js";
 import { tmpdir } from "node:os";
 
 import {
@@ -287,7 +290,12 @@ export const createTestCli = (
       [resolve("scripts/rea.mjs"), ...arguments_],
       {
         cwd: cwd ?? process.cwd(),
-        env: cliProcessEnvironment(environment, compileCache),
+        env: {
+          ...cliProcessEnvironment(environment, compileCache),
+          // Declare the run roots to the CLI itself, so its own guard refuses an escape
+          // even if this fixture is bypassed by a future spawn route.
+          REA_TEST_ISOLATION_ROOTS: registeredRoots().join(delimiter),
+        },
         ...(input === undefined ? {} : { input }),
         ...(timeoutMs === undefined ? {} : { timeoutMs }),
       },

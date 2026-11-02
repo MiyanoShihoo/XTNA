@@ -18,6 +18,20 @@ prepareCliProcessEnvironment(
   process.platform,
   packageJson.version,
 );
+// A test run declares the roots it owns. Refusing here, inside the CLI process, covers
+// every spawn route rather than only the callers that ask the fixture first. Normal user
+// invocations never set the variable and keep their usual behaviour.
+if (["setup", "uninstall", "update"].includes(args[0] ?? "")) {
+  const { assertTestIsolation } = await import("../dist/cli/testIsolation.js");
+  try {
+    assertTestIsolation(args[0], process.env, process.platform);
+  } catch (cause) {
+    process.stderr.write(
+      `${cause instanceof Error ? cause.message : String(cause)}\n`,
+    );
+    process.exit(1);
+  }
+}
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const builtinArgumentRuntime = "dist/cli-runtime/cliBuiltinArguments.js";
 const builtinArguments = (await compiledRuntimeExists([builtinArgumentRuntime]))
