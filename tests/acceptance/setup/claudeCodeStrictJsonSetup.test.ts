@@ -3,6 +3,10 @@ import { join } from "node:path";
 import { expect } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import {
+  EXPECTED_BACKUP_SUFFIX,
+  EXPECTED_MCP_KEY,
+} from "../../fixtures/acceptance/productContract.js";
 import { cliTest, type TestCli } from "../../support/cli/cliFixture.js";
 
 const peer = '"peer": { "command": "/usr/bin/true", "args": [] }';
@@ -24,6 +28,8 @@ const setupArguments = [
   "--client",
   "claude_code",
   "--skill=false",
+  // setup plans without writing unless the operator approves its actions.
+  "--yes",
   "--json",
 ] as const;
 const doctorArguments = [
@@ -82,7 +88,9 @@ for (const [syntax, original] of [
         ]),
       });
       expect(await readFile(config, "utf8")).toBe(original);
-      await expect(readFile(`${config}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
     },
@@ -104,13 +112,15 @@ for (const prefix of ["", "﻿"])
         status: "ready",
         clients: { claude_code: { status: "configured" } },
       });
-      expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+      expect(
+        await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+      ).toBe(original);
       const configured = await readFile(config, "utf8");
       expect(configured.startsWith(`${prefix}{`)).toBe(true);
       expect(JSON.parse(configured.slice(prefix.length))).toMatchObject({
         mcpServers: {
           peer: { command: "/usr/bin/true", args: [] },
-          rea: { command: expect.any(String) },
+          [EXPECTED_MCP_KEY]: { command: expect.any(String) },
         },
       });
       const doctor = await run(doctorArguments);
