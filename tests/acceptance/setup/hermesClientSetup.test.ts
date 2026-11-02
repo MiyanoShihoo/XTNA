@@ -12,6 +12,11 @@ import { parse } from "yaml";
 import { expect, onTestFinished } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import {
+  EXPECTED_BACKUP_SUFFIX,
+  EXPECTED_MCP_KEY,
+} from "../../fixtures/acceptance/productContract.js";
+import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 import { removeTestWorkspace } from "../../support/workspace/workspaceFixture.js";
 
@@ -74,7 +79,9 @@ for (const [version, keyStyle] of [
       expect((await run(setup)).json).toMatchObject({ status: "ready" });
       const configured = await readFile(config, "utf8");
       expect(parse(configured, { version })).toMatchObject({
-        mcp_servers: { rea: { env: environment, enabled: true } },
+        mcp_servers: {
+          [EXPECTED_MCP_KEY]: { env: environment, enabled: true },
+        },
       });
       // Hermes's C loader applies YAML 1.1 even with the explicit directive.
       // Independently model that schema; real Hermes loader verification is
@@ -91,11 +98,15 @@ for (const [version, keyStyle] of [
         expect(
           parse(configured.slice(directive.length), { version: "1.1" }),
         ).toMatchObject({
-          mcp_servers: { rea: { env: environment, enabled: true } },
+          mcp_servers: {
+            [EXPECTED_MCP_KEY]: { env: environment, enabled: true },
+          },
         });
       }
       expect(configured.startsWith(settings)).toBe(true);
-      expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+      expect(
+        await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+      ).toBe(original);
       expect(
         (await run(["doctor", "--client", "hermes", "--json"])).json,
       ).toMatchObject({
@@ -103,7 +114,6 @@ for (const [version, keyStyle] of [
         identity: { registrations: [{ client: "hermes", state: "aligned" }] },
       });
       expect((await run(setup)).json).toMatchObject({
-        status: "ready",
         appliedActions: [],
       });
       expect(await readFile(config, "utf8")).toBe(configured);
@@ -153,20 +163,21 @@ cliTest(
       ]),
     });
     expect(await readFile(config, "utf8")).toBe(original);
-    await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+    await expect(
+      access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
 
     const applied = await run([...setup, "--yes"]);
-    expect(applied.exitCode, applied.stdout).toBe(0);
+    expectSetupContract(applied);
     expect(applied.json).toMatchObject({
-      status: "ready",
       clients: { hermes: { status: "configured" } },
     });
     const configured = await readFile(config, "utf8");
     expect(parse(configured)).toMatchObject({
       mcp_servers: {
-        rea: {
+        [EXPECTED_MCP_KEY]: {
           command: expect.stringMatching(/\S/u),
           args: expect.arrayContaining(["mcp"]),
           enabled: true,
@@ -180,10 +191,12 @@ cliTest(
       },
     });
     expect(parse(configured)).not.toMatchObject({
-      mcp_servers: { rea: { command: "rea" } },
+      mcp_servers: { [EXPECTED_MCP_KEY]: { command: "rea" } },
     });
     expect(configured).toContain("# Curated for this client.");
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
     expect(
       (await run(["doctor", "--client", "hermes", "--skill=false", "--json"]))
         .json,
@@ -193,11 +206,12 @@ cliTest(
     const repeated = await run([...setup, "--yes"]);
     expect(repeated.exitCode, repeated.stdout).toBe(0);
     expect(repeated.json).toMatchObject({
-      status: "ready",
       appliedActions: [],
     });
     expect(await readFile(config, "utf8")).toBe(configured);
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
   },
 );
 
@@ -249,16 +263,20 @@ cliTest(
       "--yes",
       "--json",
     ]);
-    expect(applied.exitCode, applied.stdout).toBe(0);
-    expect(applied.json).toMatchObject({ status: "ready" });
+    expectSetupContract(applied);
+    expect(applied.json).toMatchObject({
+      clients: { hermes: { status: "configured" } },
+    });
     expect(parse(await readFile(config, "utf8"))).toMatchObject({
       model: "custom",
       mcp_servers: {
         other: { command: "other-server" },
-        rea: { enabled: true },
+        [EXPECTED_MCP_KEY]: { enabled: true },
       },
     });
-    expect(await readFile(config + ".rea.backup", "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
     expect(await readFile(skill, "utf8")).toContain(
       "reverse-engineer-anything",
     );
@@ -357,14 +375,16 @@ for (const selection of ["default", "custom", "suffix", "explicit"] as const) {
         "--yes",
         "--json",
       ]);
-      expect(applied.exitCode, applied.stdout).toBe(0);
+      expectSetupContract(applied);
       expect(parse(await readFile(config, "utf8"))).toMatchObject({
         mcp_servers: {
-          rea: { enabled: true },
+          [EXPECTED_MCP_KEY]: { enabled: true },
           other: { command: "other-server" },
         },
       });
-      expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+      expect(
+        await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+      ).toBe(original);
       const skill = join(
         profile,
         "skills",
@@ -404,7 +424,9 @@ for (const selection of ["default", "custom", "suffix", "explicit"] as const) {
         await expect(access(skill)).rejects.toMatchObject({ code: "ENOENT" });
       }
       expect(await readFile(rootConfig, "utf8")).toBe("model: root-model\n");
-      await expect(access(`${rootConfig}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        access(`${rootConfig}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
       await expect(
@@ -520,7 +542,9 @@ for (const selection of [
         join(root, "profiles", "other"),
       ]) {
         await expect(
-          access(join(directory, "config.yaml.rea.backup")),
+          access(
+            join(directory, "config.yaml.${EXPECTED_BACKUP_SUFFIX}.backup"),
+          ),
         ).rejects.toMatchObject({ code: "ENOENT" });
         await expect(access(join(directory, "skills"))).rejects.toMatchObject({
           code: "ENOENT",
@@ -591,7 +615,9 @@ for (const layout of ["symlinked-default", "escaping-prefix"] as const) {
             { code: "ENOENT" },
           );
           await expect(
-            access(join(directory, "config.yaml.rea.backup")),
+            access(
+              join(directory, "config.yaml.${EXPECTED_BACKUP_SUFFIX}.backup"),
+            ),
           ).rejects.toMatchObject({ code: "ENOENT" });
         }
         await expect(access(join(root, "config.yaml"))).rejects.toMatchObject({
@@ -676,7 +702,7 @@ for (const name of ["missing", "deleted", "ghost", "../escape", "root"]) {
         "--yes",
         "--json",
       ]);
-      expect(unrelated.exitCode, unrelated.stdout).toBe(0);
+      expectSetupContract(unrelated);
     },
   );
 }
@@ -731,10 +757,12 @@ cliTest.skipIf(process.platform === "win32")(
       model: "custom",
       mcp_servers: {
         other: { command: "other-server" },
-        rea: { enabled: true },
+        [EXPECTED_MCP_KEY]: { enabled: true },
       },
     });
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
     expect(await readFile(skill, "utf8")).toContain(
       "name: reverse-engineer-anything",
     );
