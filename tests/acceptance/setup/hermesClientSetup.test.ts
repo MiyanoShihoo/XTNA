@@ -543,7 +543,7 @@ for (const selection of [
       ]) {
         await expect(
           access(
-            join(directory, "config.yaml.${EXPECTED_BACKUP_SUFFIX}.backup"),
+            join(directory, `config.yaml.${EXPECTED_BACKUP_SUFFIX}.backup`),
           ),
         ).rejects.toMatchObject({ code: "ENOENT" });
         await expect(access(join(directory, "skills"))).rejects.toMatchObject({
@@ -616,7 +616,7 @@ for (const layout of ["symlinked-default", "escaping-prefix"] as const) {
           );
           await expect(
             access(
-              join(directory, "config.yaml.${EXPECTED_BACKUP_SUFFIX}.backup"),
+              join(directory, `config.yaml.${EXPECTED_BACKUP_SUFFIX}.backup`),
             ),
           ).rejects.toMatchObject({ code: "ENOENT" });
         }

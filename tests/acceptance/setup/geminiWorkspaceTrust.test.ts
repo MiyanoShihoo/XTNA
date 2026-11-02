@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { expect } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import { EXPECTED_MCP_KEY } from "../../fixtures/acceptance/productContract.js";
 import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest, type TestCli } from "../../support/cli/cliFixture.js";
 
@@ -160,7 +161,7 @@ for (const scenario of [
 
       if (scenario.name === "an explicitly untrusted workspace") {
         const excluded = Buffer.from(
-          JSON.stringify({ mcp: { excluded: ["rea"] } }),
+          JSON.stringify({ mcp: { excluded: [EXPECTED_MCP_KEY] } }),
         );
         await writeFile(fixture.workspace, excluded);
         const excludedSetup = await fixture.run(setupArguments);
@@ -196,7 +197,7 @@ cliTest(
         diagnostic: "Invalid JSON/JSONC",
       },
       {
-        text: JSON.stringify({ mcp: { excluded: ["rea"] } }),
+        text: JSON.stringify({ mcp: { excluded: [EXPECTED_MCP_KEY] } }),
         state: "stale",
         diagnostic: "mcp.excluded",
       },
