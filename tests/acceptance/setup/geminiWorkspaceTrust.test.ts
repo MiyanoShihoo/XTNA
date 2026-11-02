@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { expect } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest, type TestCli } from "../../support/cli/cliFixture.js";
 
 const setupArguments = ["setup", "--client", "gemini_cli", "--yes", "--json"];
@@ -27,7 +28,14 @@ const geminiWorkspace = async (cli: TestCli) => {
     cwd: home,
     environment,
   });
-  expect(initial.exitCode, initial.stdout).toBe(0);
+  // Documented contract (docs/cli.md): setup exits 1 for `needs_confirmation` or
+  // `needs_human`. This fixture runs with no analysis engine configured, so the client work
+  // is applied and the surrounding environment is then reported as unhealthy.
+  expect(initial.exitCode, initial.stdout).toBe(1);
+  expect(initial.json).toMatchObject({
+    status: "needs_human",
+    clients: { gemini_cli: { status: "configured" } },
+  });
   const originalUser = await readFile(user);
   const run = (arguments_: readonly string[]) =>
     cli.run({ arguments: arguments_, cwd: project, environment });
@@ -43,8 +51,8 @@ cliTest(
     for (const text of ["{}", "{ not json"]) {
       await writeFile(trust, text);
       const setup = await fixture.run(setupArguments);
-      expect(setup.exitCode, setup.stdout).toBe(0);
-      expect(setup.json).toMatchObject({ status: "ready", appliedActions: [] });
+      expectSetupContract(setup);
+      expect(setup.json).toMatchObject({ appliedActions: [] });
       const doctor = await fixture.run(doctorArguments);
       expect(doctor.exitCode, doctor.stdout).toBe(0);
       expect(doctor.json).toMatchObject({
@@ -123,8 +131,8 @@ for (const scenario of [
       await writeFile(fixture.workspace, malformed);
 
       const setup = await fixture.run(setupArguments);
-      expect(setup.exitCode, setup.stdout).toBe(0);
-      expect(setup.json).toMatchObject({ status: "ready", appliedActions: [] });
+      expectSetupContract(setup);
+      expect(setup.json).toMatchObject({ appliedActions: [] });
       const doctor = await fixture.run(doctorArguments);
       expect(doctor.exitCode, doctor.stdout).toBe(0);
       expect(doctor.json).toMatchObject({
@@ -157,7 +165,7 @@ for (const scenario of [
         );
         await writeFile(fixture.workspace, excluded);
         const excludedSetup = await fixture.run(setupArguments);
-        expect(excludedSetup.exitCode, excludedSetup.stdout).toBe(0);
+        expectSetupContract(excludedSetup);
         const excludedDoctor = await fixture.run(doctorArguments);
         expect(excludedDoctor.exitCode, excludedDoctor.stdout).toBe(0);
         expect(excludedDoctor.json).toMatchObject({
