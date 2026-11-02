@@ -17,6 +17,13 @@ export const PRODUCT_IDENTITY = {
   configFileName: "xtna.json",
 } as const;
 
+/**
+ * The registration key this product used before the identity rename. Installs
+ * created by that release keep their registration under this name, so a read
+ * that resolves a registration must fall back to it.
+ */
+export const LEGACY_MCP_SERVER_KEY = "rea";
+
 /** Exact SDK package identities, distinct from negotiated protocol version. */
 export const SDK_IDENTITY = {
   server: PACKAGE_METADATA.serverSdkVersion,

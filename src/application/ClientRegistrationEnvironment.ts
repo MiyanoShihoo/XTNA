@@ -10,7 +10,7 @@ import {
   clientConfigurationRecordSchema,
   type ClientConfigurationDocument,
 } from "./ClientConfigurationDocument.js";
-import { PRODUCT_IDENTITY } from "../identity.js";
+import { LEGACY_MCP_SERVER_KEY, PRODUCT_IDENTITY } from "../identity.js";
 import { compareUnicodeCodePoints } from "../domain/unicodeCodePointOrder.js";
 import {
   mergeEnvironmentOverrides,
@@ -98,10 +98,15 @@ export const clientRegistrationEnvironmentDetails = (
     );
   }
   const key = parsed?.environmentKey ?? "env";
+  // The identity was renamed to the current product key, but this repository
+  // still publishes the pre-rename launcher and existing installs keep a
+  // registration under that name. Reading only the current key made their
+  // environment invisible, so an unusable value went unreported.
   const registration =
     parsed === undefined
       ? undefined
-      : effectiveClientServer(parsed, PRODUCT_IDENTITY.mcpServerKey);
+      : (effectiveClientServer(parsed, PRODUCT_IDENTITY.mcpServerKey) ??
+        effectiveClientServer(parsed, LEGACY_MCP_SERVER_KEY));
   const raw =
     typeof registration === "object" && registration !== null
       ? Reflect.get(registration, key)
