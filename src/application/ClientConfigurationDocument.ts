@@ -27,7 +27,7 @@ import {
 import { z } from "zod";
 
 import { err, ok, type Result } from "../domain/result.js";
-import { PRODUCT_IDENTITY } from "../identity.js";
+import { LEGACY_MCP_SERVER_KEY, PRODUCT_IDENTITY } from "../identity.js";
 import type { SetupClient } from "./SupportedClients.js";
 import { compareUnicodeCodePoints } from "../domain/unicodeCodePointOrder.js";
 
@@ -293,6 +293,18 @@ export const parseClientConfiguration = (
 };
 
 /** The registration a client loads for `name`, including OpenCode V1 entries. */
+/**
+ * Resolve this product's registration under either its current key or the key
+ * earlier releases installed. Readers must accept both: an install created
+ * before the rename keeps its registration under the earlier name, and missing
+ * it makes a real configuration look absent.
+ */
+export const effectiveProductServer = (
+  parsed: ClientConfigurationDocument,
+): unknown =>
+  effectiveClientServer(parsed, PRODUCT_IDENTITY.mcpServerKey) ??
+  effectiveClientServer(parsed, LEGACY_MCP_SERVER_KEY);
+
 export const effectiveClientServer = (
   parsed: ClientConfigurationDocument,
   name: string,

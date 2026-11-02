@@ -4,7 +4,7 @@ import { readEffectiveClientRegistrationConfiguration } from "./ClientConfigurat
 import {
   clientServerForcedEnabled,
   clientServerListedDisabled,
-  effectiveClientServer,
+  effectiveProductServer,
   type ClientConfigurationDocument,
 } from "./ClientConfigurationDocument.js";
 import { lstat, stat } from "node:fs/promises";
@@ -229,7 +229,7 @@ export const readClientRegistrationInspections = async (
         continue;
       }
       const policyBlock = policy.value;
-      const raw = effectiveClientServer(parsed, PRODUCT_IDENTITY.mcpServerKey);
+      const raw = effectiveProductServer(parsed);
       if (raw === undefined) {
         const editabilityError =
           parsed.dialect === "dsh"
