@@ -1,4 +1,5 @@
-import { mkdtempSync, realpathSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -28,6 +29,25 @@ const CANONICAL_TEMPORARY_DIRECTORY = realpathSync(tmpdir());
 // "inside something this run created", not "anywhere in the OS temp directory".
 const TEST_RUN_ROOT = mkdtempSync(
   join(CANONICAL_TEMPORARY_DIRECTORY, "rea-test-run-"),
+);
+const TEST_RUN_ID = randomUUID();
+// The marker makes the directory self-identifying: teardown refuses a target whose
+// contents do not claim to belong to this run.
+writeFileSync(join(TEST_RUN_ROOT, ".rea-run-identifier"), TEST_RUN_ID);
+// The teardown runs in a process that does not inherit `test.env`, so the run record
+// lives on disk beside the root: teardown must never depend on an environment variable
+// that a caller could have rewritten.
+const TEST_RUN_MANIFEST = join(
+  CANONICAL_TEMPORARY_DIRECTORY,
+  ".rea-test-run-manifest.json",
+);
+writeFileSync(
+  TEST_RUN_MANIFEST,
+  JSON.stringify({
+    root: TEST_RUN_ROOT,
+    runIdentifier: TEST_RUN_ID,
+    systemTemp: CANONICAL_TEMPORARY_DIRECTORY,
+  }),
 );
 // Use Vitest's option parser so explicit false and spaced shard values retain
 // their meaning. Unknown worker/embedding arguments are not Vitest options.
@@ -143,6 +163,8 @@ export default defineConfig({
       TMP: TEST_RUN_ROOT,
       TEMP: TEST_RUN_ROOT,
       REA_TEST_ISOLATION_RUN_ROOT: TEST_RUN_ROOT,
+      REA_TEST_ISOLATION_SYSTEM_TEMP: CANONICAL_TEMPORARY_DIRECTORY,
+      REA_TEST_ISOLATION_RUN_ID: TEST_RUN_ID,
       // Every managed test run declares the only roots a destructive CLI may write
       // inside; the CLI refuses anything outside them while this is set.
       REA_TEST_ISOLATION_ROOTS: TEST_RUN_ROOT,
