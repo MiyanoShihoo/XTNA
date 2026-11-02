@@ -4,6 +4,11 @@ import { parse } from "yaml";
 import { expect } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import {
+  EXPECTED_BACKUP_SUFFIX,
+  EXPECTED_MCP_KEY,
+} from "../../fixtures/acceptance/productContract.js";
+import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
 for (const version of ["1.1", "1.2"] as const) {
@@ -41,7 +46,7 @@ for (const version of ["1.1", "1.2"] as const) {
           directive +
           "# Keep this user setting\nmodel: custom\n" +
           (hasDefaults ? "defaults: &settings {KEEP: 'off'}\n" : "") +
-          `mcp_servers:\n  ${style === "key" ? "&server_name " : ""}rea:${style === "child" || style === "key" ? "" : " &server"}${style === "entry" ? " # Keep anchor definition comment" : ""}\n` +
+          `mcp_servers:\n  ${style === "key" ? "&server_name " : ""}${EXPECTED_MCP_KEY}:${style === "child" || style === "key" ? "" : " &server"}${style === "entry" ? " # Keep anchor definition comment" : ""}\n` +
           entry +
           (style === "child"
             ? "  other:\n    command: other-server\n    env: *settings # Shared environment\n"
@@ -79,17 +84,22 @@ for (const version of ["1.1", "1.2"] as const) {
           "--json",
         ];
         const applied = await run(setup);
-        expect(applied.exitCode, JSON.stringify(applied)).toBe(0);
-        expect(applied.json).toMatchObject({ status: "ready" });
+        expectSetupContract(applied);
+        expect(applied.json).toMatchObject({
+          clients: { hermes: { status: "configured" } },
+        });
         const configured = await readFile(config, "utf8");
         const configuredValues = parse(configured, { version });
         expect(configuredValues).toMatchObject({
           model: "custom",
-          mcp_servers: { rea: { enabled: true, env: { KEEP: "off" } }, other },
+          mcp_servers: {
+            [EXPECTED_MCP_KEY]: { enabled: true, env: { KEEP: "off" } },
+            other,
+          },
           ...(style === "shadowed"
             ? { observer: server, later: { KEEP: "later" } }
             : {}),
-          ...(style === "key" ? { observer: "rea" } : {}),
+          ...(style === "key" ? { observer: EXPECTED_MCP_KEY } : {}),
         });
         if (hasDefaults)
           expect(configuredValues.mcp_servers.other.env).toBe(
@@ -107,7 +117,9 @@ for (const version of ["1.1", "1.2"] as const) {
         );
         if (hasDefaults)
           expect(configured).toContain("# Keep nested reference comment");
-        expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+        expect(
+          await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+        ).toBe(original);
         const doctor = await run(["doctor", "--client", "hermes", "--json"]);
         expect(doctor.exitCode, JSON.stringify(doctor)).toBe(0);
         expect(doctor.json).toMatchObject({
@@ -115,7 +127,7 @@ for (const version of ["1.1", "1.2"] as const) {
           identity: { registrations: [{ client: "hermes", state: "aligned" }] },
         });
         const repeated = await run(setup);
-        expect(repeated.exitCode, JSON.stringify(repeated)).toBe(0);
+        expectSetupContract(repeated);
         expect(repeated.json).toMatchObject({
           plannedActions: [],
           appliedActions: [],
@@ -136,13 +148,15 @@ for (const version of ["1.1", "1.2"] as const) {
                 observer: server,
               }
             : {}),
-          ...(style === "key" ? { observer: "rea" } : {}),
+          ...(style === "key" ? { observer: EXPECTED_MCP_KEY } : {}),
         });
         if (hasDefaults)
           expect(removedValues.mcp_servers.other.env).toBe(
             removedValues.defaults,
           );
-        expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+        expect(
+          await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+        ).toBe(original);
         const remaining = await readFile(config, "utf8");
         if (style === "entry")
           expect(remaining).toContain("# Keep anchor definition comment");

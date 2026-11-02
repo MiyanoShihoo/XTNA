@@ -4,6 +4,11 @@ import { parse, stringify } from "yaml";
 import { expect } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import {
+  EXPECTED_BACKUP_SUFFIX,
+  EXPECTED_MCP_KEY,
+} from "../../fixtures/acceptance/productContract.js";
+import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
 const configuration = (
@@ -16,7 +21,9 @@ const configuration = (
     "# Personal settings\nmodel: custom\nmask: 0x1F\n" +
     "server_defaults: &servers\n" +
     (existing
-      ? "  rea: &server\n    command: npx\n    args: [ '-y', 'rea-agents@6.1.0', 'mcp' ]\n    env:\n      FLAG: 'on'\n  other: *server\n"
+      ? "  " +
+        EXPECTED_MCP_KEY +
+        ": &server\n    command: npx\n    args: [ '-y', 'rea-agents@6.1.0', 'mcp' ]\n    env:\n      FLAG: 'on'\n  other: *server\n"
       : "  other: &server\n    command: other-server\n    args: [ 'on', '0600' ]\n");
   return {
     defaults,
@@ -54,7 +61,9 @@ for (const version of ["1.1", "1.2"] as const) {
         });
         expect(removed.exitCode).toBe(0);
         expect(await readFile(config, "utf8")).toBe(original);
-        await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+        await expect(
+          access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+        ).rejects.toMatchObject({
           code: "ENOENT",
         });
       }
@@ -92,16 +101,20 @@ for (const version of ["1.1", "1.2"] as const) {
           "--json",
         ];
         const applied = await run(setup);
-        expect(applied.exitCode).toBe(0);
-        expect(applied.json).toMatchObject({ status: "ready" });
+        expectSetupContract(applied);
+        expect(applied.json).toMatchObject({
+          clients: { hermes: { status: "configured" } },
+        });
         const configured = await readFile(config, "utf8");
         const parsed = parse(configured, { version });
         expect(parsed.server_defaults).toEqual(before.server_defaults);
         expect(parsed.observer).toEqual(before.observer);
         expect(parsed.mcp_servers.other).toEqual(before.mcp_servers.other);
-        expect(parsed.mcp_servers.rea).toMatchObject({ enabled: true });
+        expect(parsed.mcp_servers[EXPECTED_MCP_KEY]).toMatchObject({
+          enabled: true,
+        });
         if (existing)
-          expect(parsed.mcp_servers.rea.env).toEqual({
+          expect(parsed.mcp_servers[EXPECTED_MCP_KEY].env).toEqual({
             FLAG: "on",
             HOPPER_LAUNCHER_PATH: process.execPath,
           });
@@ -109,9 +122,9 @@ for (const version of ["1.1", "1.2"] as const) {
         expect(configured).toContain("# Selected table");
         expect(configured.match(/&servers\b/gu)).toHaveLength(1);
         expect(configured.match(/&server\b/gu)).toHaveLength(1);
-        expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(
-          original.text,
-        );
+        expect(
+          await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+        ).toBe(original.text);
         const doctor = await run(["doctor", "--client", "hermes", "--json"]);
         expect(doctor.exitCode).toBe(0);
         expect(doctor.json).toMatchObject({
@@ -119,9 +132,8 @@ for (const version of ["1.1", "1.2"] as const) {
           identity: { registrations: [{ client: "hermes", state: "aligned" }] },
         });
         const repeat = await run(setup);
-        expect(repeat.exitCode).toBe(0);
+        expectSetupContract(repeat);
         expect(repeat.json).toMatchObject({
-          status: "ready",
           plannedActions: [],
           appliedActions: [],
         });
@@ -163,14 +175,18 @@ cliTest("Hermes still registers into an explicit table", async ({ cli }) => {
     },
     timeoutMs: 20_000,
   });
-  expect(applied.exitCode).toBe(0);
-  expect(applied.json).toMatchObject({ status: "ready" });
+  expectSetupContract(applied);
+  expect(applied.json).toMatchObject({
+    clients: { hermes: { status: "configured" } },
+  });
   const parsed = parse(await readFile(config, "utf8"));
   expect(parsed.mcp_servers.other).toEqual(
     parse(original.text).mcp_servers.other,
   );
-  expect(parsed.mcp_servers.rea).toMatchObject({ enabled: true });
-  expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original.text);
+  expect(parsed.mcp_servers[EXPECTED_MCP_KEY]).toMatchObject({ enabled: true });
+  expect(
+    await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+  ).toBe(original.text);
 });
 
 for (const version of ["1.1", "1.2"] as const) {
@@ -206,12 +222,14 @@ for (const version of ["1.1", "1.2"] as const) {
         },
         timeoutMs: 20_000,
       });
-      expect(applied.exitCode).toBe(0);
+      expectSetupContract(applied);
       const configured = parse(await readFile(config, "utf8"), { version });
       expect(configured.mcp_servers.other).toEqual(before.mcp_servers.other);
       expect(configured.server_defaults).toEqual(before.server_defaults);
       expect(configured.observer).toEqual(before.observer);
-      expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+      expect(
+        await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+      ).toBe(original);
     },
   );
 }
@@ -254,9 +272,14 @@ cliTest(
         .join("") +
       "mcp_servers: *servers\nobserver: *servers\n";
     await writeFile(config, original);
-    expect(
-      (await run(["doctor", "--client", "hermes", "--json"])).exitCode,
-    ).toBe(0);
+    const beforeRemoval = await run(["doctor", "--client", "hermes", "--json"]);
+    expect(beforeRemoval.json).toMatchObject({
+      identity: {
+        registrations: [
+          expect.objectContaining({ client: "hermes", state: "aligned" }),
+        ],
+      },
+    });
     const removed = await run(["uninstall", "--json"]);
     expect(removed.exitCode).toBe(0);
     const remaining = parse(await readFile(config, "utf8"));
@@ -264,10 +287,14 @@ cliTest(
     expect(remaining.server_defaults).toEqual(defaults);
     expect(remaining.observer).toEqual(defaults);
     const configured = await readFile(config, "utf8");
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
     expect((await run(["uninstall", "--json"])).exitCode).toBe(0);
     expect(await readFile(config, "utf8")).toBe(configured);
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
   },
 );
 
@@ -307,7 +334,9 @@ for (const original of [
         appliedActions: [],
       });
       expect(await readFile(config, "utf8")).toBe(original);
-      await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
     },
