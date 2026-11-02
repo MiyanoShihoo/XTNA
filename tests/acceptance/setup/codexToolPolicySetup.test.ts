@@ -8,6 +8,11 @@ import {
   codexToolPolicySource,
 } from "../../fixtures/codexToolPolicy.js";
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import {
+  EXPECTED_BACKUP_SUFFIX,
+  EXPECTED_MCP_KEY,
+} from "../../fixtures/acceptance/productContract.js";
+import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
 cliTest(
@@ -51,15 +56,14 @@ cliTest(
       "--json",
     ];
     const preview = await run([...setupArguments, "--dry-run"]);
-    expect(preview.exitCode, preview.stdout).toBe(0);
+    expectSetupContract(preview);
     expect(preview.json).toMatchObject({ status: "planned" });
     expect(await readFile(config, "utf8")).toBe(original);
     expect(await readdir(dirname(config))).toEqual(["config.toml"]);
 
     const applied = await run([...setupArguments, "--yes"]);
-    expect(applied.exitCode, applied.stdout).toBe(0);
+    expectSetupContract(applied);
     expect(applied.json).toMatchObject({
-      status: "ready",
       clients: { codex: { status: "configured" } },
     });
     const configured = await readFile(config, "utf8");
@@ -71,7 +75,7 @@ cliTest(
       model: "caller-model",
       mcp_servers: {
         other: { command: "other" },
-        rea: {
+        [EXPECTED_MCP_KEY]: {
           ...codexToolPolicy,
           startup_timeout_sec: 19,
           tool_timeout_sec: 999,
@@ -82,16 +86,19 @@ cliTest(
         },
       },
     });
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
     assertAligned((await run(doctorArguments)).json);
     const repeated = await run([...setupArguments, "--yes"]);
-    expect(repeated.exitCode, repeated.stdout).toBe(0);
+    expectSetupContract(repeated);
     expect(repeated.json).toMatchObject({
-      status: "ready",
       appliedActions: [],
     });
     expect(await readFile(config, "utf8")).toBe(configured);
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
 
     const removed = await run(["uninstall", "--json"]);
     expect(removed.exitCode, removed.stdout).toBe(0);
@@ -99,6 +106,8 @@ cliTest(
       model: "caller-model",
       mcp_servers: { other: { command: "other" } },
     });
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
   },
 );

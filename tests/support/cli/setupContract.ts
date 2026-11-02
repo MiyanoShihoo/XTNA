@@ -6,6 +6,8 @@ import { expect } from "vitest";
  */
 const SETUP_STATUS_EXIT: Readonly<Record<string, number>> = {
   ready: 0,
+  // A `--dry-run` plan writes nothing and is not a human decision point.
+  planned: 0,
   needs_confirmation: 1,
   needs_human: 1,
 };
@@ -21,7 +23,7 @@ const SETUP_STATUS_EXIT: Readonly<Record<string, number>> = {
  * optional engines happen to be installed.
  */
 export const expectSetupContract = (run: {
-  readonly exitCode: number;
+  readonly exitCode: number | null;
   readonly stdout?: string;
   readonly json: unknown;
 }): string => {
