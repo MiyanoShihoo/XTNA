@@ -3,6 +3,10 @@ import { dirname, join } from "node:path";
 import { expect } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import {
+  EXPECTED_BACKUP_SUFFIX,
+  EXPECTED_MCP_KEY,
+} from "../../fixtures/acceptance/productContract.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
 const setup = ["setup", "--client", "claude_code", "--skill=false", "--json"];
@@ -22,7 +26,7 @@ cliTest(
       });
     expect((await run([...setup, "--yes"])).exitCode).toBe(0);
     const replacement =
-      '{"mcpServers":{"rea":{"command":"peer-owned-server","args":["mcp"]},"peer":{"command":"peer-edited"}},"theme":"edited"}\n';
+      '{"mcpServers":{"xtna":{"command":"peer-owned-server","args":["mcp"]},"peer":{"command":"peer-edited"}},"theme":"edited"}\n';
     await writeFile(config, replacement);
     for (const mode of ["--dry-run", "--yes"]) {
       const result = await run([...setup, mode]);
@@ -34,7 +38,9 @@ cliTest(
         remediation: expect.stringContaining("foreign ownership"),
       });
       expect(await readFile(config, "utf8")).toBe(replacement);
-      expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+      expect(
+        await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+      ).toBe(original);
       expect(
         (await readdir(home)).filter((name) => name.includes(".recovery")),
       ).toEqual([]);
@@ -59,7 +65,9 @@ for (const [identity, entry] of [
     async ({ cli }) => {
       const home = await createTestTempDirectory("rea-setup-ownership-");
       const config = join(home, ".claude.json");
-      const original = JSON.stringify({ mcpServers: { rea: entry } });
+      const original = JSON.stringify({
+        mcpServers: { [EXPECTED_MCP_KEY]: entry },
+      });
       await writeFile(config, original);
       const result = await cli.run({
         arguments: ["setup", "--client", "claude_code", "--yes", "--json"],
@@ -97,7 +105,9 @@ for (const [identity, entry] of [
           ]),
         },
       });
-      expect(await readdir(home)).not.toContain(".claude.json.rea.backup");
+      expect(await readdir(home)).not.toContain(
+        `.claude.json.${EXPECTED_BACKUP_SUFFIX}.backup`,
+      );
       await expect(
         readFile(
           join(
@@ -136,11 +146,16 @@ cliTest(
     expect(result.exitCode, result.stdout).toBe(0);
     expect(JSON.parse(await readFile(config, "utf8"))).toMatchObject({
       mcpServers: {
-        rea: { command: process.execPath, env: { CUSTOM: "keep" } },
+        [EXPECTED_MCP_KEY]: {
+          command: process.execPath,
+          env: { CUSTOM: "keep" },
+        },
         peer: { command: "peer" },
       },
     });
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
   },
 );
 
@@ -177,7 +192,9 @@ for (const repeated of [false, true])
         remediation: expect.stringContaining("foreign ownership"),
       });
       expect(await readFile(config, "utf8")).toBe(original);
-      await expect(readFile(`${config}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
     },
@@ -190,7 +207,7 @@ cliTest(
     const fallback = join(home, ".agents", "mcp.json");
     await mkdir(dirname(fallback), { recursive: true });
     const original =
-      '{"mcpServers":{"rea":{"command":"other"},"peer":{"command":"peer"}}}';
+      '{"mcpServers":{"xtna":{"command":"other"},"peer":{"command":"peer"}}}';
     await writeFile(fallback, original);
     const result = await cli.run({
       arguments: [
@@ -214,7 +231,9 @@ cliTest(
     await expect(
       readFile(join(home, ".zcode", "cli", "config.json")),
     ).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(readFile(`${fallback}.rea.backup`)).rejects.toMatchObject({
+    await expect(
+      readFile(`${fallback}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
   },
@@ -257,7 +276,9 @@ cliTest(
     });
     expect(await readFile(lower, "utf8")).toBe(originalLower);
     expect(await readFile(upper, "utf8")).toBe(originalUpper);
-    await expect(readFile(`${upper}.rea.backup`)).rejects.toMatchObject({
+    await expect(
+      readFile(`${upper}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
   },
@@ -297,7 +318,9 @@ cliTest(
     });
     expect(result.exitCode, result.stdout).toBe(0);
     expect(await readFile(lower, "utf8")).toBe(originalLower);
-    expect(await readFile(`${upper}.rea.backup`, "utf8")).toBe(originalUpper);
+    expect(
+      await readFile(`${upper}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(originalUpper);
     expect(JSON.parse(await readFile(upper, "utf8"))).toMatchObject({
       mcp: { rea: { type: "local", environment: { CUSTOM: "keep" } } },
     });
@@ -327,6 +350,8 @@ cliTest(
       remediation: expect.stringContaining("foreign ownership"),
     });
     expect(await readFile(upper, "utf8")).toBe(foreignFragment);
-    expect(await readFile(`${upper}.rea.backup`, "utf8")).toBe(originalUpper);
+    expect(
+      await readFile(`${upper}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(originalUpper);
   },
 );
