@@ -9,6 +9,12 @@ import {
   clientRegistrationEntry,
 } from "../../../src/application/ClientConfigurationDocument.js";
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import {
+  EXPECTED_BACKUP_SUFFIX,
+  EXPECTED_MCP_KEY,
+  LEGACY_MCP_KEY,
+} from "../../fixtures/acceptance/productContract.js";
+import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
 // Registration configuration tests must not discover installed providers or
@@ -101,10 +107,10 @@ cliTest(
         environment,
       });
     const setup = await run();
-    expect(setup.exitCode, setup.stdout).toBe(0);
+    expectSetupContract(setup);
     const configured = await readFile(config, "utf8");
     expect(JSON.parse(configured)).toMatchObject({
-      mcpServers: { rea: { env: selected } },
+      mcpServers: { [EXPECTED_MCP_KEY]: { env: selected } },
     });
     expect(configured).not.toContain("do not copy");
     // A later setup must update a selection rather than retaining the first value.
@@ -120,14 +126,14 @@ cliTest(
     environment.GHIDRA_HEADLESS_MAXMEM = selected.GHIDRA_HEADLESS_MAXMEM;
     environment.GHIDRA_MAXMEM = selected.GHIDRA_MAXMEM;
     const updated = await run();
-    expect(updated.exitCode, updated.stdout).toBe(0);
+    expectSetupContract(updated);
     const updatedConfiguration = await readFile(config, "utf8");
     expect(JSON.parse(updatedConfiguration)).toMatchObject({
-      mcpServers: { rea: { env: selected } },
+      mcpServers: { [EXPECTED_MCP_KEY]: { env: selected } },
     });
     expect(updatedConfiguration).not.toContain("do not copy");
     const repeated = await run();
-    expect(repeated.exitCode, repeated.stdout).toBe(0);
+    expectSetupContract(repeated);
     expect(repeated.json).toMatchObject({
       plannedActions: [],
       appliedActions: [],
@@ -169,16 +175,18 @@ cliTest(
         environment,
       });
     const first = await run("session");
-    expect(first.exitCode, first.stdout).toBe(0);
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expectSetupContract(first);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
     const scope = "native,application,session";
     const updated = await run(scope);
-    expect(updated.exitCode, updated.stdout).toBe(0);
+    expectSetupContract(updated);
     const selected = await readFile(config, "utf8");
     expect(JSON.parse(selected)).toMatchObject({
       mcpServers: {
         foreign,
-        rea: {
+        [EXPECTED_MCP_KEY]: {
           env: {
             REA_MCP_TOOL_FAMILIES: scope,
             REA_MCP_INPUT_SCHEMA_PROFILE: "compact",
@@ -187,9 +195,12 @@ cliTest(
         },
       },
     });
-    const backup = await readFile(`${config}.rea.backup`, "utf8");
+    const backup = await readFile(
+      `${config}.${EXPECTED_BACKUP_SUFFIX}.backup`,
+      "utf8",
+    );
     const repeated = await run(scope);
-    expect(repeated.exitCode, repeated.stdout).toBe(0);
+    expectSetupContract(repeated);
     expect(repeated.json).toMatchObject({
       plannedActions: [],
       appliedActions: [],
@@ -200,7 +211,9 @@ cliTest(
       "REA_MCP_TOOL_FAMILIES",
     );
     expect(await readFile(config, "utf8")).toBe(selected);
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(backup);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(backup);
   },
 );
 
@@ -212,7 +225,7 @@ cliTest.skipIf(process.platform !== "win32")(
     await mkdir(dirname(config), { recursive: true });
     const original = JSON.stringify({
       mcpServers: {
-        rea: clientRegistrationEntry(
+        [EXPECTED_MCP_KEY]: clientRegistrationEntry(
           "json",
           [process.execPath, resolve("scripts/rea.mjs"), "mcp"],
           { rea_analysis_provider: "invalid provider" },
@@ -262,7 +275,9 @@ cliTest.skipIf(process.platform !== "win32")(
       remediation: expect.stringContaining("REA_ANALYSIS_PROVIDER"),
     });
     expect(await readFile(config, "utf8")).toBe(original);
-    await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+    await expect(
+      access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
   },
@@ -361,7 +376,7 @@ cliTest.for([
               ],
             },
           ])
-        : JSON.stringify({ mcpServers: { rea: entry } });
+        : JSON.stringify({ mcpServers: { [EXPECTED_MCP_KEY]: entry } });
     };
     const valueMarker = "reaNulFixtureValue_6c04e2";
     const original = registration(
@@ -413,7 +428,9 @@ cliTest.for([
     });
     expect(setup.stdout + doctor.stdout).not.toContain(valueMarker);
     expect(await readFile(config, "utf8")).toBe(original);
-    await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+    await expect(
+      access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
 
@@ -479,7 +496,7 @@ for (const scenario of scenarios)
                 ],
               },
             ])
-          : JSON.stringify({ mcpServers: { rea: server } });
+          : JSON.stringify({ mcpServers: { [EXPECTED_MCP_KEY]: server } });
       };
       const original = registration(scenario.invalid);
       await writeFile(config, original);
@@ -521,7 +538,9 @@ for (const scenario of scenarios)
         },
       });
       expect(await readFile(config, "utf8")).toBe(original);
-      await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
 
@@ -535,17 +554,23 @@ for (const scenario of scenarios)
         "--skill=false",
         "--yes",
       ]);
-      expect(configured.exitCode, configured.stdout).toBe(0);
+      expectSetupContract(configured);
       const text = await readFile(config, "utf8");
       const parsed = parseClientConfiguration(text, scenario.format);
-      expect(effectiveClientServer(parsed, "rea")).toMatchObject({
+      // The Harness patch model keeps its own entry name while the JSON and TOML clients
+      // use the product key; the fixture models each dialect as the client reads it.
+      const serverKey =
+        scenario.format === "dsh" ? LEGACY_MCP_KEY : EXPECTED_MCP_KEY;
+      expect(effectiveClientServer(parsed, serverKey)).toMatchObject({
         env: {
           CALLER_SETTING: "keep exactly",
           ["__proto__"]: "retain caller key",
           ...scenario.repaired,
         },
       });
-      expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(repaired);
+      expect(
+        await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+      ).toBe(repaired);
       const repeated = await run([
         "setup",
         "--client",
@@ -553,8 +578,8 @@ for (const scenario of scenarios)
         "--skill=false",
         "--yes",
       ]);
+      expectSetupContract(repeated);
       expect(repeated.json).toMatchObject({
-        status: "ready",
         appliedActions: [],
         plannedActions: [],
       });
@@ -573,7 +598,7 @@ cliTest(
     const content = (env: Record<string, string>) =>
       JSON.stringify({
         mcp: {
-          rea: clientRegistrationEntry(
+          [EXPECTED_MCP_KEY]: clientRegistrationEntry(
             "opencode",
             [process.execPath, resolve("scripts/rea.mjs"), "mcp"],
             env,
@@ -604,7 +629,7 @@ cliTest(
       "--skill=false",
       "--yes",
     ]);
-    expect(setup.exitCode, setup.stdout).toBe(0);
+    expectSetupContract(setup);
     expect(setup.json).toMatchObject({
       status: "ready",
       plannedActions: [],
@@ -647,7 +672,9 @@ cliTest(
     });
     expect(await readFile(upper, "utf8")).toBe(upperContent);
     for (const path of [lower, upper])
-      await expect(access(`${path}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        access(`${path}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
   },
@@ -708,7 +735,7 @@ cliTest(
     const codexConfig = await readFile(join(codexHome, "config.toml"), "utf8");
     const codexRegistration = effectiveClientServer(
       parseClientConfiguration(codexConfig, "toml"),
-      "rea",
+      EXPECTED_MCP_KEY,
     );
     expect(codexRegistration).toMatchObject({ tool_timeout_sec: 3021 });
     expect(codexConfig).toContain('REA_BRIDGE_MAX_REQUEST_BYTES = "33554432"');
@@ -727,7 +754,7 @@ cliTest(
     const kimiPath = join(kimiHome, "mcp.json");
     const kimiRegistration = effectiveClientServer(
       parseClientConfiguration(await readFile(kimiPath, "utf8"), "kimi"),
-      "rea",
+      EXPECTED_MCP_KEY,
     );
     expect(kimiRegistration).toMatchObject({
       toolTimeoutMs: 3_020_003,
@@ -813,7 +840,7 @@ for (const [client, provider] of [
           REA_IDA_MCP_CONFIG: idaConfig,
         },
       });
-      expect(configured.exitCode, configured.stdout).toBe(0);
+      expectSetupContract(configured);
       const config = join(
         clientHome,
         client === "codex" ? "config.toml" : "mcp.json",
@@ -822,7 +849,7 @@ for (const [client, provider] of [
       expect(
         effectiveClientServer(
           parseClientConfiguration(text, client === "codex" ? "toml" : "kimi"),
-          "rea",
+          EXPECTED_MCP_KEY,
         ),
       ).toMatchObject({
         ...(client === "codex"
@@ -858,14 +885,16 @@ for (const [client, provider] of [
         },
       });
       const repeated = await run(setupArguments);
-      expect(repeated.exitCode, repeated.stdout).toBe(0);
+      expectSetupContract(repeated);
       expect(repeated.json).toMatchObject({
         status: "ready",
         plannedActions: [],
         appliedActions: [],
       });
       expect(await readFile(config, "utf8")).toBe(text);
-      await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
       if (provider === "ida") {
@@ -892,7 +921,9 @@ for (const [client, provider] of [
         expect(invalidSetup.exitCode).toBe(1);
         expect(invalidSetup.stdout).toContain("REA_IDA_MCP_CONFIG");
         expect(await readFile(config, "utf8")).toBe(text);
-        await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+        await expect(
+          access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+        ).rejects.toMatchObject({
           code: "ENOENT",
         });
       }
@@ -945,7 +976,9 @@ for (const invalidSetting of [
         invalidSetting.setting,
       );
       await expect(access(config)).rejects.toMatchObject({ code: "ENOENT" });
-      await expect(access(`${config}.rea.backup`)).rejects.toMatchObject({
+      await expect(
+        access(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+      ).rejects.toMatchObject({
         code: "ENOENT",
       });
     },
@@ -995,20 +1028,24 @@ cliTest(
         ...missingHopperAndGhidraEnvironment(home),
       },
     });
-    expect(setup.exitCode, setup.stdout + setup.stderr).toBe(0);
+    expectSetupContract(setup);
     expect(setup.json).toMatchObject({ status: "ready" });
     expect(JSON.parse(await readFile(config, "utf8"))).toMatchObject({
       servers: {
         foreign: { command: "keep" },
-        rea: {
+        [EXPECTED_MCP_KEY]: {
           command: process.execPath,
           args: [resolve("scripts/rea.mjs"), "mcp"],
         },
       },
     });
-    expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
+    expect(
+      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
+    ).toBe(original);
     expect(await readFile(defaultConfig, "utf8")).toBe(defaultOriginal);
-    await expect(access(`${defaultConfig}.rea.backup`)).rejects.toMatchObject({
+    await expect(
+      access(`${defaultConfig}.${EXPECTED_BACKUP_SUFFIX}.backup`),
+    ).rejects.toMatchObject({
       code: "ENOENT",
     });
   },
