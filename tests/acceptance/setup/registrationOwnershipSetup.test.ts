@@ -7,6 +7,7 @@ import {
   EXPECTED_BACKUP_SUFFIX,
   EXPECTED_MCP_KEY,
 } from "../../fixtures/acceptance/productContract.js";
+import { expectSetupContract } from "../../support/cli/setupContract.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
 const setup = ["setup", "--client", "claude_code", "--skill=false", "--json"];
@@ -143,7 +144,7 @@ cliTest(
       cwd: home,
       environment: { HOME: home, USERPROFILE: home, CLAUDE_CONFIG_DIR: home },
     });
-    expect(result.exitCode, result.stdout).toBe(0);
+    expectSetupContract(result);
     expect(JSON.parse(await readFile(config, "utf8"))).toMatchObject({
       mcpServers: {
         [EXPECTED_MCP_KEY]: {
@@ -166,8 +167,10 @@ for (const repeated of [false, true])
       const home = await createTestTempDirectory("rea-setup-legacy-ownership-");
       const config = join(home, ".config", "opencode", "opencode.json");
       await mkdir(dirname(config), { recursive: true });
-      const foreign = '"rea":{"type":"local","command":["other"]}';
-      const owned = '"rea":{"type":"local","command":["rea","mcp"]}';
+      // The shadowed V1 member must use the name this product writes, otherwise the two
+      // entries are unrelated registrations and nothing is being shadowed.
+      const foreign = `"${EXPECTED_MCP_KEY}":{"type":"local","command":["other"]}`;
+      const owned = `"${EXPECTED_MCP_KEY}":{"type":"local","command":["rea","mcp"]}`;
       const original = `{"mcp":{${foreign},${repeated ? `${owned},` : ""}"servers":{${owned}}}}`;
       await writeFile(config, original);
       const result = await cli.run({
@@ -247,8 +250,7 @@ cliTest(
     await mkdir(directory, { recursive: true });
     const lower = join(directory, "config.json");
     const upper = join(directory, "opencode.json");
-    const originalLower =
-      '{"mcp":{"rea":{"type":"local","command":["other"]}}}';
+    const originalLower = `{"mcp":{"${EXPECTED_MCP_KEY}":{"type":"local","command":["other"]}}}`;
     const originalUpper = "{}";
     await writeFile(lower, originalLower);
     await writeFile(upper, originalUpper);
@@ -293,10 +295,10 @@ cliTest(
     const lower = join(directory, "config.json");
     const upper = join(directory, "opencode.json");
     const originalLower = JSON.stringify({
-      mcp: { rea: { type: "local", command: ["rea", "mcp"] } },
+      mcp: { [EXPECTED_MCP_KEY]: { type: "local", command: ["rea", "mcp"] } },
     });
     const originalUpper = JSON.stringify({
-      mcp: { rea: { environment: { CUSTOM: "keep" } } },
+      mcp: { [EXPECTED_MCP_KEY]: { environment: { CUSTOM: "keep" } } },
     });
     await writeFile(lower, originalLower);
     await writeFile(upper, originalUpper);
@@ -316,16 +318,18 @@ cliTest(
         XDG_CONFIG_HOME: join(home, ".config"),
       },
     });
-    expect(result.exitCode, result.stdout).toBe(0);
+    expectSetupContract(result);
     expect(await readFile(lower, "utf8")).toBe(originalLower);
     expect(
       await readFile(`${upper}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
     ).toBe(originalUpper);
     expect(JSON.parse(await readFile(upper, "utf8"))).toMatchObject({
-      mcp: { rea: { type: "local", environment: { CUSTOM: "keep" } } },
+      mcp: {
+        [EXPECTED_MCP_KEY]: { type: "local", environment: { CUSTOM: "keep" } },
+      },
     });
     const foreignFragment = JSON.stringify({
-      mcp: { rea: { command: ["other", "mcp"] } },
+      mcp: { [EXPECTED_MCP_KEY]: { command: ["other", "mcp"] } },
     });
     await writeFile(upper, foreignFragment);
     const blocked = await cli.run({
