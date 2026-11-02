@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 
@@ -94,8 +95,69 @@ it("does not police read-only commands", () => {
   expect(() =>
     assertDestructiveIsolation(
       "doctor",
-      ["/tmp/only"],
+      ["C:\\\\only"],
       { HOME: "/tmp/only", DSH_HOME: "/somewhere/else" },
+      "win32",
+    ),
+  ).not.toThrow();
+});
+
+it("compares Windows paths case-insensitively", () => {
+  const root = "C:\\Temp\\Rea-Root";
+  expect(() =>
+    assertDestructiveIsolation(
+      "setup",
+      [root],
+      {
+        HOME: "c:\\temp\\rea-root",
+        USERPROFILE: "C:\\TEMP\\REA-ROOT",
+        APPDATA: "C:\\TEMP\\REA-ROOT\\AppData\\Roaming",
+        LOCALAPPDATA: "C:\\TEMP\\REA-ROOT\\AppData\\Local",
+      },
+      "win32",
+    ),
+  ).not.toThrow();
+});
+
+it("refuses a symbolic link inside a trusted root that resolves outside it", async () => {
+  const root = await createTestTempDirectory("rea-isolation-link-root-");
+  const outside = await createTestTempDirectory("rea-isolation-link-target-");
+  const link = join(root, "dsh");
+  await symlink(outside, link, "junction");
+  expect(() =>
+    assertDestructiveIsolation(
+      "setup",
+      [root],
+      { HOME: root, USERPROFILE: root, DSH_HOME: link },
+      "win32",
+    ),
+  ).toThrow(ConfigIsolationError);
+});
+
+it("allows a not-yet-created path beneath a trusted root", async () => {
+  const root = await createTestTempDirectory("rea-isolation-new-");
+  expect(() =>
+    assertDestructiveIsolation(
+      "setup",
+      [root],
+      { HOME: root, USERPROFILE: root, DSH_HOME: join(root, "fresh", ".dsh") },
+      "win32",
+    ),
+  ).not.toThrow();
+});
+
+it("leaves a relative redirect to the product to reject", () => {
+  expect(() =>
+    assertDestructiveIsolation(
+      "setup",
+      ["C:\\\\only"],
+      {
+        HOME: "C:\\\\only",
+        USERPROFILE: "C:\\\\only",
+        APPDATA: "C:\\\\only\\\\appdata",
+        LOCALAPPDATA: "C:\\\\only\\\\local",
+        HERMES_HOME: "relative/profile",
+      },
       "win32",
     ),
   ).not.toThrow();

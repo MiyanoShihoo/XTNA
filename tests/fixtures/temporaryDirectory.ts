@@ -6,6 +6,7 @@ import { onTestFinished } from "vitest";
 
 import { normalizeTestTemporaryPrefix } from "../../scripts/lib/test-temporary-ownership.mjs";
 import { removeTestWorkspace } from "../support/workspace/workspaceFixture.js";
+import { registerOwnedRoot } from "../support/cli/configIsolation.js";
 
 /**
  * Creates an empty canonical temporary directory owned by the current Vitest
@@ -26,6 +27,7 @@ export const createTestTempDirectory = async (
       join(await realpath(tmpdir()), normalizeTestTemporaryPrefix(prefix)),
     ),
   );
+  registerOwnedRoot(canonicalDirectory);
   onTestFinished(async () => {
     await removeTestWorkspace(canonicalDirectory);
   });

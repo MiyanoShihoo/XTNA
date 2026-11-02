@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { normalizeTestTemporaryPrefix } from "../../../scripts/lib/test-temporary-ownership.mjs";
+import { registerOwnedRoot } from "../cli/configIsolation.js";
 
 /** An isolated filesystem and environment projection owned by one test. */
 export interface TestWorkspace {
@@ -34,6 +35,7 @@ export const createTestWorkspace = async (
       join(canonicalTemporaryRoot, normalizeTestTemporaryPrefix(prefix)),
     ),
   );
+  registerOwnedRoot(root);
   const home = join(root, "home");
   const xdgConfigHome = join(root, "xdg", "config");
   const xdgCacheHome = join(root, "xdg", "cache");

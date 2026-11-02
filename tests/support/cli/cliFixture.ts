@@ -281,13 +281,7 @@ export const createTestCli = (
     // Refuse a destructive command whose configuration surfaces escape the temporary
     // roots this test owns. This runs before the child starts, so a real client file is
     // never opened by a test that inherited a redirect such as DSH_HOME.
-    assertDestructiveIsolation(
-      arguments_[0] ?? "",
-      [environment?.HOME, environment?.USERPROFILE, cwd, tmpdir()].filter(
-        (value): value is string => typeof value === "string",
-      ),
-      environment ?? {},
-    );
+    assertDestructiveIsolation(arguments_[0] ?? "", [], environment ?? {});
     const result = await processes.run(
       process.execPath,
       [resolve("scripts/rea.mjs"), ...arguments_],

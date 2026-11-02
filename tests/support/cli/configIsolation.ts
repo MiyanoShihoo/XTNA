@@ -1,4 +1,5 @@
-import { resolve } from "node:path";
+import { realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { platform as osPlatform } from "node:os";
 
 import { supportedClients } from "../../../src/application/SupportedClients.js";
@@ -25,6 +26,7 @@ export const CONFIG_REDIRECT_KEYS = [
   "GEMINI_CLI_SYSTEM_SETTINGS_PATH",
   "GEMINI_CLI_TRUSTED_FOLDERS_PATH",
   "GROK_HOME",
+  "HERMES_HOME",
   "KIMI_CODE_HOME",
   "OMP_PROFILE",
   "OPENCODE_CONFIG",
@@ -57,9 +59,32 @@ export class ConfigIsolationError extends Error {
   }
 }
 
+const ownedRoots = new Set<string>();
+
+/**
+ * Record a directory this test run created and may therefore write inside. Only
+ * registered roots are trusted: `HOME`, `USERPROFILE`, the working directory and the OS
+ * temporary directory are *not* implicitly safe, because any of them can hold a real
+ * client configuration.
+ */
+export const registerOwnedRoot = (path: string): void => {
+  ownedRoots.add(resolve(path));
+};
+
+/** Roots the current test file owns. */
+export const registeredRoots = (): readonly string[] => [...ownedRoots];
+
+export const clearOwnedRoots = (): void => {
+  ownedRoots.clear();
+};
+
+/** Windows comparisons are case-insensitive; other platforms compare byte-exact. */
+const fold = (path: string): string =>
+  osPlatform() === "win32" ? path.toLowerCase() : path;
+
 const inside = (path: string, root: string): boolean => {
-  const target = resolve(path);
-  const base = resolve(root);
+  const target = fold(resolve(path));
+  const base = fold(resolve(root));
   return (
     target === base ||
     target.startsWith(`${base}\\`) ||
@@ -93,12 +118,58 @@ export const assertDestructiveIsolation = (
   platform: NodeJS.Platform = osPlatform(),
 ): void => {
   if (!DESTRUCTIVE_COMMANDS.has(command)) return;
-  const home = environment.HOME ?? environment.USERPROFILE ?? roots[0] ?? ".";
-  for (const surface of configuredPaths(home, environment, platform))
-    if (!roots.some((root) => inside(surface.path, root)))
+  // A non-absolute override is rejected by the product with its own diagnostic (for
+  // example "absolute HERMES_HOME"). Resolving it here would replace that message with an
+  // isolation refusal, so leave the whole invocation to the product in that case.
+  if (
+    CONFIG_REDIRECT_KEYS.some((key) => {
+      const value = environment[key];
+      return (
+        typeof value === "string" && value.trim() !== "" && !isAbsolute(value)
+      );
+    })
+  )
+    return;
+  // Explicit roots exist for callers outside the fixture; inside it, only directories a
+  // test actually created are trusted. With no root at all, nothing is writable.
+  const trusted = roots.length > 0 ? roots : registeredRoots();
+  for (const surface of configuredPaths(
+    environment.HOME ?? environment.USERPROFILE ?? ".",
+    environment,
+    platform,
+  ))
+    // A relative or unresolved value is not a real location: the product rejects it on
+    // its own terms, and policing it here would hide that diagnostic.
+    if (
+      isAbsolute(surface.path) &&
+      !trusted.some((root) => inside(resolveExisting(surface.path), root))
+    )
       throw new ConfigIsolationError(
         command,
         `${surface.client} config ${surface.path}`,
-        roots.join(", "),
+        trusted.join(", ") || "(no owned root)",
       );
+};
+
+/**
+ * Resolve symlinks and junctions before the containment check. A link inside a trusted
+ * root that points outside it must fail, not pass on its spelling.
+ */
+const resolveExisting = (path: string): string => {
+  const absolute = resolve(path);
+  const segments: string[] = [];
+  let current = absolute;
+  for (let depth = 0; depth < 64; depth += 1) {
+    try {
+      // Resolve the deepest ancestor that exists, then re-attach the segments that do
+      // not exist yet: returning the ancestor alone would compare the wrong path.
+      return join(realpathSync(current), ...segments.reverse());
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) return absolute;
+      segments.push(basename(current));
+      current = parent;
+    }
+  }
+  return absolute;
 };
