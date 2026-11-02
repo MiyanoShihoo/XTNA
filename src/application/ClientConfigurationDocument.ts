@@ -305,6 +305,20 @@ export const effectiveProductServer = (
   effectiveClientServer(parsed, PRODUCT_IDENTITY.mcpServerKey) ??
   effectiveClientServer(parsed, LEGACY_MCP_SERVER_KEY);
 
+/**
+ * The key this document actually registers this product under. Prefer the
+ * current key; fall back to the key earlier releases installed so a removal or
+ * an edit targets the member that exists rather than reporting absence.
+ */
+export const productServerName = (
+  parsed: ClientConfigurationDocument,
+): string =>
+  Object.hasOwn(parsed.servers, PRODUCT_IDENTITY.mcpServerKey)
+    ? PRODUCT_IDENTITY.mcpServerKey
+    : Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY)
+      ? LEGACY_MCP_SERVER_KEY
+      : PRODUCT_IDENTITY.mcpServerKey;
+
 export const effectiveClientServer = (
   parsed: ClientConfigurationDocument,
   name: string,

@@ -12,6 +12,7 @@ import {
   legacyClientServerPath,
   shadowedClientServers,
   withClientServers,
+  productServerName,
   type ClientConfigurationDocument,
 } from "./ClientConfigurationDocument.js";
 import { err, ok, type Result } from "../domain/result.js";
@@ -632,7 +633,7 @@ const uninstallConfigPaths = (client: SetupClient): readonly string[] => [
 
 /** Whether removal would change this configuration. */
 const registrationPresent = (parsed: ClientConfigurationDocument): boolean => {
-  const name = PRODUCT_IDENTITY.mcpServerKey;
+  const name = productServerName(parsed);
   return (
     Object.hasOwn(parsed.servers, name) ||
     // Beside a native OpenCode V2 table, OpenCode also loads a V1 `mcp.rea`.
@@ -777,7 +778,7 @@ const clientRegistrationRemoval = (
   original: string,
   client: SetupClient,
 ): Result<RegistrationRemoval, RegistrationRemovalRefusal> => {
-  const name = PRODUCT_IDENTITY.mcpServerKey;
+  const name = productServerName(parsed);
   if (
     parsed.dialect === "dsh" &&
     dshDocument(parsed.document).hasUnknownStructure
@@ -873,7 +874,7 @@ const removeClient = async (
   );
   if (read.kind === "item") return read.item;
   const { transactionPath, original, parsed } = read;
-  const name = PRODUCT_IDENTITY.mcpServerKey;
+  const name = productServerName(parsed);
   if (
     parsed.dialect === "dsh" &&
     dshDocument(parsed.document).hasUnknownStructure
