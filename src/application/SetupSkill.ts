@@ -3,11 +3,15 @@ import { existsSync, constants as fsConstants } from "node:fs";
 import { dirname } from "node:path";
 import { appendCallerPath } from "../filesystem/callerPath.js";
 import { err, ok, type Result } from "../domain/result.js";
-import { parseSkillManifestMetadata } from "../domain/skillManifest.js";
+import {
+  addSkillManifestToolCount,
+  parseSkillManifestMetadata,
+} from "../domain/skillManifest.js";
 import { readBoundedFileBytes } from "../process/BoundedFileBytes.js";
 import type { ArtifactResourceScope } from "../artifacts/ArtifactResourceScope.js";
 import { ArtifactReaderFailure } from "../artifacts/ArtifactReader.js";
 
+import { DEFAULT_CATALOG_IDENTITY } from "../catalogIdentity.js";
 import { PRODUCT_IDENTITY } from "../identity.js";
 import {
   NonRegularFileReadError,
@@ -99,8 +103,25 @@ export const canonicalSkillRootKind = (): "source" | "packaged" =>
 
 const canonicalSkillRoot = (): URL => skillRootUrl(canonicalSkillRootKind());
 
-const canonicalSkillContent = (relativePath: string): Promise<string> =>
-  readFile(new URL(relativePath, canonicalSkillRoot()), "utf8");
+const canonicalSkillContent = async (relativePath: string): Promise<string> => {
+  const content = await readFile(
+    new URL(relativePath, canonicalSkillRoot()),
+    "utf8",
+  );
+  if (relativePath !== "SKILL.md") return content;
+  // In a source checkout the canonical tree is the authored copy, which deliberately omits
+  // the generated tool count. Doctor compares an installed copy's tool count against the
+  // catalog, so installing the authored text verbatim made every fresh install report
+  // "stale". Stamp the count into the installed manifest instead of weakening the check.
+  const parsed = parseSkillManifestMetadata(content);
+  if (parsed.ok && parsed.value.toolCount !== null) return content;
+  const stamped = addSkillManifestToolCount(
+    content,
+    DEFAULT_CATALOG_IDENTITY.counts.mcp_tools,
+  );
+  if (!stamped.ok) throw stamped.error;
+  return stamped.value;
+};
 
 export interface SkillInstallFileOperations {
   readonly mkdir: (path: string) => Promise<void>;
