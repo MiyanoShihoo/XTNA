@@ -13,6 +13,7 @@ import { ConfigurationError } from "../domain/configurationErrors.js";
 import {
   clientConfigurationValuesEqual,
   effectiveClientServer,
+  productServerName,
   clientServerListedDisabled,
   clientServerPath,
   legacyClientServerPath,
@@ -870,14 +871,18 @@ const errorDetail = (cause: unknown): string =>
 const registrationCurrent = (
   parsed: ClientConfigurationDocument,
   desired: unknown,
-): boolean =>
-  (parsed.dialect !== "dsh" || dshDocument(parsed.document).ready) &&
-  clientConfigurationValuesEqual(
-    parsed.servers[PRODUCT_IDENTITY.mcpServerKey],
-    desired,
-  ) &&
-  !Object.hasOwn(parsed.legacyServers, PRODUCT_IDENTITY.mcpServerKey) &&
-  !clientServerListedDisabled(parsed, PRODUCT_IDENTITY.mcpServerKey);
+): boolean => {
+  // The Harness projects its registration under the patch entry name rather than the
+  // product key, so compare against the member this document actually carries. Using the
+  // product key alone made every Harness rerun look stale and plan a redundant update.
+  const name = productServerName(parsed);
+  return (
+    (parsed.dialect !== "dsh" || dshDocument(parsed.document).ready) &&
+    clientConfigurationValuesEqual(parsed.servers[name], desired) &&
+    !Object.hasOwn(parsed.legacyServers, name) &&
+    !clientServerListedDisabled(parsed, name)
+  );
+};
 
 const clientConfigurationDesired = async (
   client: SetupClient,

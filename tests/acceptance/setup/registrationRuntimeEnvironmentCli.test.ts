@@ -568,6 +568,8 @@ for (const scenario of scenarios)
           ...scenario.repaired,
         },
       });
+      // The Harness registration is already current after the caller repairs it, so setup
+      // writes nothing there. The remaining clients are rewritten and backed up.
       expect(
         await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
       ).toBe(repaired);
