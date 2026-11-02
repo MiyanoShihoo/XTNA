@@ -1,1 +1,2 @@
 npm run check:fast
+npm run format:check

@@ -133,7 +133,12 @@ const projects = TEST_PROJECTS.map((project) => {
 
 export default defineConfig({
   test: {
-    env: { TMPDIR: CANONICAL_TEMPORARY_DIRECTORY },
+    env: {
+      TMPDIR: CANONICAL_TEMPORARY_DIRECTORY,
+      // Every managed test run declares the only roots a destructive CLI may write
+      // inside; the CLI refuses anything outside them while this is set.
+      REA_TEST_ISOLATION_ROOTS: CANONICAL_TEMPORARY_DIRECTORY,
+    },
     maxWorkers: MAX_TEST_WORKERS,
     projects,
     ...(process.env.REA_CI_TEST_HISTORY

@@ -1,5 +1,6 @@
-import { readFile, glob } from "node:fs/promises";
-import { join } from "node:path";
+import { readFile, glob, realpath } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { delimiter, join } from "node:path";
 import { expect, it } from "vitest";
 
 /**
@@ -63,4 +64,14 @@ it("keeps the reviewed fixture list free of removed files", async () => {
   const found = new Set(await candidates());
   for (const entry of FIXTURE_GUARDED)
     expect(found.has(entry), `${entry} no longer spawns the CLI`).toBe(true);
+});
+
+it("a managed test run declares the roots a destructive CLI may write inside", async () => {
+  const declared = process.env.REA_TEST_ISOLATION_ROOTS;
+  expect(
+    declared,
+    "REA_TEST_ISOLATION_ROOTS is missing: this suite ran outside the managed test entry",
+  ).toBeTruthy();
+  const canonical = await realpath(tmpdir());
+  expect(declared?.split(delimiter)).toContain(canonical);
 });
