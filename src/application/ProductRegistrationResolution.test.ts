@@ -30,14 +30,21 @@ const source = (
   tier: ProductRegistrationSource["tier"] = "document",
   writable = true,
   path = "/tmp/config.json",
-): ProductRegistrationSource => ({ document, tier, writable, path });
+): ProductRegistrationSource => ({
+  document,
+  tier,
+  writable,
+  sourcePath: path,
+});
 
 const context = (
   verdict: "owned" | "foreign" | "unknown" = "owned",
   duplicateDetectable = true,
+  canRemove = true,
 ): ProductRegistrationContext => ({
   classifyOwnership: classify(verdict),
   duplicateDetectable: () => duplicateDetectable,
+  dialectCanRemove: () => canRemove,
 });
 
 describe("discovery", () => {
@@ -261,5 +268,92 @@ describe("shape", () => {
       "target",
     ];
     for (const key of Object.keys(result)) expect(allowed).toContain(key);
+  });
+});
+
+describe("review r6 fixes", () => {
+  it("C1. a member in another tier is a duplicate, not only a lower-layer note", () => {
+    const result = resolveProductRegistration(
+      [
+        source(
+          json({ [CURRENT]: { command: "node" } }),
+          "document",
+          true,
+          "/a",
+        ),
+        source(
+          json({ [LEGACY]: { command: "node" } }),
+          "lower-layer",
+          false,
+          "/b",
+        ),
+      ],
+      context("owned"),
+    );
+    expect(result.duplicate).toBe(true);
+    expect(result.conflicts).toContainEqual({
+      kind: "duplicate",
+      keys: [CURRENT, LEGACY],
+    });
+    expect(result.conflicts).toContainEqual({
+      kind: "lower_layer",
+      keys: [LEGACY],
+    });
+  });
+
+  it("H1. a dialect that cannot remove yields no retire candidate", () => {
+    const result = resolveProductRegistration(
+      [
+        source(json({ [CURRENT]: { command: "node" } })),
+        source(json({ [LEGACY]: { command: "node" } })),
+      ],
+      context("owned", true, false),
+    );
+    expect(result.retire).toHaveLength(0);
+  });
+
+  it("H5. an unknown member is reported, not silent", () => {
+    const result = resolveProductRegistration(
+      [source(json({ [CURRENT]: { command: "?" } }))],
+      context("unknown"),
+    );
+    expect(result.conflicts).toContainEqual({
+      kind: "unknown_ownership",
+      keys: [CURRENT],
+    });
+  });
+
+  it("H4. two files holding one member each are not a duplicate", () => {
+    const result = resolveProductRegistration(
+      [
+        source(
+          json({ [CURRENT]: { command: "node" } }),
+          "document",
+          true,
+          "/a",
+        ),
+        source(json({ [LEGACY]: { command: "node" } }), "document", true, "/b"),
+      ],
+      context("owned"),
+    );
+    expect(result.members).toHaveLength(2);
+    expect(result.duplicate).toBe(false);
+  });
+
+  it("C2. the Harness registers under the current identity", () => {
+    const harness = parseClientConfiguration(
+      JSON.stringify([
+        { insert: [{ id: "rea-mcp", config: { serverName: "rea" } }] },
+      ]),
+      "dsh",
+    );
+    const result = resolveProductRegistration(
+      [source(harness)],
+      context("owned"),
+    );
+    expect(result.members[0]?.identity).toBe("current");
+    expect(result.conflicts.some((c) => c.kind === "legacy_identity")).toBe(
+      false,
+    );
   });
 });
