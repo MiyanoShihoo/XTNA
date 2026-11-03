@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { resolve } from "node:path";
 
 import {
   parseClientConfiguration,
@@ -6,6 +7,7 @@ import {
 } from "./ClientConfigurationDocument.js";
 import type { ClientConfigurationSource } from "./ClientConfigurationFiles.js";
 import {
+  commandOwnershipClassifier,
   registrationContext,
   toRegistrationSources,
 } from "./ProductRegistrationSources.js";
@@ -102,5 +104,33 @@ describe("registrationContext", () => {
     );
     expect(resolved.retire).toEqual([]);
     expect(resolved.target).toBeUndefined();
+  });
+});
+
+describe("commandOwnershipClassifier", () => {
+  const entry = resolve("scripts/rea.mjs");
+  const classifier = (currentCommandPath: string | undefined = entry) =>
+    commandOwnershipClassifier(
+      { name: "claude_code", format: "claude_code" },
+      currentCommandPath,
+    );
+
+  it("owns a registration that launches this build", () => {
+    expect(
+      classifier()({ command: process.execPath, args: [entry, "mcp"] }),
+    ).toBe("owned");
+  });
+
+  it("reports another product's launcher as foreign", () => {
+    // Ownership is decided by comparing resolved files: a path that does not exist cannot be
+    // compared, so it is `unknown`. The runtime binary exists and is not this build's entry.
+    expect(classifier()({ command: process.execPath, args: ["mcp"] })).toBe(
+      "foreign",
+    );
+  });
+
+  it("keeps an unparseable value unknown rather than granting ownership", () => {
+    expect(classifier()({ args: ["mcp"] })).toBe("unknown");
+    expect(classifier()(undefined)).toBe("unknown");
   });
 });

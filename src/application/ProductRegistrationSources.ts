@@ -1,3 +1,6 @@
+import { parseClientRegistration } from "./ClientRegistration.js";
+import { classifyClientRegistrationCommand } from "./ClientRegistrationIdentity.js";
+import type { SetupClient } from "./SupportedClients.js";
 import type { ClientConfigurationSource } from "./ClientConfigurationFiles.js";
 import {
   dialectCanDetectDuplicate,
@@ -64,3 +67,24 @@ export const registrationContext = (
   duplicateDetectable: dialectCanDetectDuplicate,
   dialectCanRemove: dialectCanRemoveHistorical,
 });
+
+/**
+ * The production ownership classifier: the same command identity the status reader already uses,
+ * so a member cannot be `owned` here and `foreign` in `doctor`.
+ *
+ * A registration the client's own schema cannot parse stays `unknown`, never `owned`: an
+ * unreadable value must not become permission to write.
+ */
+export const commandOwnershipClassifier =
+  (
+    client: Pick<SetupClient, "name" | "format">,
+    currentCommandPath: string | undefined,
+  ) =>
+  (value: unknown): RegistrationOwnership => {
+    const parsed = parseClientRegistration(value, client as SetupClient);
+    if (!parsed.ok) return "unknown";
+    return classifyClientRegistrationCommand(
+      [parsed.value.command, ...parsed.value.args],
+      currentCommandPath,
+    );
+  };
