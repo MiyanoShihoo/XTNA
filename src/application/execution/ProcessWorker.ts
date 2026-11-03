@@ -3,9 +3,13 @@
  *
  * A worker is an explicit command, never an LLM session inferred from a role.
  * The task brief is written as JSON to stdin; the child is expected to write a
- * JSON object on stdout with optional `evidenceIds` and `summary`. Process
- * ownership and cleanup come from `spawnOwnedProviderProcess`; this module does
- * not add a second lifecycle owner.
+ * JSON object on stdout with `evidenceIds` and an optional `summary`.
+ *
+ * `evidenceIds` is required for a *completed* task: the scheduler reports a
+ * completion that cites nothing as `failed` (worker contract §5.1). A worker that
+ * legitimately observed nothing has not completed the task it was given.
+ * Process ownership and cleanup come from `spawnOwnedProviderProcess`; this
+ * module does not add a second lifecycle owner.
  */
 import { randomUUID } from "node:crypto";
 
