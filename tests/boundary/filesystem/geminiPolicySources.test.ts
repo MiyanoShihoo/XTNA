@@ -75,3 +75,24 @@ it("still reads independent system policy when the user file was absent", async 
     error: { kind: "malformed", path: systemPath },
   });
 });
+
+// H2 residual: the policy was asked about the current key even when the registration on disk is
+// stored under the historical one, so the exclusion named the member that actually exists and
+// the product still reported no block.
+it("blocks when the exclusion names the key the registration is stored under", async () => {
+  const { client, configPath } = await fixture();
+  await writeFile(
+    configPath,
+    JSON.stringify({
+      mcpServers: { rea: { command: "node", args: ["x", "mcp"] } },
+      mcp: { excluded: ["rea"] },
+    }),
+  );
+  const user = await readConfigurationFile(configPath, "json");
+  if (!user.ok) throw user.error;
+
+  expect(await readClientPolicyBlock(client, user.value)).toMatchObject({
+    ok: true,
+    value: expect.stringContaining("mcp.excluded blocks rea"),
+  });
+});

@@ -11,6 +11,7 @@ import {
   clientRegistrationEntry,
   geminiServerPolicyBlock,
   parseGeminiMcpPolicy,
+  productServerName,
   type ClientConfigurationDocument,
 } from "./ClientConfigurationDocument.js";
 import {
@@ -196,10 +197,15 @@ export const readClientPolicyBlock = async (
       return err(sourceFailure(path, cause));
     }
   }
-  const policy = geminiServerPolicyBlock(
-    policies,
-    PRODUCT_IDENTITY.mcpServerKey,
-  );
+  // §5 asks about *that member's own key*, not the current one. A Gemini policy that excludes
+  // the historical key suppresses a registration stored under it; asking about `xtna` reported
+  // that registration aligned (review H2 residual). The reverse — an allowlist naming the
+  // historical key — was a false red for the same reason.
+  const policyKey =
+    userDocument === undefined
+      ? PRODUCT_IDENTITY.mcpServerKey
+      : productServerName(userDocument);
+  const policy = geminiServerPolicyBlock(policies, policyKey);
   if (policy !== undefined)
     return ok(
       `${policy} Settings sources: ${sources.map(({ path }) => path).join(", ")}.`,
