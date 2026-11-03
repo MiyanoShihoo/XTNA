@@ -24,6 +24,17 @@ export const PRODUCT_IDENTITY = {
  */
 export const LEGACY_MCP_SERVER_KEY = "rea";
 
+/**
+ * The executable name releases before the rename installed. A registration created by one of
+ * those releases still launches `rea`, so ownership must recognise it: without this the product
+ * calls its own inherited install `unknown` and refuses to remove it, which is how an uninstall
+ * can leave a registration behind while reporting that it was retained.
+ *
+ * Alignment is decided separately by the launcher check, so recognising the name here cannot make
+ * an inherited install look healthy.
+ */
+export const LEGACY_CLI_BINARY = "rea";
+
 /** Exact SDK package identities, distinct from negotiated protocol version. */
 export const SDK_IDENTITY = {
   server: PACKAGE_METADATA.serverSdkVersion,

@@ -8,7 +8,7 @@ import {
   type JavaScriptRuntime,
 } from "../domain/runtimeVersion.js";
 import { absoluteCallerPath } from "../filesystem/callerPath.js";
-import { PRODUCT_IDENTITY } from "../identity.js";
+import { LEGACY_CLI_BINARY, PRODUCT_IDENTITY } from "../identity.js";
 
 /** Package runners whose pinned launcher setup can register. */
 export type PackageRunner = "npx" | "bunx";
@@ -316,7 +316,12 @@ const inspectDirectRegistrationCommand = (
   }
   if (command.length === 2 && command[1] === "mcp") {
     const executable = command[0] ?? "";
-    if (executable === PRODUCT_IDENTITY.cliBinary)
+    // The historical binary is ours too: a registration an earlier release installed still names
+    // it, and refusing to recognise it leaves the product unable to remove its own member.
+    if (
+      executable === PRODUCT_IDENTITY.cliBinary ||
+      executable === LEGACY_CLI_BINARY
+    )
       return {
         identity: "owned",
         launch: "direct",
