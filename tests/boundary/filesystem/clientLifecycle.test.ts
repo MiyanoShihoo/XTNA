@@ -127,7 +127,7 @@ describe("client configuration filesystem lifecycle", () => {
     await mkdir(dirname(configPath), { recursive: true });
     await writeFile(
       configPath,
-      `[mcp_servers.rea]\ncommand = "rea"\nargs = ["mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = 450\n\n[mcp_servers.rea.env]\nJAVA_HOME = "/opt/jdk-21"\nHOPPER_LAUNCHER_PATH = "/Hopper Path"\nGHIDRA_INSTALL_DIR = "/opt/ghidra"\n`,
+      `[mcp_servers.xtna]\ncommand = "rea"\nargs = ["mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = 450\n\n[mcp_servers.xtna.env]\nJAVA_HOME = "/opt/jdk-21"\nHOPPER_LAUNCHER_PATH = "/Hopper Path"\nGHIDRA_INSTALL_DIR = "/opt/ghidra"\n`,
     );
 
     const original = await readFile(configPath, "utf8");

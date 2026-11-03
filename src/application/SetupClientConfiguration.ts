@@ -91,6 +91,60 @@ export class ClientConfigurationCleanupRollbackFailure extends RegularFileCleanu
   }
 }
 
+/**
+ * §3 rows 6–12, decided before anything is written.
+ *
+ * Two facts stop a setup write: a member this product does not own (writing beside it manufactures
+ * the duplicate row 10 forbids, and overwriting it takes over someone else's registration), and an
+ * owned historical member in a dialect that cannot remove it without dropping the user's comments.
+ *
+ * It runs before `registrationCurrent` asks whether a write is needed: rows 10 and 11 are BLOCK
+ * even when the current member already matches, which is exactly the state that looks "unchanged".
+ */
+const configurationWriteRefusal = (
+  parsed: ClientConfigurationDocument,
+  client: SetupClient,
+):
+  | {
+      readonly status: "failed";
+      readonly reason: "registration_ownership";
+      readonly detail: string;
+    }
+  | undefined => {
+  const ownershipOf = (key: string) =>
+    Object.hasOwn(parsed.servers, key)
+      ? clientRegistrationOwnership(parsed.servers[key], client)
+      : "absent";
+  const currentOwnership = ownershipOf(PRODUCT_IDENTITY.mcpServerKey);
+  const legacyOwnership = ownershipOf(LEGACY_MCP_SERVER_KEY);
+  // §1 D: the Harness owns its registration by stable Cordis entry id, and the projected
+  // `servers.rea` value is a view of that entry — a malformed launcher inside it says nothing
+  // about who owns the entry. `registrationOwnershipBlocker` exempts dsh for the same reason.
+  const members =
+    parsed.dialect === "dsh"
+      ? []
+      : ([
+          [PRODUCT_IDENTITY.mcpServerKey, currentOwnership],
+          [LEGACY_MCP_SERVER_KEY, legacyOwnership],
+        ] as const);
+  const blocked = members.find(
+    ([, ownership]) => ownership !== "absent" && ownership !== "owned",
+  );
+  if (blocked !== undefined)
+    return {
+      status: "failed",
+      reason: "registration_ownership",
+      detail: `The "${String(blocked[0])}" registration is ${String(blocked[1]) === "unknown" ? "not readable as this product's own" : "owned by another product"}; it was left untouched. Remove or rename it by hand, then rerun rea setup.`,
+    };
+  if (legacyOwnership === "owned" && !dialectCanRemoveHistorical(parsed))
+    return {
+      status: "failed",
+      reason: "registration_ownership",
+      detail: `The "${LEGACY_MCP_SERVER_KEY}" registration can only be replaced by rewriting this ${client.format} file, which drops the comments you wrote. Nothing was changed. Remove that entry by hand, then rerun rea setup.`,
+    };
+  return undefined;
+};
+
 /** Configure one supported client's native stdio MCP registration shape. */
 export const configureClientConfiguration = async (
   client: SetupClient,
@@ -235,10 +289,18 @@ const configureClientDocument = async (
     files.value,
     resolveProviderRequestBudget,
   );
+  // A state the contract blocks must be reported even when no write is apparently needed: row 10
+  // and row 11 both look `unchanged` from the current member alone.
+  const refusal = configurationWriteRefusal(parsed, client);
+  if (refusal !== undefined) return refusal;
   // §3 row 6: a registration that only exists under the historical key is not "current", even
   // when the client would load it with the desired launcher. Reporting `unchanged` there leaves
   // the inherited member in place and the identity mismatch never resolves.
+  // §1 D: the Harness stores its registration as `servers.rea` because that is what the Cordis
+  // entry projects to, so `rea` there is the *current* identity, not an inherited one. Treating it
+  // as inherited made every second Harness setup report `configured` instead of `unchanged`.
   const inheritsHistoricalMember =
+    parsed.dialect !== "dsh" &&
     Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY) &&
     clientRegistrationOwnership(
       parsed.servers[LEGACY_MCP_SERVER_KEY],
@@ -307,42 +369,16 @@ const persistClientConfiguration = async ({
     parsed,
     PRODUCT_IDENTITY.mcpServerKey,
   );
-  // §3 rows 11 and 12: a member this product does not own is neither overwritten nor duplicated.
-  // Writing the current key beside a foreign historical one creates the state row 10 forbids and
-  // this product could not undo; overwriting a foreign current member would take over someone
-  // else's registration. Row 8 covers the same shape when the value cannot be parsed at all.
-  const ownershipOf = (
-    key: string,
-  ): ReturnType<typeof clientRegistrationOwnership> | "absent" =>
-    Object.hasOwn(parsed.servers, key)
-      ? clientRegistrationOwnership(parsed.servers[key], client)
-      : "absent";
-  const currentOwnership = ownershipOf(PRODUCT_IDENTITY.mcpServerKey);
-  const legacyOwnership = ownershipOf(LEGACY_MCP_SERVER_KEY);
-  const blocked = [
-    [PRODUCT_IDENTITY.mcpServerKey, currentOwnership],
-    [LEGACY_MCP_SERVER_KEY, legacyOwnership],
-  ].find(([, ownership]) => ownership !== "absent" && ownership !== "owned");
-  if (blocked !== undefined)
-    return {
-      status: "failed",
-      reason: "registration_ownership",
-      detail: `The "${String(blocked[0])}" registration is ${String(blocked[1]) === "unknown" ? "not readable as this product's own" : "owned by another product"}; it was left untouched. Remove or rename it by hand, then rerun rea setup.`,
-    };
-  // §3 rows 6 and 10: the write that creates the current member retires an owned historical one.
-  // A dialect whose removal rewrites the whole document and drops the user's comments keeps both
-  // entries — §4 refuses that trade, so migration is not attempted there.
-  const legacyOwned = legacyOwnership === "owned";
-  // §4 with §3 row 6: this dialect cannot remove the historical member without rewriting the whole
-  // document and dropping the user's comments. Writing the current key beside it would create the
-  // duplicate row 10 forbids — and this product could never remove the historical one to undo it —
-  // so setup refuses and says what to do instead.
-  if (legacyOwned && !dialectCanRemoveHistorical(parsed))
-    return {
-      status: "failed",
-      reason: "registration_ownership",
-      detail: `The "${LEGACY_MCP_SERVER_KEY}" registration can only be replaced by rewriting this ${client.format} file, which drops the comments you wrote. Nothing was changed. Remove that entry by hand, then rerun rea setup.`,
-    };
+  // §3 rows 6–12 are decided before the write, and before the question of whether one is needed:
+  // rows 10 and 11 are BLOCK even when the current member already matches.
+  const refusal = configurationWriteRefusal(parsed, client);
+  if (refusal !== undefined) return refusal;
+  const legacyOwned =
+    Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY) &&
+    clientRegistrationOwnership(
+      parsed.servers[LEGACY_MCP_SERVER_KEY],
+      client,
+    ) === "owned";
   const retireLegacy = legacyOwned;
   const inherited = { ...fallbackServers, ...parsed.servers };
   if (retireLegacy) delete inherited[LEGACY_MCP_SERVER_KEY];
