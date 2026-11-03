@@ -5,7 +5,15 @@ import {
   isolationAtLeast,
   probeSandboxCapability,
   type SandboxCapability,
+  type SandboxCommandPreview,
 } from "./SandboxCapability.js";
+
+/** Stands in for a preview the host built; nothing on the tool wire can produce this shape. */
+const preview = (): SandboxCommandPreview => ({
+  command: ["true"],
+  image: "alpine:3",
+  createdAt: "2026-10-31T00:00:00.000Z",
+});
 
 const capability = (
   best: SandboxCapability["best"],
@@ -71,26 +79,26 @@ describe("command admission", () => {
     const verdict = admitCommand({
       tier: "L2",
       capability: capability("none"),
-      diffPreview: true,
+      preview: preview(),
     });
     expect(verdict.allowed).toBe(false);
     expect(verdict.reason).toContain("no container or VM backend");
   });
 
-  it("refuses L2 without a diff preview", () => {
+  it("refuses L2 without a preview this process produced", () => {
     const verdict = admitCommand({
       tier: "L2",
       capability: capability("container"),
     });
     expect(verdict.allowed).toBe(false);
-    expect(verdict.reason).toContain("diff preview");
+    expect(verdict.reason).toContain("preview");
   });
 
-  it("admits L2 with a diff preview and a container backend", () => {
+  it("admits L2 with a host preview and a container backend", () => {
     const verdict = admitCommand({
       tier: "L2",
       capability: capability("container"),
-      diffPreview: true,
+      preview: preview(),
     });
     expect(verdict).toEqual({
       allowed: true,

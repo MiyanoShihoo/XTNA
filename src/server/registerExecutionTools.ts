@@ -94,7 +94,9 @@ export const registerExecutionTools = (server: EvidenceMcpServer): void => {
         image: parsed.data.image,
         command: parsed.data.command,
         arguments: parsed.data.arguments,
-        diffPreview: parsed.data.diff_preview,
+        // `diff_preview` is deliberately not forwarded. The L2 gate needs a preview this process
+        // produced for the operator; a flag the model sets on itself is not one. The field stays
+        // on the wire schema for compatibility and has no effect on admission.
         ...(parsed.data.approval_token === undefined
           ? {}
           : { approvalToken: parsed.data.approval_token }),

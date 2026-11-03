@@ -13,6 +13,7 @@ import {
   admitCommand,
   type CommandTier,
   type SandboxCapability,
+  type SandboxCommandPreview,
 } from "./SandboxCapability.js";
 
 export interface SandboxExecutionRequest {
@@ -21,7 +22,8 @@ export interface SandboxExecutionRequest {
   readonly command: string;
   readonly arguments?: readonly string[];
   readonly cwd?: string;
-  readonly diffPreview?: boolean;
+  /** Produced by this process for the operator; never forwarded from a tool payload. */
+  readonly preview?: SandboxCommandPreview;
   readonly approvalToken?: string;
   readonly timeoutMs?: number;
 }
@@ -121,9 +123,7 @@ export async function executeSandboxCommand(
   const admission = admitCommand({
     tier: request.tier,
     capability,
-    ...(request.diffPreview === undefined
-      ? {}
-      : { diffPreview: request.diffPreview }),
+    ...(request.preview === undefined ? {} : { preview: request.preview }),
     ...(request.approvalToken === undefined
       ? {}
       : { approvalToken: request.approvalToken }),

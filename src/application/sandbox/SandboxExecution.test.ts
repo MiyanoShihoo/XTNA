@@ -31,7 +31,13 @@ const request: SandboxExecutionRequest = {
   image: "alpine:3.20",
   command: "sh",
   arguments: ["-c", "echo ok"],
-  diffPreview: true,
+  // A preview the host produced. No tool schema maps to this field, so a caller cannot supply
+  // one from a model payload.
+  preview: {
+    command: ["sh", "-c", "echo ok"],
+    image: "alpine:3.20",
+    createdAt: "2026-10-31T00:00:00.000Z",
+  },
 };
 
 describe("sandbox execution", () => {
@@ -61,14 +67,15 @@ describe("sandbox execution", () => {
     expect(called).toBe(false);
   });
 
-  it("refuses L2 without a diff preview", async () => {
+  it("refuses L2 without a preview the host produced", async () => {
+    const { preview: _omitted, ...withoutPreview } = request;
     const result = await executeSandboxCommand(
       capability([dockerBackend]),
-      { ...request, diffPreview: false },
+      withoutPreview,
       async () => ({ exitCode: 0, stdout: "", stderr: "" }),
     );
     expect(result.allowed).toBe(false);
-    expect(result.reason).toContain("diff preview");
+    expect(result.reason).toContain("preview");
   });
 
   it("executes through an injected container runner", async () => {

@@ -35,11 +35,24 @@ export interface SandboxCapability {
 
 export type CommandTier = "L1" | "L2" | "L3";
 
+/**
+ * A preview the host produced for the operator before execution.
+ *
+ * Not a boolean: `sandbox_exec` used to forward `diff_preview` straight from the model payload,
+ * so the L2 gate was a flag the model set on itself. A value of this type can only come from the
+ * process that built the invocation, and no tool schema maps to it.
+ */
+export interface SandboxCommandPreview {
+  readonly command: readonly string[];
+  readonly image: string;
+  readonly createdAt: string;
+}
+
 export interface AdmissionRequest {
   readonly tier: CommandTier;
   readonly capability: SandboxCapability;
-  /** L2 requires a diff preview; L3 requires approval this process can verify. */
-  readonly diffPreview?: boolean;
+  /** L2 requires a host-produced preview; L3 requires approval this process can verify. */
+  readonly preview?: SandboxCommandPreview;
   readonly approvalToken?: string;
   /**
    * Verifies that `approvalToken` was issued by an operator for this run.
@@ -205,10 +218,11 @@ export const admitCommand = (request: AdmissionRequest): Admission => {
       isolation: capability.best,
     };
   if (tier === "L2") {
-    if (request.diffPreview !== true)
+    if (request.preview === undefined)
       return {
         allowed: false,
-        reason: "L2 needs a diff preview before execution",
+        reason:
+          "L2 needs a preview this process produced for the operator; a preview flag from the caller is not one",
         isolation: capability.best,
       };
     return {
