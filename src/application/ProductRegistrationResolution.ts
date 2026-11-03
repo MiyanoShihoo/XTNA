@@ -1,3 +1,4 @@
+import { dshDocument } from "./DshCordisPatch.js";
 import { LEGACY_MCP_SERVER_KEY, PRODUCT_IDENTITY } from "../identity.js";
 import type { ClientConfigurationDocument } from "./ClientConfigurationDocument.js";
 
@@ -154,13 +155,17 @@ const buildConflicts = (
 ): RegistrationConflict[] => {
   const conflicts: RegistrationConflict[] = [];
   const distinctKeys = new Set(members.map((member) => member.key));
-  if (duplicate)
+  if (duplicate) {
+    const productKeys = [
+      PRODUCT_IDENTITY.mcpServerKey,
+      LEGACY_MCP_SERVER_KEY,
+    ].filter((key) => distinctKeys.has(key));
+    // A Harness duplicate names its entry id, not a server key.
     conflicts.push({
       kind: "duplicate",
-      keys: [PRODUCT_IDENTITY.mcpServerKey, LEGACY_MCP_SERVER_KEY].filter(
-        (key) => distinctKeys.has(key),
-      ),
+      keys: productKeys.length > 0 ? productKeys : [...distinctKeys],
     });
+  }
   if (primary?.identity === "legacy")
     conflicts.push({ kind: "legacy_identity", keys: [primary.key] });
   // Row 9: a member outside the document tier is reported as `lower_layer`. The tier it was
@@ -195,6 +200,17 @@ interface RegistrationRecord {
 }
 
 /**
+ * §1 D: the Harness member's identity is its Cordis entry id, not the projected server name.
+ * The projection stores the registration as `servers.rea`, so reading the key back would report
+ * a current registration as historical and lose the entry id entirely.
+ */
+const memberKey = (
+  document: ClientConfigurationDocument,
+  key: string,
+): string =>
+  document.dialect === "dsh" ? dshDocument(document.document).entryId : key;
+
+/**
  * Each member keeps the source it came from. Re-deriving the source from an optional
  * `sourcePath` let a document without one fall back to `sources[0]`, so the §4 dialect gate
  * judged the wrong dialect and offered a TOML member for removal (review H1).
@@ -209,7 +225,7 @@ const collectRecords = (
       for (const entry of entriesOf(source.document, key))
         records.push({
           member: {
-            key,
+            key: memberKey(source.document, key),
             identity: identityFor(source.document, key),
             tier: source.tier,
             writable: source.writable,
@@ -252,13 +268,21 @@ export const resolveProductRegistration = (
       source.tier === "document" &&
       context.duplicateDetectable(source.document),
   );
+  // §1 D: the Harness expresses exactly one duplicate form — a patch list that repeats its own
+  // entry id. The projection stores a single member, so no key comparison can see it.
+  const dshRepeats = sources.some(
+    (source) =>
+      source.document.dialect === "dsh" &&
+      dshDocument(source.document.document).entryCount > 1,
+  );
   // Two different keys are a duplicate: across tiers (row 13) or repeated inside one document.
   // A cross-tier pair is two files, so the dialect's ability to express a *repeated* entry says
   // nothing about it and must not suppress the verdict (review C1).
   const duplicate =
-    distinctKeys.size > 1 &&
-    (tiers.size > 1 ||
-      (detectable && [...perDocument.values()].some((count) => count > 1)));
+    dshRepeats ||
+    (distinctKeys.size > 1 &&
+      (tiers.size > 1 ||
+        (detectable && [...perDocument.values()].some((count) => count > 1))));
 
   const primary =
     documents.find((member) => member.identity === "current") ??

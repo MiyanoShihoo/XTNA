@@ -170,6 +170,26 @@ export class DshCordisDocument {
   get carriesEntry(): boolean {
     return this.#operations.some((op) => op.direct || op.ownedRows.length > 0);
   }
+  /**
+   * The Cordis entry id this product registers under.
+   *
+   * §1 D of the identity contract: the Harness member's *identity* is this entry id, while the
+   * projected server name stays `rea`. Reading the projection (`servers.rea`) and calling it the
+   * key loses the only fact that distinguishes one Harness registration from another.
+   */
+  get entryId(): string {
+    return DSH_ENTRY_ID;
+  }
+  /**
+   * How many rows carry this product's entry id.
+   *
+   * §1 D allows exactly one duplicate form in the Harness: a patch list that repeats the entry
+   * id. Nothing else in the dialect can express two registrations, so this count *is* the
+   * duplicate signal.
+   */
+  get entryCount(): number {
+    return this.#insertions;
+  }
   get hasUnknownStructure(): boolean {
     return this.#unknownStructure;
   }

@@ -495,3 +495,74 @@ describe("review round 2", () => {
     expect(document.servers[CURRENT]).toMatchObject({ command: "node" });
   });
 });
+
+/**
+ * §1 D, Harness row: the member's identity is the Cordis **entry id** while the projected server
+ * name stays `rea`, and the only duplicate form the dialect can express is a repeated entry id.
+ * Reading the projection back reported a current registration as historical and could not see a
+ * repeat at all.
+ */
+describe("harness entry identity", () => {
+  const dsh = (insert: readonly unknown[]) =>
+    parseClientConfiguration(JSON.stringify([{ insert }]), "dsh");
+
+  it("keys the member by its entry id, not the projected server name", () => {
+    const result = resolveProductRegistration(
+      [
+        source(
+          dsh([{ id: "rea-mcp", config: { serverName: "rea" } }]),
+          "document",
+          true,
+          "/cordis.patch.yml",
+        ),
+      ],
+      context("owned"),
+    );
+    expect(result.members).toHaveLength(1);
+    expect(result.members[0]).toMatchObject({
+      key: "rea-mcp",
+      identity: "current",
+    });
+    // `serverName` stays `rea`; the entry id is the identity, not a rename request.
+    expect(result.conflicts.some((c) => c.kind === "legacy_identity")).toBe(
+      false,
+    );
+  });
+
+  it("reports a repeated entry id as the duplicate that dialect allows", () => {
+    const result = resolveProductRegistration(
+      [
+        source(
+          dsh([
+            { id: "rea-mcp", config: { serverName: "rea" } },
+            { id: "rea-mcp", config: { serverName: "rea" } },
+          ]),
+          "document",
+          true,
+          "/cordis.patch.yml",
+        ),
+      ],
+      context("owned"),
+    );
+    expect(result.duplicate).toBe(true);
+    expect(result.conflicts).toContainEqual({
+      kind: "duplicate",
+      keys: ["rea-mcp"],
+    });
+  });
+
+  it("stays clean for a single entry", () => {
+    const result = resolveProductRegistration(
+      [
+        source(
+          dsh([{ id: "rea-mcp", config: { serverName: "rea" } }]),
+          "document",
+          true,
+          "/cordis.patch.yml",
+        ),
+      ],
+      context("owned"),
+    );
+    expect(result.duplicate).toBe(false);
+  });
+});
