@@ -58,25 +58,35 @@ describe("setup migrates an inherited registration", () => {
     ]);
   });
 
-  it("keeps both keys in TOML, where removal costs every comment", async () => {
+  // §4 with §3 row 6: the dialect cannot remove the historical member without rewriting the file
+  // and dropping the caller's comments, so setup refuses rather than creating a duplicate it could
+  // never remove.
+  it("refuses to migrate a TOML registration instead of writing a second key", async () => {
     const root = await createTestTempDirectory("rea-setup-migration-toml-");
     const configPath = join(root, "config.toml");
     const client = { name: "codex", format: "toml", configPath } as const;
-    await writeFile(
-      configPath,
-      `# caller note\n[mcp_servers.${LEGACY_MCP_SERVER_KEY}]\ncommand = "rea"\nargs = ["mcp"]\n`,
-    );
+    const original = `# caller note\n[mcp_servers.${LEGACY_MCP_SERVER_KEY}]\ncommand = "rea"\nargs = ["mcp"]\n`;
+    await writeFile(configPath, original);
 
-    expect(
-      await configureClientConfiguration(client, {}, ["rea", "mcp"]),
-    ).toMatchObject({
-      status: "configured",
+    const result = await configureClientConfiguration(client, {}, [
+      "rea",
+      "mcp",
+    ]);
+    expect(result).toMatchObject({
+      status: "failed",
+      reason: "registration_ownership",
     });
+    if (
+      result.status === "failed" &&
+      result.reason === "registration_ownership"
+    )
+      expect(result.detail).toContain("Remove that entry by hand");
 
+    // Nothing was written: no second key, and the caller's comment survives untouched.
     const written = await readFile(configPath, "utf8");
-    // §4: the historical member stays, because removing it would drop "# caller note".
-    expect(written).toContain("caller note");
-    expect(written).toContain(`[mcp_servers.${LEGACY_MCP_SERVER_KEY}]`);
-    expect(written).toContain(`[mcp_servers.${PRODUCT_IDENTITY.mcpServerKey}]`);
+    expect(written).toBe(original);
+    expect(written).not.toContain(
+      `[mcp_servers.${PRODUCT_IDENTITY.mcpServerKey}]`,
+    );
   });
 });

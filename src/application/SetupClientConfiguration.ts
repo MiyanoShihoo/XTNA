@@ -307,16 +307,43 @@ const persistClientConfiguration = async ({
     parsed,
     PRODUCT_IDENTITY.mcpServerKey,
   );
+  // §3 rows 11 and 12: a member this product does not own is neither overwritten nor duplicated.
+  // Writing the current key beside a foreign historical one creates the state row 10 forbids and
+  // this product could not undo; overwriting a foreign current member would take over someone
+  // else's registration. Row 8 covers the same shape when the value cannot be parsed at all.
+  const ownershipOf = (
+    key: string,
+  ): ReturnType<typeof clientRegistrationOwnership> | "absent" =>
+    Object.hasOwn(parsed.servers, key)
+      ? clientRegistrationOwnership(parsed.servers[key], client)
+      : "absent";
+  const currentOwnership = ownershipOf(PRODUCT_IDENTITY.mcpServerKey);
+  const legacyOwnership = ownershipOf(LEGACY_MCP_SERVER_KEY);
+  const blocked = [
+    [PRODUCT_IDENTITY.mcpServerKey, currentOwnership],
+    [LEGACY_MCP_SERVER_KEY, legacyOwnership],
+  ].find(([, ownership]) => ownership !== "absent" && ownership !== "owned");
+  if (blocked !== undefined)
+    return {
+      status: "failed",
+      reason: "registration_ownership",
+      detail: `The "${String(blocked[0])}" registration is ${String(blocked[1]) === "unknown" ? "not readable as this product's own" : "owned by another product"}; it was left untouched. Remove or rename it by hand, then rerun rea setup.`,
+    };
   // §3 rows 6 and 10: the write that creates the current member retires an owned historical one.
   // A dialect whose removal rewrites the whole document and drops the user's comments keeps both
   // entries — §4 refuses that trade, so migration is not attempted there.
-  const legacyOwned =
-    Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY) &&
-    clientRegistrationOwnership(
-      parsed.servers[LEGACY_MCP_SERVER_KEY],
-      client,
-    ) === "owned";
-  const retireLegacy = legacyOwned && dialectCanRemoveHistorical(parsed);
+  const legacyOwned = legacyOwnership === "owned";
+  // §4 with §3 row 6: this dialect cannot remove the historical member without rewriting the whole
+  // document and dropping the user's comments. Writing the current key beside it would create the
+  // duplicate row 10 forbids — and this product could never remove the historical one to undo it —
+  // so setup refuses and says what to do instead.
+  if (legacyOwned && !dialectCanRemoveHistorical(parsed))
+    return {
+      status: "failed",
+      reason: "registration_ownership",
+      detail: `The "${LEGACY_MCP_SERVER_KEY}" registration can only be replaced by rewriting this ${client.format} file, which drops the comments you wrote. Nothing was changed. Remove that entry by hand, then rerun rea setup.`,
+    };
+  const retireLegacy = legacyOwned;
   const inherited = { ...fallbackServers, ...parsed.servers };
   if (retireLegacy) delete inherited[LEGACY_MCP_SERVER_KEY];
   const registered = withClientServers(

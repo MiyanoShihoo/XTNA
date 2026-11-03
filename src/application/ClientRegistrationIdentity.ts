@@ -8,7 +8,11 @@ import {
   type JavaScriptRuntime,
 } from "../domain/runtimeVersion.js";
 import { absoluteCallerPath } from "../filesystem/callerPath.js";
-import { LEGACY_CLI_BINARY, PRODUCT_IDENTITY } from "../identity.js";
+import {
+  LEGACY_CLI_BINARY,
+  LEGACY_PACKAGE_NAME,
+  PRODUCT_IDENTITY,
+} from "../identity.js";
 
 /** Package runners whose pinned launcher setup can register. */
 export type PackageRunner = "npx" | "bunx";
@@ -245,22 +249,35 @@ export const inspectClientRegistrationCommand = (
   const reference = clientRegistrationPackageReference(command);
   if (reference !== undefined) {
     const prefix = `${PRODUCT_IDENTITY.packageName}@`;
+    const legacyPrefix = `${LEGACY_PACKAGE_NAME}@`;
     const version = reference.startsWith(prefix)
       ? reference.slice(prefix.length)
       : undefined;
+    const legacyVersion = reference.startsWith(legacyPrefix)
+      ? reference.slice(legacyPrefix.length)
+      : undefined;
     const normalized = version === undefined ? null : valid(version);
+    const normalizedLegacy =
+      legacyVersion === undefined ? null : valid(legacyVersion);
     const owned =
       reference === PRODUCT_IDENTITY.packageName ||
       reference === PRODUCT_IDENTITY.packageSpecifier ||
       reference === PRODUCT_IDENTITY.registrationPackageSpecifier ||
-      normalized !== null;
+      reference === LEGACY_PACKAGE_NAME ||
+      normalized !== null ||
+      normalizedLegacy !== null;
     return {
       identity: owned ? "owned" : "foreign",
       launch: "package_runner",
       entrypoint: undefined,
       package: {
         reference,
-        exactVersion: normalized === version ? version : undefined,
+        exactVersion:
+          normalized === version
+            ? version
+            : normalizedLegacy === legacyVersion
+              ? legacyVersion
+              : undefined,
       },
     };
   }

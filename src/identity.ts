@@ -35,6 +35,14 @@ export const LEGACY_MCP_SERVER_KEY = "rea";
  */
 export const LEGACY_CLI_BINARY = "rea";
 
+/**
+ * The npm package name releases before the rename published. A registration created by one of
+ * those releases pins `rea-agents@<version>`, so ownership must recognise the package the same way
+ * it recognises the executable — otherwise the product calls its own inherited install foreign and
+ * refuses to migrate or remove it.
+ */
+export const LEGACY_PACKAGE_NAME = "rea-agents";
+
 /** Exact SDK package identities, distinct from negotiated protocol version. */
 export const SDK_IDENTITY = {
   server: PACKAGE_METADATA.serverSdkVersion,
