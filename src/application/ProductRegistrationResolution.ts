@@ -2,7 +2,9 @@ import { LEGACY_MCP_SERVER_KEY, PRODUCT_IDENTITY } from "../identity.js";
 import type { ClientConfigurationDocument } from "./ClientConfigurationDocument.js";
 
 /**
- * Contract: `docs/agent-orchestrator/P1-IDENTITY-CONTRACT.md` revision 6, batch 1.
+ * Contract: `docs/agent-orchestrator/P1-IDENTITY-CONTRACT.md` revision 5, batch 1, after the
+ * first independent review round. The review changed the implementation only; the contract text
+ * did not move, so this file cites revision 5 (§6 addendum records the one shape deviation).
  *
  * Answers *what exists and who owns it*. It performs no write, removes nothing and clears no
  * policy entry; every action stays with a later batch. Ownership is supplied by the caller so

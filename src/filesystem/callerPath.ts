@@ -25,6 +25,16 @@ export const appendCallerPath = (
  * lexically, so normalizing there is exact. Absolute POSIX paths never need
  * the ambient cwd, which may already have been removed during cleanup.
  */
+/** Strip interior `.` segments and repeated separators from an absolute POSIX path. */
+const normalizePosixPath = (path: string): string => {
+  if (!posix.isAbsolute(path)) return path;
+  const segments = path
+    .split("/")
+    .filter((segment) => segment !== "" && segment !== ".");
+  const directory = /\/\.?$/u.test(path) && segments.length > 0;
+  return `/${segments.join("/")}${directory ? "/" : ""}`;
+};
+
 export const absoluteCallerPath = (
   path: string,
   {
@@ -34,15 +44,14 @@ export const absoluteCallerPath = (
 ): string => {
   if (platform === "win32") return win32.resolve(cwd ?? process.cwd(), path);
   if (!posix.isAbsolute(path)) {
-    const selectedCwd = cwd ?? process.cwd();
-    const base = posix.isAbsolute(selectedCwd)
-      ? selectedCwd
-      : absoluteCallerPath(selectedCwd, { platform });
-    return absoluteCallerPath(`${base}/${path}`, { platform });
+    // One hop, never a recursive lookup: the ambient cwd *is* the fallback, so a relative `cwd`
+    // is resolved against it directly. Recursing could not terminate on a host whose own cwd is
+    // not POSIX-shaped (a POSIX simulation on Windows), and it stack-overflowed doing so.
+    const base = cwd ?? process.cwd();
+    const absoluteBase = posix.isAbsolute(base)
+      ? base
+      : `${process.cwd()}/${base}`;
+    return normalizePosixPath(`${absoluteBase}/${path}`);
   }
-  const segments = path
-    .split("/")
-    .filter((segment) => segment !== "" && segment !== ".");
-  const directory = /\/\.?$/u.test(path) && segments.length > 0;
-  return `/${segments.join("/")}${directory ? "/" : ""}`;
+  return normalizePosixPath(path);
 };
