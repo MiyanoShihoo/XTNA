@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { readClientRegistrationStatuses } from "../../../src/application/ClientRegistrationStatus.js";
 import { setupRegistrationCommand } from "../../../src/application/SetupHost.js";
+import { PRODUCT_IDENTITY } from "../../../src/identity.js";
 import { configureClientConfiguration } from "../../../src/application/SetupClientConfiguration.js";
 import {
   clientSkillDirectories,
@@ -374,7 +375,9 @@ describe("Kimi Code package launchers", () => {
         (await configureClientConfiguration(client, {}, launcher)).status,
       ).toBe("configured");
       expect(
-        JSON.parse(await readFile(client.configPath, "utf8")).mcpServers.rea,
+        JSON.parse(await readFile(client.configPath, "utf8")).mcpServers[
+          PRODUCT_IDENTITY.mcpServerKey
+        ],
       ).toEqual(expectedRegistration(launcher));
       expect(
         (
