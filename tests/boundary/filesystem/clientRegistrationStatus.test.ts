@@ -609,6 +609,34 @@ describe("Node-wrapped registration policy", () => {
     ]);
   });
 
+  // H2 minimal reproduction: the policy helpers above are asked about the current key only, so a
+  // registration stored under the historical key is called healthy while its own disable-list
+  // entry says the client will not load it. The case above cannot catch this — its launcher is
+  // stale for an unrelated reason, which is why it passed before the defect was found.
+  it("reports Grok Build stale when its own historical key is in disabled_mcp_servers", async () => {
+    const home = await createTestTempDirectory("rea-grok-legacy-disabled-");
+    await mkdir(join(home, ".grok"));
+    const entry = resolve("scripts/rea.mjs");
+    const registration = `[mcp_servers.rea]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 30\n`;
+    // Control: this exact registration without a list entry is aligned.
+    await writeFile(join(home, ".grok/config.toml"), registration);
+    expect(
+      await readClientRegistrationStatuses(home, entry, { environment: {} }),
+    ).toEqual([
+      expect.objectContaining({ client: "grok_build", state: "aligned" }),
+    ]);
+    // Same registration, plus a list entry naming the key it is actually stored under.
+    await writeFile(
+      join(home, ".grok/config.toml"),
+      `disabled_mcp_servers = ["rea"]\n${registration}`,
+    );
+    expect(
+      await readClientRegistrationStatuses(home, entry, { environment: {} }),
+    ).toEqual([
+      expect.objectContaining({ client: "grok_build", state: "stale" }),
+    ]);
+  });
+
   it("checks a direct-launcher Codex startup timeout without Node wrapping", async () => {
     const home = await createTestTempDirectory("rea-direct-registration-");
     await mkdir(join(home, ".codex"));

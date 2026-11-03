@@ -5,6 +5,7 @@ import {
   clientServerForcedEnabled,
   clientServerListedDisabled,
   effectiveProductServer,
+  productServerName,
   type ClientConfigurationDocument,
 } from "./ClientConfigurationDocument.js";
 import { lstat, stat } from "node:fs/promises";
@@ -415,17 +416,22 @@ const registrationActivation = (
   registration: ClientRegistration,
   client: SetupClient,
   parsed: ClientConfigurationDocument,
-): "enabled" | "disabled" =>
-  (client.format !== "grok" &&
+): "enabled" | "disabled" => {
+  // Policy lists name the key the registration is actually stored under (§5: "that member's own
+  // key"). Asking only for the current key reports a legacy-stored member as enabled while its
+  // own deny-list entry suppresses it — the H2 false-health report.
+  const serverKey = productServerName(parsed);
+  return (client.format !== "grok" &&
     !ignoresDisabledKey.has(client.name) &&
     registration.disabled === true) ||
-  (registration.enabled === false &&
-    !ignoresEnabledKey.has(client.name) &&
-    !clientServerForcedEnabled(parsed, PRODUCT_IDENTITY.mcpServerKey)) ||
-  sharedEnableFlagBinds(registration, client, parsed) ||
-  clientServerListedDisabled(parsed, PRODUCT_IDENTITY.mcpServerKey)
+    (registration.enabled === false &&
+      !ignoresEnabledKey.has(client.name) &&
+      !clientServerForcedEnabled(parsed, serverKey)) ||
+    sharedEnableFlagBinds(registration, client, parsed) ||
+    clientServerListedDisabled(parsed, serverKey)
     ? "disabled"
     : "enabled";
+};
 
 const registrationAligned = ({
   registration,
