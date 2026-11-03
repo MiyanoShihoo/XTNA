@@ -99,17 +99,34 @@ describe("command admission", () => {
     });
   });
 
-  it("requires an approval token for L3", () => {
-    const refused = admitCommand({
+  it("requires an operator approval for L3, not a token the caller can invent", () => {
+    const missing = admitCommand({ tier: "L3", capability: capability("vm") });
+    expect(missing.allowed).toBe(false);
+    expect(missing.reason).toContain("approval");
+
+    // The regression this pins: a self-issued token used to be admitted on length alone.
+    const invented = admitCommand({
       tier: "L3",
       capability: capability("vm"),
+      approvalToken: "approve-me",
     });
-    expect(refused.allowed).toBe(false);
-    expect(refused.reason).toContain("approval token");
+    expect(invented.allowed).toBe(false);
+    expect(invented.reason).toContain("no approval channel");
+
+    const rejected = admitCommand({
+      tier: "L3",
+      capability: capability("vm"),
+      approvalToken: "approve-me",
+      verifyApproval: () => false,
+    });
+    expect(rejected.allowed).toBe(false);
+    expect(rejected.reason).toContain("not issued by an operator");
+
     const admitted = admitCommand({
       tier: "L3",
       capability: capability("vm"),
       approvalToken: "approve-me",
+      verifyApproval: (token) => token === "approve-me",
     });
     expect(admitted.allowed).toBe(true);
     expect(admitted.isolation).toBe("vm");

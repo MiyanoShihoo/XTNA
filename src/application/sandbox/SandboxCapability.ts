@@ -38,9 +38,18 @@ export type CommandTier = "L1" | "L2" | "L3";
 export interface AdmissionRequest {
   readonly tier: CommandTier;
   readonly capability: SandboxCapability;
-  /** L2 requires a diff preview; L3 requires an explicit approval token. */
+  /** L2 requires a diff preview; L3 requires approval this process can verify. */
   readonly diffPreview?: boolean;
   readonly approvalToken?: string;
+  /**
+   * Verifies that `approvalToken` was issued by an operator for this run.
+   *
+   * A token the requester can invent is not an approval. The previous rule admitted L3 for any
+   * string of eight characters, and the token travels in the same payload the model writes, so
+   * the tier's only gate was a length check on text the model controls. Without a verifier, L3
+   * refuses: no operator channel, no third tier.
+   */
+  readonly verifyApproval?: (token: string) => boolean;
 }
 
 export interface Admission {
@@ -208,15 +217,23 @@ export const admitCommand = (request: AdmissionRequest): Admission => {
       isolation: capability.best,
     };
   }
-  if (request.approvalToken === undefined || request.approvalToken.length < 8)
+  const token = request.approvalToken;
+  if (token === undefined || request.verifyApproval === undefined)
     return {
       allowed: false,
-      reason: "L3 needs an explicit approval token (at least 8 characters)",
+      reason:
+        "L3 needs an operator approval this process can verify; no approval channel is registered, so the command is refused rather than called sandboxed",
+      isolation: capability.best,
+    };
+  if (!request.verifyApproval(token))
+    return {
+      allowed: false,
+      reason: "the approval token was not issued by an operator for this run",
       isolation: capability.best,
     };
   return {
     allowed: true,
-    reason: "L3 admitted with an approval token",
+    reason: "L3 admitted with a verified operator approval",
     isolation: capability.best,
   };
 };
