@@ -309,15 +309,36 @@ export const effectiveProductServer = (
  * The key this document actually registers this product under. Prefer the
  * current key; fall back to the key earlier releases installed so a removal or
  * an edit targets the member that exists rather than reporting absence.
+ *
+ * "Registers" means a present, non-null entry in either storage location. A null
+ * current key next to a real historical one is the same case as a missing one:
+ * `effectiveProductServer` resolves through the historical member, so naming the
+ * null key here would evaluate a different member than the one that exists
+ * (review: two independent derivations of one fact).
  */
 export const productServerName = (
   parsed: ClientConfigurationDocument,
-): string =>
-  Object.hasOwn(parsed.servers, PRODUCT_IDENTITY.mcpServerKey)
-    ? PRODUCT_IDENTITY.mcpServerKey
-    : Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY)
-      ? LEGACY_MCP_SERVER_KEY
-      : PRODUCT_IDENTITY.mcpServerKey;
+): string => {
+  const registers = (name: string): boolean => {
+    const native = parsed.servers[name];
+    if (
+      Object.hasOwn(parsed.servers, name) &&
+      native !== null &&
+      native !== undefined
+    )
+      return true;
+    const projected = parsed.legacyServers[name];
+    return (
+      Object.hasOwn(parsed.legacyServers, name) &&
+      projected !== null &&
+      projected !== undefined
+    );
+  };
+  if (registers(PRODUCT_IDENTITY.mcpServerKey))
+    return PRODUCT_IDENTITY.mcpServerKey;
+  if (registers(LEGACY_MCP_SERVER_KEY)) return LEGACY_MCP_SERVER_KEY;
+  return PRODUCT_IDENTITY.mcpServerKey;
+};
 
 export const effectiveClientServer = (
   parsed: ClientConfigurationDocument,
