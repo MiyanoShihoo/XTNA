@@ -1,14 +1,14 @@
 import { vi } from "vitest";
 
 import { PRODUCT_IDENTITY } from "../../src/identity.js";
+import { npxRegistrationCommand } from "../../src/application/ClientRegistrationIdentity.js";
 
-/** The default npx registration command setup writes on POSIX hosts. */
-export const NPX_REGISTRATION_COMMAND = [
-  "npx",
-  "-y",
-  PRODUCT_IDENTITY.registrationPackageSpecifier,
-  "mcp",
-] as const;
+/**
+ * The launcher setup writes on this host. Windows clients cannot spawn the `.cmd` shim, so the
+ * product registers `cmd.exe /d /c npx …` there; a fixture that hardcoded the POSIX argv made
+ * every Windows run compare a correct registration against the wrong expectation.
+ */
+export const NPX_REGISTRATION_COMMAND = npxRegistrationCommand();
 
 /** Environment variables that redirect where supported clients keep config. */
 export const CLIENT_LOCATION_ENVIRONMENT = [
