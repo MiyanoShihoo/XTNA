@@ -5,6 +5,7 @@ import {
   replanAfterFailure,
   runWorkerPlan,
   type WorkerHandler,
+  type WorkerRunReport,
   type WorkerTaskSpec,
 } from "./WorkerScheduler.js";
 
@@ -239,5 +240,55 @@ describe("replanning", () => {
     expect(next.retried).toEqual([]);
     expect([...next.dropped].sort()).toEqual(["a", "b"]);
     expect(next.tasks.map((item) => item.id)).toEqual(["c"]);
+  });
+});
+
+/**
+ * §5 of the worker contract. `blocked` used to mean two different facts, so a plan could not tell
+ * "retry this once its dependency is repaired" from "nothing authorised this, ever".
+ */
+describe("blocked causes", () => {
+  it("names a dependency failure, not an authorisation refusal", async () => {
+    const report = await runWorkerPlan([task("a"), task("b", ["a"])], {
+      handlers: {
+        "static-worker": async (input) => {
+          if (input.id === "a") throw new Error("no runtime provider");
+          return { evidenceIds: ["ev_1"] };
+        },
+      },
+      maxAttempts: 1,
+    });
+    expect(report.ok).toBe(true);
+    if (!report.ok) return;
+    const byId = new Map(report.value.tasks.map((item) => [item.id, item]));
+    expect(byId.get("b")).toMatchObject({
+      status: "blocked",
+      blockedBy: "dependency-failed",
+    });
+  });
+
+  it("does not re-queue an unauthorised task unless an operator names it", () => {
+    const report: WorkerRunReport = {
+      waves: [["a"]],
+      cancelled: [],
+      startedAt: "2026-01-01T00:00:00.000Z",
+      finishedAt: "2026-01-01T00:00:01.000Z",
+      tasks: [
+        {
+          id: "a",
+          role: "static-worker",
+          status: "blocked",
+          attempts: 0,
+          evidenceIds: [],
+          blockedBy: "unauthorised",
+        },
+      ],
+    };
+    expect(replanAfterFailure([task("a")], report).tasks).toEqual([]);
+    expect(
+      replanAfterFailure([task("a")], report, {
+        resumeBlocked: ["a"],
+      }).tasks.map((item) => item.id),
+    ).toEqual(["a"]);
   });
 });

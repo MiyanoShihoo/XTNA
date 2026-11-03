@@ -47,6 +47,19 @@ export type WorkerHandler = (
 
 export type WorkerTaskStatus = "completed" | "failed" | "blocked" | "cancelled";
 
+/**
+ * Why a task never ran.
+ *
+ * §5 of the worker contract separates two facts that `blocked` used to conflate: a dependency
+ * outcome, which the next plan repairs, and an authorisation refusal, which nothing may retry.
+ */
+export type WorkerBlockedCause =
+  | "no-handler"
+  | "dependency-failed"
+  | "dependency-blocked"
+  | "dependency-cancelled"
+  | "unauthorised";
+
 export interface WorkerTaskResult {
   readonly id: string;
   readonly role: WorkerRole;
@@ -56,6 +69,8 @@ export interface WorkerTaskResult {
   readonly summary?: string;
   readonly process?: WorkerProcessIdentity;
   readonly reason?: string;
+  /** Present whenever `status` is `blocked`; states which fact stopped the task. */
+  readonly blockedBy?: WorkerBlockedCause;
 }
 
 export interface WorkerRunReport {
@@ -270,6 +285,7 @@ const runTask = async (
       attempts: 0,
       evidenceIds: [],
       reason: `No handler registered for ${task.role}.`,
+      blockedBy: "no-handler",
     };
   let lastReason = "";
   for (let attempt = 1; attempt <= options.maxAttempts; attempt += 1) {
@@ -387,13 +403,22 @@ export async function runWorkerPlan(
         continue;
       }
       const upstream = results.get(dependency);
+      const cancelled = upstream?.status === "cancelled";
       results.set(id, {
         id,
         role: task.role,
-        status: upstream?.status === "cancelled" ? "cancelled" : "blocked",
+        status: cancelled ? "cancelled" : "blocked",
         attempts: 0,
         evidenceIds: [],
         reason: `Upstream ${dependency} is ${upstream?.status ?? "unavailable"}.`,
+        ...(cancelled
+          ? {}
+          : {
+              blockedBy:
+                upstream?.status === "failed"
+                  ? ("dependency-failed" as const)
+                  : ("dependency-blocked" as const),
+            }),
       });
     }
     const settled = await Promise.all(
@@ -428,6 +453,13 @@ export async function runWorkerPlan(
 export interface ReplanOptions {
   /** Role to retry a failed task with; an absent mapping drops the branch. */
   readonly retryRole?: Partial<Record<WorkerRole, WorkerRole>>;
+  /**
+   * Tasks an operator has cleared to run again after an authorisation refusal.
+   *
+   * §5 of the worker contract: `blockedBy: "unauthorised"` means nothing authorised the attempt,
+   * so a new plan must not re-run it by itself. Only this list reopens it.
+   */
+  readonly resumeBlocked?: readonly string[];
 }
 
 export interface ReplanResult {
@@ -473,11 +505,18 @@ export function replanAfterFailure(
   }
   // A blocked task stays in the plan once every dependency has a replacement;
   // tasks whose dependency was dropped are dropped with it.
+  // §5: an authorisation refusal is never re-queued. A dependency-blocked task is a different
+  // fact — the plan repairs it — so it keeps flowing through the rewiring below.
+  const resumed = new Set(options.resumeBlocked ?? []);
   let changed = true;
   while (changed) {
     changed = false;
     for (const task of tasks) {
       if (replacement.has(task.id)) continue;
+      const result = resultById.get(task.id);
+      if (result?.status === "blocked" && result.blockedBy === "unauthorised") {
+        if (!resumed.has(task.id)) continue;
+      }
       const dependencies = task.dependencies ?? [];
       if (
         dependencies.every(
