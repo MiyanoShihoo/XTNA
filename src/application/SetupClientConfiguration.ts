@@ -47,7 +47,8 @@ import {
   refreshClientRegistration,
 } from "./ClientRegistration.js";
 
-import { PRODUCT_IDENTITY } from "../identity.js";
+import { LEGACY_MCP_SERVER_KEY, PRODUCT_IDENTITY } from "../identity.js";
+import { dialectCanRemoveHistorical } from "./RegistrationDialectCapability.js";
 import { snapshotEnvironment } from "../process/snapshotEnvironment.js";
 import { npxRegistrationCommand } from "./ClientRegistrationIdentity.js";
 import { resolveClientConfigTransactionPath } from "./ClientConfigPath.js";
@@ -234,7 +235,18 @@ const configureClientDocument = async (
     files.value,
     resolveProviderRequestBudget,
   );
-  if (registrationCurrent(parsed, desired)) return { status: "unchanged" };
+  // §3 row 6: a registration that only exists under the historical key is not "current", even
+  // when the client would load it with the desired launcher. Reporting `unchanged` there leaves
+  // the inherited member in place and the identity mismatch never resolves.
+  const inheritsHistoricalMember =
+    Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY) &&
+    clientRegistrationOwnership(
+      parsed.servers[LEGACY_MCP_SERVER_KEY],
+      client,
+    ) === "owned" &&
+    dialectCanRemoveHistorical(parsed);
+  if (registrationCurrent(parsed, desired) && !inheritsHistoricalMember)
+    return { status: "unchanged" };
   return persistClientConfiguration({
     client,
     transactionPath,
@@ -295,11 +307,22 @@ const persistClientConfiguration = async ({
     parsed,
     PRODUCT_IDENTITY.mcpServerKey,
   );
+  // §3 rows 6 and 10: the write that creates the current member retires an owned historical one.
+  // A dialect whose removal rewrites the whole document and drops the user's comments keeps both
+  // entries — §4 refuses that trade, so migration is not attempted there.
+  const legacyOwned =
+    Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY) &&
+    clientRegistrationOwnership(
+      parsed.servers[LEGACY_MCP_SERVER_KEY],
+      client,
+    ) === "owned";
+  const retireLegacy = legacyOwned && dialectCanRemoveHistorical(parsed);
+  const inherited = { ...fallbackServers, ...parsed.servers };
+  if (retireLegacy) delete inherited[LEGACY_MCP_SERVER_KEY];
   const registered = withClientServers(
     parsed,
     {
-      ...fallbackServers,
-      ...parsed.servers,
+      ...inherited,
       [PRODUCT_IDENTITY.mcpServerKey]: desired,
     },
     PRODUCT_IDENTITY.mcpServerKey,
@@ -332,11 +355,16 @@ const persistClientConfiguration = async ({
           .filter((name) => name !== PRODUCT_IDENTITY.mcpServerKey)
           .map((name) => clientServerPath(parsed, name)),
         clientServerPath(parsed, PRODUCT_IDENTITY.mcpServerKey),
+        ...(retireLegacy
+          ? [clientServerPath(parsed, LEGACY_MCP_SERVER_KEY)]
+          : []),
         ...(legacyPath === undefined ? [] : [legacyPath]),
         ...(enableOmp ? [[OMP_DISABLED_SERVERS_KEY]] : []),
       ],
       // Ownership admission above covers every legacy member removed here.
-      { removeShadowedMembersAt: legacyPath === undefined ? [] : [legacyPath] },
+      {
+        removeShadowedMembersAt: legacyPath === undefined ? [] : [legacyPath],
+      },
     );
   } catch (cause: unknown) {
     // An unserializable edit is reported before any file is written.
