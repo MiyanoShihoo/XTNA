@@ -15,6 +15,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 import { parse as parseToml } from "smol-toml";
+import { PRODUCT_IDENTITY } from "../../../src/identity.js";
 
 import {
   configureClientConfiguration,
@@ -342,7 +343,14 @@ describe("TOML client configuration comparison", () => {
     const value = "-inf";
     const root = await createTestTempDirectory("rea-client-toml-");
     const configPath = join(root, "config.toml");
-    const original = `unrelated = ${value}\n[mcp_servers.rea]\ncommand = "npx"\nargs = ["-y", "rea-agents@6.1.0", "mcp"]\nstartup_timeout_sec = ${value}\n`;
+    // Seeded under the current key: this case is about TOML round-tripping a non-finite float,
+    // and a historical-key seed would now be refused by §4 before any serialization happened.
+    const original = `unrelated = ${value}
+[mcp_servers.${PRODUCT_IDENTITY.mcpServerKey}]
+command = "npx"
+args = ["-y", "${PRODUCT_IDENTITY.registrationPackageSpecifier}", "mcp"]
+startup_timeout_sec = ${value}
+`;
     await writeFile(configPath, original);
     const client = { name: "codex", format: "toml", configPath } as const;
     expect(
