@@ -39,14 +39,13 @@ describe("uninstall removal decision", () => {
   it("removes the current member", () => {
     const result = decide({ xtna: owned() });
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value).toMatchObject({ removeNative: true });
+    if (result.ok) expect(result.value.nativeKeys).toEqual(["xtna"]);
   });
 
   it("removes the historical member when it is the only one", () => {
     const result = decide({ rea: owned() });
     expect(result.ok).toBe(true);
-    // The historical key is the name this document registers under, so it is the native edit.
-    if (result.ok) expect(result.value).toMatchObject({ removeNative: true });
+    if (result.ok) expect(result.value.nativeKeys).toEqual(["rea"]);
   });
 
   it("leaves a foreign registration alone", () => {
@@ -54,12 +53,37 @@ describe("uninstall removal decision", () => {
     expect(result.ok).toBe(true);
     if (result.ok)
       expect(result.value).toMatchObject({
-        removeNative: false,
+        nativeKeys: [],
         legacyPath: undefined,
       });
   });
 
-  it.todo(
-    "row 10: removes both members when both belong to this product (needs a multi-key removal)",
-  );
+  // Row 10. Deleting only the resolved key would leave the other member behind, and the client
+  // would keep loading this product after uninstall reported success.
+  it("row 10: removes both members when both belong to this product", () => {
+    const result = decide({ xtna: owned(), rea: owned() });
+    expect(result.ok).toBe(true);
+    if (result.ok)
+      expect([...result.value.nativeKeys].sort()).toEqual(["rea", "xtna"]);
+  });
+
+  // Row 11. The current member is ours, the historical one is not: only ours is removed.
+  it("row 11: keeps a historical member this product does not own", () => {
+    const result = decide({ xtna: owned(), rea: foreign() });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.nativeKeys).toEqual(["xtna"]);
+  });
+
+  // Row 12. The historical member is ours, the current one is not.
+  it("row 12: removes the historical member while the current one is not ours", () => {
+    const result = decide({ xtna: foreign(), rea: owned() });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.nativeKeys).toEqual(["rea"]);
+  });
+
+  it("row 12b: retains everything when neither member is ours", () => {
+    const result = decide({ xtna: foreign(), rea: foreign() });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.nativeKeys).toEqual([]);
+  });
 });

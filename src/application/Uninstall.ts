@@ -30,7 +30,7 @@ import { linuxHopperReleaseCacheDirectory } from "./LinuxHopperCacheDirectory.js
 import { ClientConfigurationPublication } from "./ClientConfigurationPublication.js";
 import { clientRegistrationOwnership } from "./ClientRegistration.js";
 
-import { PRODUCT_IDENTITY } from "../identity.js";
+import { LEGACY_MCP_SERVER_KEY, PRODUCT_IDENTITY } from "../identity.js";
 import {
   isManagedSkillManifest,
   MANAGED_SKILL_FILES,
@@ -318,7 +318,8 @@ const hasOwnershipEvidence = async (
     // REA-owned row shadowed by a foreign duplicate still proves ownership,
     // so later read failures stay blocking instead of softening to retained.
     const owned = removal.ok ? removal.value : removal.error.owned;
-    if (owned.removeNative || owned.legacyPath !== undefined) return true;
+    if (owned.nativeKeys.length > 0 || owned.legacyPath !== undefined)
+      return true;
   }
   return false;
 };
@@ -543,7 +544,7 @@ export const systemUninstallHost = (
         if (!removal.ok)
           return item(client.name, "failed", removal.error.detail);
         if (
-          !removal.value.removeNative &&
+          removal.value.nativeKeys.length === 0 &&
           removal.value.legacyPath === undefined
         )
           return undefined;
@@ -763,7 +764,8 @@ const itemRead = (result: UninstallItem): ClientConfigurationRead => ({
  * the entry this decision admitted.
  */
 type RegistrationRemoval = {
-  readonly removeNative: boolean;
+  /** Every native key this run may delete from `servers`. */
+  readonly nativeKeys: readonly string[];
   readonly legacyPath: readonly string[] | undefined;
 };
 type RegistrationRemovalRefusal = {
@@ -784,31 +786,42 @@ export const clientRegistrationRemoval = (
     parsed.dialect === "dsh" &&
     dshDocument(parsed.document).hasUnknownStructure
   )
-    return ok({ removeNative: false, legacyPath: undefined });
-  const removeNative =
-    (parsed.dialect === "dsh" && dshDocument(parsed.document).carriesEntry) ||
-    (Object.hasOwn(parsed.servers, name) &&
-      clientRegistrationOwnership(parsed.servers[name], client) === "owned");
+    return ok({ nativeKeys: [], legacyPath: undefined });
+  const ownedNative = (key: string): boolean =>
+    Object.hasOwn(parsed.servers, key) &&
+    clientRegistrationOwnership(parsed.servers[key], client) === "owned";
+  // Row 10: when both identities belong to this product, both are removed. Deleting only the
+  // resolved key leaves the other member behind, and the client keeps loading the product after
+  // uninstall reported success.
+  const nativeKeys =
+    parsed.dialect === "dsh" && dshDocument(parsed.document).carriesEntry
+      ? [name]
+      : [PRODUCT_IDENTITY.mcpServerKey, LEGACY_MCP_SERVER_KEY].filter(
+          ownedNative,
+        );
+  const removeNative = nativeKeys.length > 0;
   const legacyPath = legacyClientServerPath(parsed, name);
   const removeLegacy =
     legacyPath !== undefined &&
     clientRegistrationOwnership(parsed.legacyServers[name], client) === "owned";
   const ownership: RegistrationRemoval = {
-    removeNative,
+    nativeKeys,
     legacyPath: removeLegacy ? legacyPath : undefined,
   };
   if (removeNative || removeLegacy) {
-    const shadowed = shadowedClientServers(original, parsed, name);
-    if (
-      (removeNative &&
-        shadowed.servers.some(
-          (member) => clientRegistrationOwnership(member, client) !== "owned",
-        )) ||
-      (removeLegacy &&
-        shadowed.legacyServers.some(
-          (member) => clientRegistrationOwnership(member, client) !== "owned",
-        ))
-    )
+    // A repeat shadowing any member this run deletes would become the effective one, so every
+    // affected name is checked, not only the resolved one.
+    const shadowedUnowned = nativeKeys.some((key) =>
+      shadowedClientServers(original, parsed, key).servers.some(
+        (member) => clientRegistrationOwnership(member, client) !== "owned",
+      ),
+    );
+    const shadowedLegacyUnowned =
+      removeLegacy &&
+      shadowedClientServers(original, parsed, name).legacyServers.some(
+        (member) => clientRegistrationOwnership(member, client) !== "owned",
+      );
+    if (shadowedUnowned || shadowedLegacyUnowned)
       return err({
         kind: "shadowed_unowned_member",
         detail: SHADOWED_UNOWNED_MEMBER_DETAIL,
@@ -889,7 +902,8 @@ const removeClient = async (
     return item(client.name, "skipped", "REA registration is absent.");
   const removal = clientRegistrationRemoval(parsed, original, client);
   if (!removal.ok) return item(client.name, "failed", removal.error.detail);
-  const { removeNative, legacyPath } = removal.value;
+  const { nativeKeys, legacyPath } = removal.value;
+  const removeNative = nativeKeys.length > 0;
   const removeLegacy = legacyPath !== undefined;
   if (!removeNative && !removeLegacy)
     return item(
@@ -900,14 +914,14 @@ const removeClient = async (
   const blocker = writeBlocker?.();
   if (blocker !== undefined) return item(client.name, "failed", blocker);
   const remaining = { ...parsed.servers };
-  if (removeNative) delete remaining[name];
+  for (const key of nativeKeys) delete remaining[key];
   const document = withClientServers(
     parsed,
     remaining,
     removeLegacy ? name : undefined,
   );
   const editedPaths = [
-    ...(removeNative ? [clientServerPath(parsed, name)] : []),
+    ...nativeKeys.map((key) => clientServerPath(parsed, key)),
     ...(legacyPath === undefined ? [] : [legacyPath]),
   ];
   let serialized: ReturnType<typeof serializeClientConfiguration>;
@@ -970,7 +984,7 @@ const removeClient = async (
         await publication.assertCurrent(text);
         const readback = parseClientConfiguration(text, client.format);
         if (
-          (removeNative && Object.hasOwn(readback.servers, name)) ||
+          nativeKeys.some((key) => Object.hasOwn(readback.servers, key)) ||
           (readback.dialect === "dsh" &&
             dshDocument(readback.document).carriesEntry) ||
           (removeLegacy && Object.hasOwn(readback.legacyServers, name))
