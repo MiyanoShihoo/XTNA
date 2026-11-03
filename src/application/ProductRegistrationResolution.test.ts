@@ -357,3 +357,141 @@ describe("review r6 fixes", () => {
     );
   });
 });
+
+/**
+ * Second review round. Each case below failed against `9679772`; the expectation comes from the
+ * contract clause named in the title, not from the resolver's current behaviour.
+ */
+describe("review round 2", () => {
+  const toml = (text: string) => parseClientConfiguration(text, "toml");
+  const tomlCannotRemove = (document: { dialect: string }) =>
+    document.dialect !== "toml";
+
+  it("H1. gates retire and target on the member's own document, not on a path lookup", () => {
+    // Neither source reports a path, which is legal: `sourcePath` is optional. Re-deriving the
+    // document from it made the gate judge `sources[0]` and offer the TOML member for removal.
+    const result = resolveProductRegistration(
+      [
+        {
+          document: json({ [CURRENT]: { command: "node" } }),
+          tier: "document",
+          writable: true,
+        },
+        {
+          document: toml(`[mcp_servers.rea]\ncommand = "node"\n`),
+          tier: "document",
+          writable: true,
+        },
+      ],
+      {
+        classifyOwnership: () => "owned",
+        duplicateDetectable: () => true,
+        dialectCanRemove: tomlCannotRemove,
+      },
+    );
+    expect(result.members.map((member) => member.key)).toContain(LEGACY);
+    // §4: a dialect that cannot remove acceptably never yields a candidate.
+    expect(result.retire).toEqual([]);
+    // §6: `target` is a write target, so it carries the same gate.
+    expect(result.target?.key).toBe(CURRENT);
+  });
+
+  it("H1. offers no write target for a TOML document at all", () => {
+    const result = resolveProductRegistration(
+      [
+        source(
+          toml(`[mcp_servers.rea]\ncommand = "node"\n`),
+          "document",
+          true,
+          "/codex.toml",
+        ),
+      ],
+      {
+        classifyOwnership: () => "owned",
+        duplicateDetectable: () => false,
+        dialectCanRemove: tomlCannotRemove,
+      },
+    );
+    expect(result.members[0]?.identity).toBe("legacy");
+    expect(result.retire).toEqual([]);
+    expect(result.target).toBeUndefined();
+  });
+
+  it("C1. reports a cross-tier duplicate even when the dialect cannot repeat a key", () => {
+    const result = resolveProductRegistration(
+      [
+        source(
+          toml(`[mcp_servers.${CURRENT}]\ncommand = "node"\n`),
+          "document",
+          true,
+          "/codex.toml",
+        ),
+        source(
+          json({ [LEGACY]: { command: "node" } }),
+          "lower-layer",
+          false,
+          "/layers.json",
+        ),
+      ],
+      {
+        classifyOwnership: () => "owned",
+        // TOML cannot express a repeated table; that says nothing about a pair in two files.
+        duplicateDetectable: (document) => document.dialect !== "toml",
+        dialectCanRemove: tomlCannotRemove,
+      },
+    );
+    expect(result.duplicate).toBe(true);
+    expect(result.conflicts).toContainEqual({
+      kind: "duplicate",
+      keys: [CURRENT, LEGACY],
+    });
+    expect(result.conflicts).toContainEqual({
+      kind: "lower_layer",
+      keys: [LEGACY],
+    });
+  });
+
+  it("M1. reports a read-only-tier member as lower_layer, never as a policy conflict", () => {
+    const result = resolveProductRegistration(
+      [
+        source(json({ [CURRENT]: { command: "node" } })),
+        source(
+          json({ [LEGACY]: { command: "node" } }),
+          "read-only-source",
+          false,
+          "/etc/settings.json",
+        ),
+      ],
+      context("owned"),
+    );
+    // §3 row 9: a member outside the document tier is `lower_layer`.
+    expect(result.conflicts).toContainEqual({
+      kind: "lower_layer",
+      keys: [LEGACY],
+    });
+    // `policy_in_read_only_tier` is row 3b's *policy list* in a read-only tier (§6 union).
+    expect(
+      result.conflicts.some(
+        (conflict) => conflict.kind === "policy_in_read_only_tier",
+      ),
+    ).toBe(false);
+  });
+
+  it("M4. a member's value does not alias the parsed document", () => {
+    const document = json({ [CURRENT]: { command: "node" } });
+    const result = resolveProductRegistration(
+      [
+        {
+          document,
+          tier: "document",
+          writable: true,
+          sourcePath: "/tmp/config.json",
+        },
+      ],
+      context("owned"),
+    );
+    (result.members[0]!.value as { command: string }).command = "MUTATED";
+    // A batch-2 write path reads the parsed document; a member must not be able to pre-edit it.
+    expect(document.servers[CURRENT]).toMatchObject({ command: "node" });
+  });
+});

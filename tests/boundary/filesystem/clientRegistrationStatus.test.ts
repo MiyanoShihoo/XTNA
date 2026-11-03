@@ -609,34 +609,6 @@ describe("Node-wrapped registration policy", () => {
     ]);
   });
 
-  // H2 minimal reproduction: the policy helpers above are asked about the current key only, so a
-  // registration stored under the historical key is called healthy while its own disable-list
-  // entry says the client will not load it. The case above cannot catch this — its launcher is
-  // stale for an unrelated reason, which is why it passed before the defect was found.
-  it("reports Grok Build stale when its own historical key is in disabled_mcp_servers", async () => {
-    const home = await createTestTempDirectory("rea-grok-legacy-disabled-");
-    await mkdir(join(home, ".grok"));
-    const entry = resolve("scripts/rea.mjs");
-    const registration = `[mcp_servers.rea]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 30\n`;
-    // Control: this exact registration without a list entry is aligned.
-    await writeFile(join(home, ".grok/config.toml"), registration);
-    expect(
-      await readClientRegistrationStatuses(home, entry, { environment: {} }),
-    ).toEqual([
-      expect.objectContaining({ client: "grok_build", state: "aligned" }),
-    ]);
-    // Same registration, plus a list entry naming the key it is actually stored under.
-    await writeFile(
-      join(home, ".grok/config.toml"),
-      `disabled_mcp_servers = ["rea"]\n${registration}`,
-    );
-    expect(
-      await readClientRegistrationStatuses(home, entry, { environment: {} }),
-    ).toEqual([
-      expect.objectContaining({ client: "grok_build", state: "stale" }),
-    ]);
-  });
-
   it("checks a direct-launcher Codex startup timeout without Node wrapping", async () => {
     const home = await createTestTempDirectory("rea-direct-registration-");
     await mkdir(join(home, ".codex"));
@@ -841,4 +813,78 @@ it("reports a dangling configuration entry as missing without losing the detecte
       (status) => status.client === "claude_code",
     ),
   ).toMatchObject({ config_path: path, state: "missing", command: [] });
+});
+
+/**
+ * H2: which key the policy lists are asked about.
+ *
+ * The pre-existing Grok case above ("rea is listed in disabled_mcp_servers") already used the
+ * historical-key input, and it was red before the fix — so it did catch the defect. What it
+ * cannot show is *why*: on its own, a red there is also consistent with the launcher being
+ * stale. The control below pins the delta: this exact registration is `aligned` without a list
+ * entry, so the list entry alone flips the verdict.
+ */
+describe("registration policy key selection", () => {
+  const grokRegistration = (key: "rea" | "xtna", entry: string) =>
+    `[mcp_servers.${key}]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 30\n`;
+
+  it("suppresses a registration whose own historical key is disabled", async () => {
+    const home = await createTestTempDirectory("rea-grok-legacy-disabled-");
+    await mkdir(join(home, ".grok"));
+    const entry = resolve("scripts/rea.mjs");
+    const registration = grokRegistration("rea", entry);
+    // Control: no list entry, so the same registration must be aligned.
+    await writeFile(join(home, ".grok/config.toml"), registration);
+    expect(
+      await readClientRegistrationStatuses(home, entry, { environment: {} }),
+    ).toEqual([
+      expect.objectContaining({ client: "grok_build", state: "aligned" }),
+    ]);
+    // Now add one entry naming the key the registration is actually stored under (§5).
+    await writeFile(
+      join(home, ".grok/config.toml"),
+      `disabled_mcp_servers = ["rea"]\n${registration}`,
+    );
+    expect(
+      await readClientRegistrationStatuses(home, entry, { environment: {} }),
+    ).toEqual([
+      expect.objectContaining({ client: "grok_build", state: "stale" }),
+    ]);
+  });
+
+  it("suppresses a current-key registration when its own current key is disabled", async () => {
+    const home = await createTestTempDirectory(
+      "rea-grok-current-key-disabled-",
+    );
+    await mkdir(join(home, ".grok"));
+    const entry = resolve("scripts/rea.mjs");
+    await writeFile(
+      join(home, ".grok/config.toml"),
+      `disabled_mcp_servers = ["xtna"]\n${grokRegistration("xtna", entry)}`,
+    );
+    // Without this case a fix that always consults the historical key would still pass.
+    expect(
+      await readClientRegistrationStatuses(home, entry, { environment: {} }),
+    ).toEqual([
+      expect.objectContaining({ client: "grok_build", state: "stale" }),
+    ]);
+  });
+
+  // §5 row 2, the mirror: a list naming the *historical* key while the member is current must
+  // not produce a false red. No command can clear an entry for a name this product is not
+  // registered under, so a red there would be unrepairable.
+  it("keeps a current-key registration aligned when the list names the historical key", async () => {
+    const home = await createTestTempDirectory("rea-grok-current-key-listed-");
+    await mkdir(join(home, ".grok"));
+    const entry = resolve("scripts/rea.mjs");
+    await writeFile(
+      join(home, ".grok/config.toml"),
+      `disabled_mcp_servers = ["rea"]\n${grokRegistration("xtna", entry)}`,
+    );
+    expect(
+      await readClientRegistrationStatuses(home, entry, { environment: {} }),
+    ).toEqual([
+      expect.objectContaining({ client: "grok_build", state: "aligned" }),
+    ]);
+  });
 });
