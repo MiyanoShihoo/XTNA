@@ -78,6 +78,22 @@ describe("worker run", () => {
     expect(report.value.waves).toEqual([["a"], ["b", "c"]]);
   });
 
+  // §5.1: the scheduler used to mark a task completed whenever the handler resolved, and the
+  // board rejects an evidence-free completion — two verdicts for one task. The contract keeps the
+  // board's rule, so this must not come back.
+  it("refuses to call a task completed when it cites no evidence", async () => {
+    const report = await runWorkerPlan([task("a")], {
+      handlers: { "static-worker": async () => ({ evidenceIds: [] }) },
+    });
+    expect(report.ok).toBe(true);
+    if (!report.ok) return;
+    expect(report.value.tasks[0]).toMatchObject({
+      id: "a",
+      status: "failed",
+      reason: "a completed task must cite at least one evidence id",
+    });
+  });
+
   it("retries a failed attempt before reporting success", async () => {
     let attempts = 0;
     const flaky: WorkerHandler = async (input) => {

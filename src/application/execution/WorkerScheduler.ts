@@ -281,11 +281,25 @@ const runTask = async (
         timeoutMs: options.timeoutMs,
         outer: options.signal,
       });
+      const evidenceIds = bounded(report.evidenceIds);
+      // §5.1 of the worker contract: a completion cites what it observed. The board already
+      // rejects an evidence-free completion; the scheduler accepted one, so the same task had two
+      // verdicts depending on which component reported it.
+      if (evidenceIds.length === 0)
+        return {
+          ...base,
+          status: "failed",
+          attempts: attempt,
+          evidenceIds: [],
+          reason: "a completed task must cite at least one evidence id",
+          ...(report.summary === undefined ? {} : { summary: report.summary }),
+          ...(report.process === undefined ? {} : { process: report.process }),
+        };
       return {
         ...base,
         status: "completed",
         attempts: attempt,
-        evidenceIds: bounded(report.evidenceIds),
+        evidenceIds,
         ...(report.summary === undefined ? {} : { summary: report.summary }),
         ...(report.process === undefined ? {} : { process: report.process }),
       };
