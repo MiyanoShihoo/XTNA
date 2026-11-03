@@ -773,7 +773,8 @@ type RegistrationRemovalRefusal = {
   readonly owned: RegistrationRemoval;
 };
 
-const clientRegistrationRemoval = (
+/** Exported for the uninstall removal contract tests; the delete path calls it unchanged. */
+export const clientRegistrationRemoval = (
   parsed: ClientConfigurationDocument,
   original: string,
   client: SetupClient,
