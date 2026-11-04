@@ -111,8 +111,12 @@ const isOwnedWritableDocumentMember = (
  * - the Harness stores its registration under the Cordis patch entry id and projects it to the
  *   historical key, so that member *is* the current registration;
  * - every other dialect spells identity in the key.
+ *
+ * Exported so `doctor` answers the same question with the same rule instead of asking whether a
+ * key string looks familiar. Two derivations of one fact is how the health verdict and the write
+ * path came to disagree.
  */
-const identityFor = (
+export const identityFor = (
   document: ClientConfigurationDocument,
   key: string,
 ): RegistrationIdentity => {

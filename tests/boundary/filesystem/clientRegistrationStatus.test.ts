@@ -4,7 +4,10 @@ import { dirname, join, relative, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
-import { clearClientLocationEnvironment } from "../../fixtures/clientEnvironment.js";
+import {
+  NPX_REGISTRATION_COMMAND,
+  clearClientLocationEnvironment,
+} from "../../fixtures/clientEnvironment.js";
 
 import {
   readClientRegistrationInspections,
@@ -30,7 +33,7 @@ describe("client registration status", () => {
       join(home, ".claude.json"),
       JSON.stringify({
         mcpServers: {
-          rea: {
+          xtna: {
             command: "npx",
             args: ["-y", PRODUCT_IDENTITY.registrationPackageSpecifier, "mcp"],
           },
@@ -64,13 +67,13 @@ describe("client registration status", () => {
     ]);
     await writeFile(
       join(home, ".codex/config.toml"),
-      `[mcp_servers.rea]\ncommand = "npx"\nargs = ["-y", "${PRODUCT_IDENTITY.registrationPackageSpecifier}", "mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = 450\n`,
+      `[mcp_servers.xtna]\ncommand = "npx"\nargs = ["-y", "${PRODUCT_IDENTITY.registrationPackageSpecifier}", "mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = 450\n`,
     );
     await writeFile(
       join(home, ".cursor/mcp.json"),
       JSON.stringify({
         mcpServers: {
-          rea: { command: foreignEntry, args: ["mcp"], env: { SECRET: "x" } },
+          xtna: { command: foreignEntry, args: ["mcp"], env: { SECRET: "x" } },
         },
       }),
     );
@@ -135,7 +138,7 @@ describe("client registration environment validation", () => {
       join(home, ".cursor/mcp.json"),
       JSON.stringify({
         mcpServers: {
-          rea: {
+          xtna: {
             command: "npx",
             args: ["-y", PRODUCT_IDENTITY.registrationPackageSpecifier, "mcp"],
             env: { REA_MCP_TOOL_FAMILIES: "session,typo" },
@@ -166,11 +169,11 @@ describe("client registration environment validation", () => {
     };
     await writeFile(
       join(home, ".cursor/mcp.json"),
-      JSON.stringify({ mcpServers: { rea: entry } }),
+      JSON.stringify({ mcpServers: { xtna: entry } }),
     );
     await writeFile(
       join(home, ".codex/config.toml"),
-      `[mcp_servers.rea]\ncommand = "npx"\nargs = ["-y", "${PRODUCT_IDENTITY.registrationPackageSpecifier}", "mcp"]\n`,
+      `[mcp_servers.xtna]\ncommand = "npx"\nargs = ["-y", "${PRODUCT_IDENTITY.registrationPackageSpecifier}", "mcp"]\n`,
     );
     const resolveProviderRequestBudget = async () =>
       err(new ConfigurationError("budget unavailable"));
@@ -199,7 +202,7 @@ describe("client registration launcher identity", () => {
     await mkdir(join(home, ".codex"));
     await writeFile(
       join(home, ".codex/config.toml"),
-      '[mcp_servers.rea]\ncommand = "npx"\nargs = ["-y", "rea-agents", "mcp"]\n',
+      '[mcp_servers.xtna]\ncommand = "npx"\nargs = ["-y", "rea-agents", "mcp"]\n',
     );
 
     const statuses = await readClientRegistrationStatuses(home);
@@ -219,7 +222,7 @@ describe("client registration launcher identity", () => {
       join(home, ".claude.json"),
       JSON.stringify({
         mcpServers: {
-          rea: { command: "bunx", args: ["rea-agents", "mcp"] },
+          xtna: { command: "bunx", args: ["rea-agents", "mcp"] },
         },
       }),
     );
@@ -239,7 +242,7 @@ describe("client registration launcher identity", () => {
     const command = ["/opt/rea/bin/rea", "mcp"];
     const config = join(home, ".cursor/mcp.json");
     const original = JSON.stringify({
-      mcpServers: { rea: { command: command[0], args: [command[1]] } },
+      mcpServers: { xtna: { command: command[0], args: [command[1]] } },
     });
     await writeFile(config, original);
 
@@ -328,7 +331,7 @@ describe("client registration package version identity", () => {
       const command = ["npx", "-y", reference, "mcp"];
       await writeFile(
         join(home, ".codex/config.toml"),
-        `[mcp_servers.rea]\ncommand = "${command[0]}"\nargs = ["${command[1]}", "${command[2]}", "${command[3]}"]\n`,
+        `[mcp_servers.xtna]\ncommand = "${command[0]}"\nargs = ["${command[1]}", "${command[2]}", "${command[3]}"]\n`,
       );
 
       const [status] = await readClientRegistrationStatuses(home);
@@ -369,7 +372,7 @@ describe("commandcode registration status", () => {
     await mkdir(join(home, ".commandcode"));
     await writeFile(
       join(home, ".commandcode/mcp.json"),
-      JSON.stringify({ mcpServers: { rea: registration } }),
+      JSON.stringify({ mcpServers: { xtna: registration } }),
     );
   };
 
@@ -429,7 +432,7 @@ describe("client activation keys", () => {
       const entry = resolve("scripts/rea.mjs");
       await writeFile(
         join(home, ".codex/config.toml"),
-        `[mcp_servers.rea]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = 450\n${activation}\n`,
+        `[mcp_servers.xtna]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = 450\n${activation}\n`,
       );
       expect(
         await readClientRegistrationStatuses(home, entry, { environment: {} }),
@@ -472,7 +475,7 @@ describe("client activation keys", () => {
         config,
         JSON.stringify({
           mcpServers: {
-            rea: {
+            xtna: {
               command: process.execPath,
               args: [entry, "mcp"],
               ...fields,
@@ -505,7 +508,7 @@ describe("Ghidra multi-function deadline registration advice", () => {
       const configPath = join(home, ".codex/config.toml");
       // Two 600-second Ghidra decompiles plus startup/headroom would need an
       // estimated 1650 seconds. A caller's shorter or longer choice stays theirs.
-      const original = `[mcp_servers.rea]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = ${timeout}\n[mcp_servers.rea.env]\nREA_ANALYSIS_PROVIDER = "${provider}"\nREA_GHIDRA_DECOMPILE_TIMEOUT_SECONDS = "600"\n`;
+      const original = `[mcp_servers.xtna]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 30\ntool_timeout_sec = ${timeout}\n[mcp_servers.xtna.env]\nREA_ANALYSIS_PROVIDER = "${provider}"\nREA_GHIDRA_DECOMPILE_TIMEOUT_SECONDS = "600"\n`;
       await writeFile(configPath, original);
       const [status] = await readClientRegistrationStatuses(home, entry, {
         environment: {},
@@ -540,7 +543,7 @@ describe("Node-wrapped registration policy", () => {
       const entry = resolve("scripts/rea.mjs");
       await writeFile(
         join(home, ".codex/config.toml"),
-        `[mcp_servers.rea]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = ${String(timeout)}\ntool_timeout_sec = 450\n`,
+        `[mcp_servers.xtna]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = ${String(timeout)}\ntool_timeout_sec = 450\n`,
       );
       const statuses = await readClientRegistrationStatuses(home, entry, {
         environment: {},
@@ -560,7 +563,7 @@ describe("Node-wrapped registration policy", () => {
     const entry = resolve("scripts/rea.mjs");
     await writeFile(
       join(home, ".codex/config.toml"),
-      `[mcp_servers.rea]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 5\ntool_timeout_sec = 10\n`,
+      `[mcp_servers.xtna]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = 5\ntool_timeout_sec = 10\n`,
     );
     const [status] = await readClientRegistrationStatuses(home, entry, {
       environment: {},
@@ -580,7 +583,7 @@ describe("Node-wrapped registration policy", () => {
       const entry = resolve("scripts/rea.mjs");
       await writeFile(
         join(home, ".grok/config.toml"),
-        `[mcp_servers.rea]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = ${String(timeout)}\n`,
+        `[mcp_servers.xtna]\ncommand = ${JSON.stringify(process.execPath)}\nargs = [${JSON.stringify(entry)}, "mcp"]\nstartup_timeout_sec = ${String(timeout)}\n`,
       );
       const statuses = await readClientRegistrationStatuses(home, entry, {
         environment: {},
@@ -614,7 +617,7 @@ describe("Node-wrapped registration policy", () => {
     await mkdir(join(home, ".codex"));
     await writeFile(
       join(home, ".codex/config.toml"),
-      '[mcp_servers.rea]\ncommand = "/current/rea"\nargs = ["mcp"]\nstartup_timeout_sec = 1\n',
+      '[mcp_servers.xtna]\ncommand = "/current/rea"\nargs = ["mcp"]\nstartup_timeout_sec = 1\n',
     );
     const statuses = await readClientRegistrationStatuses(
       home,
@@ -638,7 +641,7 @@ describe("Node-wrapped registration policy", () => {
         join(home, ".copilot/mcp-config.json"),
         JSON.stringify({
           mcpServers: {
-            rea: {
+            xtna: {
               type: "stdio",
               command: process.execPath,
               args: [entry, "mcp"],
@@ -744,7 +747,7 @@ it.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
     await writeFile(
       target,
       JSON.stringify({
-        mcpServers: { rea: { command: "rea", args: ["mcp"] } },
+        mcpServers: { xtna: { command: "rea", args: ["mcp"] } },
       }),
     );
     const path = join(home, ".claude.json");
@@ -832,14 +835,18 @@ describe("registration policy key selection", () => {
     const home = await createTestTempDirectory("rea-grok-legacy-disabled-");
     await mkdir(join(home, ".grok"));
     const entry = resolve("scripts/rea.mjs");
-    const registration = grokRegistration("rea", entry);
-    // Control: no list entry, so the same registration must be aligned.
-    await writeFile(join(home, ".grok/config.toml"), registration);
+    // Control: the same launcher under the *current* key with no list entry is aligned, so a red
+    // below is the list entry or the inherited identity, never the launcher.
+    await writeFile(
+      join(home, ".grok/config.toml"),
+      grokRegistration("xtna", entry),
+    );
     expect(
       await readClientRegistrationStatuses(home, entry, { environment: {} }),
     ).toEqual([
       expect.objectContaining({ client: "grok_build", state: "aligned" }),
     ]);
+    const registration = grokRegistration("rea", entry);
     // Now add one entry naming the key the registration is actually stored under (§5).
     await writeFile(
       join(home, ".grok/config.toml"),
@@ -887,4 +894,42 @@ describe("registration policy key selection", () => {
       expect.objectContaining({ client: "grok_build", state: "aligned" }),
     ]);
   });
+});
+
+/**
+ * §5 conjunct 2: an inherited install stays `stale` until it is migrated.
+ *
+ * The launcher being right says the command would work; it says nothing about the member's
+ * identity. Doctor reported `aligned` for a registration still stored under the historical key,
+ * while setup refused to touch that same file — two answers from one product.
+ */
+describe("inherited identity is not health", () => {
+  const codexWith = (key: string) => {
+    const command = NPX_REGISTRATION_COMMAND;
+    return {
+      text: `[mcp_servers.${key}]\ncommand = ${JSON.stringify(command[0])}\nargs = [${command
+        .slice(1)
+        .map((argument) => JSON.stringify(argument))
+        .join(", ")}]\nstartup_timeout_sec = 30\ntool_timeout_sec = 450\n`,
+      command,
+    };
+  };
+
+  it.each([
+    ["xtna", "aligned"],
+    ["rea", "stale"],
+  ] as const)(
+    "reports a Codex registration stored under %s as %s",
+    async (key, state) => {
+      const home = await createTestTempDirectory("rea-inherited-health-");
+      await mkdir(join(home, ".codex"));
+      const { text } = codexWith(key);
+      await writeFile(join(home, ".codex/config.toml"), text);
+
+      const statuses = await readClientRegistrationStatuses(home);
+      expect(
+        statuses.find((status) => status.client === "codex"),
+      ).toMatchObject({ state });
+    },
+  );
 });

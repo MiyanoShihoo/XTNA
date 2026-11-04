@@ -11,6 +11,10 @@ import {
 import { lstat, stat } from "node:fs/promises";
 import { err, ok, type Result } from "../domain/result.js";
 
+import {
+  identityFor,
+  type RegistrationIdentity,
+} from "./ProductRegistrationResolution.js";
 import { PRODUCT_IDENTITY } from "../identity.js";
 import { snapshotEnvironment } from "../process/snapshotEnvironment.js";
 import { CURRENT_ENTRYPOINT_PATH } from "../process/CurrentEntrypointPath.js";
@@ -312,6 +316,9 @@ export const readClientRegistrationInspections = async (
         client: effectiveClient,
         command,
         commandFacts,
+        // §1 D, asked once: identity is a dialect fact, so `doctor` and the writer cannot disagree
+        // about which member this is.
+        registrationIdentity: identityFor(parsed, productServerName(parsed)),
         platform: options.platform ?? process.platform,
         kimiInputSchemaProfileSelected:
           registrationEnvironment?.ok === true &&
@@ -440,6 +447,7 @@ const registrationAligned = ({
   commandFacts,
   platform,
   kimiInputSchemaProfileSelected,
+  registrationIdentity,
 }: {
   readonly registration: ClientRegistration;
   readonly client: SetupClient;
@@ -447,10 +455,16 @@ const registrationAligned = ({
   readonly commandFacts: ClientRegistrationCommandFacts;
   readonly platform: NodeJS.Platform;
   readonly kimiInputSchemaProfileSelected: boolean;
+  /** §5 conjunct 2, decided by the same rule the resolver uses. */
+  readonly registrationIdentity: RegistrationIdentity;
 }): "aligned" | "stale" | "unknown" => {
   const { identity } = commandFacts;
   if (identity === "unknown") return "unknown";
   if (identity === "foreign") return "stale";
+  // A registration that would work is not the same as one that is current. An inherited install
+  // stays stale until it is migrated; reporting it aligned let `doctor` claim health for a file
+  // its own `setup` refused to touch.
+  if (registrationIdentity !== "current") return "stale";
   if (
     client.name === "grok_build" &&
     registration.startup_timeout_sec === undefined
