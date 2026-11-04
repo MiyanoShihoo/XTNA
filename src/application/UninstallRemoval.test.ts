@@ -86,4 +86,42 @@ describe("uninstall removal decision", () => {
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.nativeKeys).toEqual([]);
   });
+
+  // §4: the dialect can only drop the historical member by rewriting the file, which loses the
+  // comments. Setup refuses that file; uninstall must not take the path setup refuses.
+  it("refuses to remove a historical TOML member it cannot remove safely", () => {
+    const text = `# keep me\n[mcp_servers.rea]\ncommand = "rea"\nargs = ["mcp"]\n`;
+    const result = clientRegistrationRemoval(
+      parseClientConfiguration(text, "toml"),
+      text,
+      {
+        name: "codex",
+        format: "toml",
+        configPath: "/tmp/config.toml",
+      } as SetupClient,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe("dialect_cannot_remove");
+      expect(result.error.detail).toContain("by hand");
+      expect(result.error.detail).toContain("comments");
+    }
+  });
+
+  // A TOML document whose only member is the current one stays removable: the comment-preserving
+  // editor can delete that single table.
+  it("still removes a current-only TOML member", () => {
+    const text = `[mcp_servers.xtna]\ncommand = "xtna"\nargs = ["mcp"]\n`;
+    const result = clientRegistrationRemoval(
+      parseClientConfiguration(text, "toml"),
+      text,
+      {
+        name: "codex",
+        format: "toml",
+        configPath: "/tmp/config.toml",
+      } as SetupClient,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.nativeKeys).toEqual(["xtna"]);
+  });
 });

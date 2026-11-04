@@ -38,6 +38,7 @@ import {
   skillDestinationSelection,
 } from "./SetupSkill.js";
 import { dshDocument } from "./DshCordisPatch.js";
+import { dialectCanRemoveHistorical } from "./RegistrationDialectCapability.js";
 import { resolveClientConfigTransactionPath } from "./ClientConfigPath.js";
 import {
   preserveCurrentRecoveryBackup,
@@ -769,7 +770,10 @@ type RegistrationRemoval = {
   readonly legacyPath: readonly string[] | undefined;
 };
 type RegistrationRemovalRefusal = {
-  readonly kind: "shadowed_unowned_member" | "foreign_legacy_fallback";
+  readonly kind:
+    | "shadowed_unowned_member"
+    | "foreign_legacy_fallback"
+    | "dialect_cannot_remove";
   readonly detail: string;
   /** The owned rows that motivated removal; refusing the edit keeps them. */
   readonly owned: RegistrationRemoval;
@@ -808,6 +812,16 @@ export const clientRegistrationRemoval = (
     nativeKeys,
     legacyPath: removeLegacy ? legacyPath : undefined,
   };
+  if (
+    removeNative &&
+    nativeKeys.includes(LEGACY_MCP_SERVER_KEY) &&
+    !dialectCanRemoveHistorical(parsed)
+  )
+    return err({
+      kind: "dialect_cannot_remove",
+      detail: `The "${LEGACY_MCP_SERVER_KEY}" registration can only be removed by rewriting this ${client.format} file, which drops the comments you wrote. Nothing was changed. Remove that entry by hand, then rerun uninstall.`,
+      owned: ownership,
+    });
   if (removeNative || removeLegacy) {
     // A repeat shadowing any member this run deletes would become the effective one, so every
     // affected name is checked, not only the resolved one.
