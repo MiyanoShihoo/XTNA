@@ -965,3 +965,51 @@ describe("inherited identity is not health", () => {
     });
   });
 });
+
+/**
+ * Row 13 through the real entry point.
+ *
+ * Probe evidence: with two files in the OpenCode stack the reader returns both sources and the
+ * merged `servers` holds both members; the earlier fixture failed only because the V2 entry schema
+ * wants `type: "local"` and an array `command`, which the reader reported as `invalid`.
+ */
+describe("lower-layer members reach the diagnosis", () => {
+  const v2 = (key: string) =>
+    JSON.stringify({
+      mcp: {
+        servers: {
+          [key]: {
+            type: "local",
+            command: [...NPX_REGISTRATION_COMMAND],
+            enabled: true,
+          },
+        },
+      },
+    });
+
+  it("reports a lower-layer historical member as stale, not aligned", async () => {
+    const home = await createTestTempDirectory("rea-lower-layer-doctor-");
+    const directory = join(home, ".config/opencode");
+    await mkdir(directory, { recursive: true });
+    // `config.json` loads first, `opencode.json` later; the client's table merges both.
+    await writeFile(join(directory, "config.json"), v2("rea"));
+    await writeFile(join(directory, "opencode.json"), v2("xtna"));
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (item) => item.client === "opencode",
+    );
+    expect(status).toMatchObject({ state: "stale" });
+  });
+
+  it("stays aligned when only the current member is present", async () => {
+    const home = await createTestTempDirectory("rea-lower-layer-current-");
+    const directory = join(home, ".config/opencode");
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "opencode.json"), v2("xtna"));
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (item) => item.client === "opencode",
+    );
+    expect(status).toMatchObject({ state: "aligned" });
+  });
+});
