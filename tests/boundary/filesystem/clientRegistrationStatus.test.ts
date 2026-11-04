@@ -1110,3 +1110,55 @@ describe("a lower-layer-only member is not healthy", () => {
     expect(status).toMatchObject({ state: "stale" });
   });
 });
+
+/**
+ * Review 6c0959ae, item 6: OpenCode stores a member in two tables. When both hold the same key the
+ * record is a structural conflict (§1 D, row 10), not the one healthy member `entriesOf` used to
+ * collapse it into.
+ */
+describe("two storage locations for one key is a conflict", () => {
+  it("reports stale when V2 and V1 hold the same key", async () => {
+    const home = await createTestTempDirectory("rea-v1v2-mirror-");
+    const directory = join(home, ".config/opencode");
+    await mkdir(directory, { recursive: true });
+    const entry = {
+      type: "local",
+      command: [...NPX_REGISTRATION_COMMAND],
+      enabled: true,
+    };
+    await writeFile(
+      join(directory, "opencode.json"),
+      JSON.stringify({ mcp: { servers: { xtna: entry }, xtna: entry } }),
+    );
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (item) => item.client === "opencode",
+    );
+    expect(status).toMatchObject({ state: "stale" });
+  });
+
+  it("keeps a single-location member aligned", async () => {
+    const home = await createTestTempDirectory("rea-v2-only-");
+    const directory = join(home, ".config/opencode");
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      join(directory, "opencode.json"),
+      JSON.stringify({
+        mcp: {
+          servers: {
+            xtna: {
+              type: "local",
+              command: [...NPX_REGISTRATION_COMMAND],
+              enabled: true,
+            },
+          },
+        },
+      }),
+    );
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (item) => item.client === "opencode",
+    );
+    expect(status).toMatchObject({ state: "aligned" });
+  });
+});

@@ -302,7 +302,18 @@ export const resolveProductRegistration = (
   // Two different keys are a duplicate: across tiers (row 13) or repeated inside one document.
   // A cross-tier pair is two files, so the dialect's ability to express a *repeated* entry says
   // nothing about it and must not suppress the verdict (review C1).
+  // §1 D: the V1 and V2 tables are two storage locations for the same key, and `entriesOf` keeps one
+  // record. A document holding both is a structural conflict (row 10), not a silent override — that
+  // collapse was the false green an independent review found.
+  const mirroredInBothTiers = sources.some((source) =>
+    keysInOrder().some(
+      (key) =>
+        Object.hasOwn(source.document.servers, key) &&
+        Object.hasOwn(source.document.legacyServers, key),
+    ),
+  );
   const duplicate =
+    mirroredInBothTiers ||
     dshRepeats ||
     (distinctKeys.size > 1 &&
       (tiers.size > 1 ||
