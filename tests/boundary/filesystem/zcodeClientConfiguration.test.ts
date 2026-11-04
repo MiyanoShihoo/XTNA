@@ -486,7 +486,7 @@ describe("ZCode disabled registrations", () => {
       fallback,
       JSON.stringify({
         mcpServers: {
-          rea: { command: command[0], args: command.slice(1) },
+          xtna: { command: command[0], args: command.slice(1) },
         },
       }),
     );
@@ -570,7 +570,7 @@ describe("ZCode disabled registrations", () => {
       client.configPath,
       JSON.stringify({
         mcp: {
-          servers: { rea: { command: command[0], args: command.slice(1) } },
+          servers: { xtna: { command: command[0], args: command.slice(1) } },
         },
       }),
     );

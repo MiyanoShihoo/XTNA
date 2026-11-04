@@ -127,7 +127,7 @@ it.each(["win32", "linux"] as const)(
       path,
       JSON.stringify({
         mcpServers: {
-          rea: clientRegistrationEntry(
+          xtna: clientRegistrationEntry(
             "json",
             npxRegistrationCommand(platform),
             { rea_analysis_provider: "invalid provider" },
@@ -380,7 +380,7 @@ it.each([
       {
         ["__proto__"]: { caller: "retain root value" },
         [serversKey]: {
-          rea: clientRegistrationEntry(format, staleOwnedCommand, custom),
+          xtna: clientRegistrationEntry(format, staleOwnedCommand, custom),
           other: clientRegistrationEntry(format, ["other"], { OTHER: "keep" }),
           ["__proto__"]: clientRegistrationEntry(format, ["peer"], {}),
         },

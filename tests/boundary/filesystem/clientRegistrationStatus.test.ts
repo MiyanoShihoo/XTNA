@@ -276,7 +276,7 @@ describe("client registration launcher identity", () => {
       executable = process.execPath,
     ) => ({
       mcpServers: {
-        rea: { command: executable, args: [scriptPath, "mcp"] },
+        xtna: { command: executable, args: [scriptPath, "mcp"] },
       },
     });
     await writeFile(configPath, JSON.stringify(registration("./rea.mjs")));
