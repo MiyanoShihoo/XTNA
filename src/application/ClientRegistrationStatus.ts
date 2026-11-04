@@ -347,8 +347,6 @@ export const readClientRegistrationInspections = async (
       // the client would load: a member that lives only below the write target cannot be
       // repaired by setup, so calling it `aligned` is health for a file we cannot touch.
       const soleMemberIsWritable = effective[0]?.tier === "document";
-      // A structural conflict (row 10, duplicated entry id, V1+V2 mirror) is never healthy.
-      const structuralConflict = resolvedMembers.duplicate;
       const manualStructuralRemediation =
         memberCount > 1
           ? `Both "${PRODUCT_IDENTITY.mcpServerKey}" and "${LEGACY_MCP_SERVER_KEY}" registrations are present. Remove the one you do not want by hand, then rerun rea setup.${
@@ -370,7 +368,6 @@ export const readClientRegistrationInspections = async (
         registrationIdentity,
         memberCount,
         soleMemberIsWritable,
-        structuralConflict,
         platform: options.platform ?? process.platform,
         kimiInputSchemaProfileSelected:
           registrationEnvironment?.ok === true &&
@@ -503,7 +500,6 @@ const registrationAligned = ({
   registrationIdentity,
   memberCount,
   soleMemberIsWritable,
-  structuralConflict,
 }: {
   readonly registration: ClientRegistration;
   readonly client: SetupClient;
@@ -517,8 +513,6 @@ const registrationAligned = ({
   readonly memberCount: number;
   /** The single effective member lives in the file a write targets. */
   readonly soleMemberIsWritable: boolean;
-  /** Row 10 / dsh entry-id repeat / V1+V2 mirror: the record itself is unsafe. */
-  readonly structuralConflict: boolean;
 }): "aligned" | "stale" | "unknown" => {
   const { identity } = commandFacts;
   if (identity === "unknown") return "unknown";
@@ -527,7 +521,6 @@ const registrationAligned = ({
   // member's launcher says. Collapsing them through one resolved name was the false green.
   if (memberCount !== 1) return "stale";
   if (!soleMemberIsWritable) return "stale";
-  if (structuralConflict) return "stale";
   // A registration that would work is not the same as one that is current. An inherited install
   // stays stale until it is migrated; reporting it aligned let `doctor` claim health for a file
   // its own `setup` refused to touch.
