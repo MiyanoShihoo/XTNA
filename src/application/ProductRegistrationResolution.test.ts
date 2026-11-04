@@ -566,3 +566,39 @@ describe("harness entry identity", () => {
     expect(result.duplicate).toBe(false);
   });
 });
+
+/**
+ * §1 D storage locations (review a3036665). A member's evidence includes *where* it sits; the
+ * earlier model either dropped the V1 table entirely or copied the member into a second record.
+ * One logical member, several locations.
+ */
+describe("storage locations", () => {
+  it("records the native table for an ordinary member", () => {
+    const result = resolveProductRegistration(
+      [source(json({ [CURRENT]: { command: "node" } }))],
+      context("owned"),
+    );
+    expect(result.members).toHaveLength(1);
+    expect(result.members[0]?.locations).toEqual(["servers"]);
+  });
+
+  it("records both tables when the key sits in each, without inventing a member", () => {
+    const document = parseClientConfiguration(
+      JSON.stringify({
+        mcp: {
+          servers: { [CURRENT]: { type: "local", command: ["npx"] } },
+          [CURRENT]: { type: "local", command: ["npx"] },
+        },
+      }),
+      "opencode",
+    );
+    const result = resolveProductRegistration(
+      [source(document, "document", true, "/opencode.json")],
+      context("owned"),
+    );
+    expect(result.members).toHaveLength(1);
+    expect(result.members[0]?.locations).toEqual(["servers", "legacyServers"]);
+    // One key, so this is not the two-key duplicate of §3 row 10.
+    expect(result.duplicate).toBe(false);
+  });
+});

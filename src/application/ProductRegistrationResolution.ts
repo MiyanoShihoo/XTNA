@@ -13,6 +13,9 @@ import type { ClientConfigurationDocument } from "./ClientConfigurationDocument.
  */
 
 export type RegistrationIdentity = "current" | "legacy";
+
+/** Where a member physically sits inside one configuration document (§1 D). */
+export type RegistrationLocation = "servers" | "legacyServers";
 export type RegistrationTier = "document" | "lower-layer" | "read-only-source";
 export type RegistrationOwnership = "owned" | "foreign" | "unknown";
 /** Batch 1 does not evaluate policy; the field exists so the record is not widened later. */
@@ -53,6 +56,8 @@ export interface ProductRegistrationMember {
   readonly writable: boolean;
   readonly value: unknown;
   readonly ownership: RegistrationOwnership;
+  /** Every table in this document that carries the member. A V1/V2 pair yields two. */
+  readonly locations: readonly RegistrationLocation[];
   readonly policy: RegistrationPolicy;
   readonly sourcePath?: string;
 }
@@ -136,13 +141,22 @@ const keysInOrder = (): readonly string[] => [
 const entriesOf = (
   document: ClientConfigurationDocument,
   key: string,
-): readonly { readonly value: unknown }[] => {
-  const found: { value: unknown }[] = [];
-  if (Object.hasOwn(document.servers, key))
-    found.push({ value: document.servers[key] });
-  if (!found.length && Object.hasOwn(document.legacyServers, key))
-    found.push({ value: document.legacyServers[key] });
-  return found;
+): readonly {
+  readonly value: unknown;
+  readonly locations: readonly RegistrationLocation[];
+}[] => {
+  // One logical member per (document, key). A key that also appears in the V1 table is the same
+  // member stored in two places, not a second registration: `locations` records that, the count
+  // does not. §1 D names both tables; the earlier code kept only the native one and lost the fact.
+  const locations: RegistrationLocation[] = [];
+  if (Object.hasOwn(document.servers, key)) locations.push("servers");
+  if (Object.hasOwn(document.legacyServers, key))
+    locations.push("legacyServers");
+  if (locations.length === 0) return [];
+  const value = Object.hasOwn(document.servers, key)
+    ? document.servers[key]
+    : document.legacyServers[key];
+  return [{ value, locations }];
 };
 
 const rank = (member: ProductRegistrationMember): number => {
@@ -238,6 +252,7 @@ const collectRecords = (
             value: structuredClone(entry.value),
             // A name is evidence of nothing; the classifier decides, and may say unknown.
             ownership: context.classifyOwnership(entry.value, key),
+            locations: entry.locations,
             policy: "unknown",
             ...(source.sourcePath === undefined
               ? {}
