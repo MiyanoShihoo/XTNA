@@ -1074,3 +1074,39 @@ describe("same key across layers is one effective member", () => {
     expect(status).toMatchObject({ state: "stale" });
   });
 });
+
+/**
+ * §5 conjunct 1, the other half (review 6c0959ae): a member the client loads from a lower layer is
+ * not one this command can maintain. Reporting `aligned` there is health for a file setup cannot
+ * write — the resolver returns no `target` for it.
+ */
+describe("a lower-layer-only member is not healthy", () => {
+  it("reports stale when the current key exists only below the write target", async () => {
+    const home = await createTestTempDirectory("rea-lower-only-current-");
+    const directory = join(home, ".config/opencode");
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      join(directory, "config.json"),
+      JSON.stringify({
+        mcp: {
+          servers: {
+            xtna: {
+              type: "local",
+              command: [...NPX_REGISTRATION_COMMAND],
+              enabled: true,
+            },
+          },
+        },
+      }),
+    );
+    await writeFile(
+      join(directory, "opencode.json"),
+      JSON.stringify({ mcp: {} }),
+    );
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (item) => item.client === "opencode",
+    );
+    expect(status).toMatchObject({ state: "stale" });
+  });
+});

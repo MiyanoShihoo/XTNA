@@ -341,7 +341,12 @@ export const readClientRegistrationInspections = async (
       );
       // Effective registrations, not source records: a same-key lower layer is overridden, not a
       // second registration.
-      const memberCount = effectiveMembers(resolvedMembers).length;
+      const effective = effectiveMembers(resolvedMembers);
+      const memberCount = effective.length;
+      // §5 conjunct 1 is about the registration this command can maintain, not merely one that
+      // the client would load: a member that lives only below the write target cannot be
+      // repaired by setup, so calling it `aligned` is health for a file we cannot touch.
+      const soleMemberIsWritable = effective[0]?.tier === "document";
       const manualStructuralRemediation =
         memberCount > 1
           ? `Both "${PRODUCT_IDENTITY.mcpServerKey}" and "${LEGACY_MCP_SERVER_KEY}" registrations are present. Remove the one you do not want by hand, then rerun rea setup.${
@@ -362,6 +367,7 @@ export const readClientRegistrationInspections = async (
         // about which member this is.
         registrationIdentity,
         memberCount,
+        soleMemberIsWritable,
         platform: options.platform ?? process.platform,
         kimiInputSchemaProfileSelected:
           registrationEnvironment?.ok === true &&
@@ -493,6 +499,7 @@ const registrationAligned = ({
   kimiInputSchemaProfileSelected,
   registrationIdentity,
   memberCount,
+  soleMemberIsWritable,
 }: {
   readonly registration: ClientRegistration;
   readonly client: SetupClient;
@@ -504,6 +511,8 @@ const registrationAligned = ({
   readonly registrationIdentity: RegistrationIdentity;
   /** §5 conjunct 1: discovered members, counted by the resolver. */
   readonly memberCount: number;
+  /** The single effective member lives in the file a write targets. */
+  readonly soleMemberIsWritable: boolean;
 }): "aligned" | "stale" | "unknown" => {
   const { identity } = commandFacts;
   if (identity === "unknown") return "unknown";
@@ -511,6 +520,7 @@ const registrationAligned = ({
   // Two members is never healthy: rows 10/11/12/12b are `stale` by contract, whatever the current
   // member's launcher says. Collapsing them through one resolved name was the false green.
   if (memberCount !== 1) return "stale";
+  if (!soleMemberIsWritable) return "stale";
   // A registration that would work is not the same as one that is current. An inherited install
   // stays stale until it is migrated; reporting it aligned let `doctor` claim health for a file
   // its own `setup` refused to touch.
