@@ -445,7 +445,7 @@ describe("Kimi Code transport validation", () => {
       client.configPath,
       JSON.stringify({
         mcpServers: {
-          rea: {
+          xtna: {
             transport: "stdio",
             ...expectedRegistration(command),
           },
@@ -526,7 +526,7 @@ describe("Kimi Code timeout alignment", () => {
     };
     await writeFile(
       client.configPath,
-      JSON.stringify({ mcpServers: { rea: registration } }),
+      JSON.stringify({ mcpServers: { xtna: registration } }),
     );
     expect(
       (

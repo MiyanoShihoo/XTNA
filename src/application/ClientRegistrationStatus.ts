@@ -13,9 +13,14 @@ import { err, ok, type Result } from "../domain/result.js";
 
 import {
   identityFor,
+  resolveProductRegistration,
   type RegistrationIdentity,
 } from "./ProductRegistrationResolution.js";
-import { PRODUCT_IDENTITY } from "../identity.js";
+import {
+  dialectCanDetectDuplicate,
+  dialectCanRemoveHistorical,
+} from "./RegistrationDialectCapability.js";
+import { LEGACY_MCP_SERVER_KEY, PRODUCT_IDENTITY } from "../identity.js";
 import { snapshotEnvironment } from "../process/snapshotEnvironment.js";
 import { CURRENT_ENTRYPOINT_PATH } from "../process/CurrentEntrypointPath.js";
 import {
@@ -46,6 +51,7 @@ import type { ArtifactResourceScope } from "../artifacts/ArtifactResourceScope.j
 
 import {
   parseClientRegistration,
+  clientRegistrationOwnership,
   clientRegistrationOwnershipRemediation,
   setupPreservesDisabledActivation,
   type ClientRegistration,
@@ -307,10 +313,40 @@ export const readClientRegistrationInspections = async (
       );
       const packageReference = commandFacts.package?.reference;
       const activation = registrationActivation(registration, client, parsed);
+      // §5 conjunct 1: health is a property of the whole document, not of the one member
+      // `productServerName` happens to resolve. The member set comes from the shared resolver so
+      // doctor and the writer count the same way.
+      const resolvedMembers = resolveProductRegistration(
+        [{ document: parsed, tier: "document", writable: true }],
+        {
+          classifyOwnership: (value) =>
+            clientRegistrationOwnership(value, client),
+          duplicateDetectable: dialectCanDetectDuplicate,
+          dialectCanRemove: dialectCanRemoveHistorical,
+        },
+      );
       const packageVersion = commandFacts.package?.exactVersion;
       const packageVersionDrift =
         packageVersion !== undefined &&
         packageVersion !== PRODUCT_IDENTITY.packageVersion;
+      const registrationIdentity = identityFor(
+        parsed,
+        productServerName(parsed),
+      );
+      const memberCount = resolvedMembers.members.length;
+      // Rows 6/10 and any dialect that cannot remove: the generic "run setup" advice is a command
+      // that will refuse this file. Say what the user can actually do instead.
+      const manualStructuralRemediation =
+        memberCount > 1
+          ? `Both "${PRODUCT_IDENTITY.mcpServerKey}" and "${LEGACY_MCP_SERVER_KEY}" registrations are present. Remove the one you do not want by hand, then rerun rea setup.${
+              dialectCanRemoveHistorical(parsed)
+                ? ""
+                : ` This file format cannot be rewritten without losing the comments you wrote, so setup will not do it for you.`
+            }`
+          : registrationIdentity !== "current" &&
+              !dialectCanRemoveHistorical(parsed)
+            ? `This registration is stored under the historical name "${LEGACY_MCP_SERVER_KEY}". ${client.format} cannot be rewritten without losing the comments you wrote, so setup will not migrate it. Remove that entry by hand, then rerun rea setup.`
+            : undefined;
       const alignment = registrationAligned({
         registration,
         client: effectiveClient,
@@ -318,7 +354,8 @@ export const readClientRegistrationInspections = async (
         commandFacts,
         // §1 D, asked once: identity is a dialect fact, so `doctor` and the writer cannot disagree
         // about which member this is.
-        registrationIdentity: identityFor(parsed, productServerName(parsed)),
+        registrationIdentity,
+        memberCount,
         platform: options.platform ?? process.platform,
         kimiInputSchemaProfileSelected:
           registrationEnvironment?.ok === true &&
@@ -352,6 +389,7 @@ export const readClientRegistrationInspections = async (
               : alignment === "unknown"
                 ? unknownEntryPointRemediation()
                 : undefined) ??
+            manualStructuralRemediation ??
             // Only a target whose setup preserves the flag is a manual
             // conflict; a native row (for example ZCode's own storage) is
             // still repaired by its setup run below.
@@ -448,6 +486,7 @@ const registrationAligned = ({
   platform,
   kimiInputSchemaProfileSelected,
   registrationIdentity,
+  memberCount,
 }: {
   readonly registration: ClientRegistration;
   readonly client: SetupClient;
@@ -457,10 +496,15 @@ const registrationAligned = ({
   readonly kimiInputSchemaProfileSelected: boolean;
   /** §5 conjunct 2, decided by the same rule the resolver uses. */
   readonly registrationIdentity: RegistrationIdentity;
+  /** §5 conjunct 1: discovered members, counted by the resolver. */
+  readonly memberCount: number;
 }): "aligned" | "stale" | "unknown" => {
   const { identity } = commandFacts;
   if (identity === "unknown") return "unknown";
   if (identity === "foreign") return "stale";
+  // Two members is never healthy: rows 10/11/12/12b are `stale` by contract, whatever the current
+  // member's launcher says. Collapsing them through one resolved name was the false green.
+  if (memberCount !== 1) return "stale";
   // A registration that would work is not the same as one that is current. An inherited install
   // stays stale until it is migrated; reporting it aligned let `doctor` claim health for a file
   // its own `setup` refused to touch.

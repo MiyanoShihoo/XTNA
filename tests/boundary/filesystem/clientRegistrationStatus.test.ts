@@ -932,4 +932,36 @@ describe("inherited identity is not health", () => {
       ).toMatchObject({ state });
     },
   );
+
+  // §3 row 6 for a dialect that cannot migrate: the diagnosis may be `stale`, but the advice must
+  // be executable. It used to say "run setup" for a file setup refuses.
+  it("tells the user to remove a TOML historical entry by hand", async () => {
+    const home = await createTestTempDirectory("rea-toml-manual-advice-");
+    await mkdir(join(home, ".codex"));
+    await writeFile(join(home, ".codex/config.toml"), codexWith("rea").text);
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (entry) => entry.client === "codex",
+    );
+    expect(status).toMatchObject({ state: "stale" });
+    expect(status?.remediation).toContain("by hand");
+    expect(status?.remediation).toContain("comments");
+  });
+
+  // §5 conjunct 1 and §3 row 10: two members is never healthy, however good the current one is.
+  // Doctor collapsed both keys through `productServerName` and reported the pair aligned.
+  it("refuses to call a dual-member document healthy", async () => {
+    const home = await createTestTempDirectory("rea-dual-member-health-");
+    await mkdir(join(home, ".codex"));
+    const { text } = codexWith("xtna");
+    await writeFile(
+      join(home, ".codex/config.toml"),
+      `${text}\n${codexWith("rea").text}`,
+    );
+
+    const statuses = await readClientRegistrationStatuses(home);
+    expect(statuses.find((status) => status.client === "codex")).toMatchObject({
+      state: "stale",
+    });
+  });
 });
