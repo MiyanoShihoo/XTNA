@@ -1013,3 +1013,64 @@ describe("lower-layer members reach the diagnosis", () => {
     expect(status).toMatchObject({ state: "aligned" });
   });
 });
+
+/**
+ * A same-key lower layer is an override, not a second registration.
+ *
+ * Probe evidence: the reader merges `config.json` into `opencode.json` and the later file wins for
+ * the same key, so the client loads one member. Counting source records made that look like a
+ * conflict and reported `stale` for a configuration the client treats as healthy.
+ */
+describe("same key across layers is one effective member", () => {
+  const v2 = () =>
+    JSON.stringify({
+      mcp: {
+        servers: {
+          xtna: {
+            type: "local",
+            command: [...NPX_REGISTRATION_COMMAND],
+            enabled: true,
+          },
+        },
+      },
+    });
+
+  it("stays aligned when a later file overrides the same key", async () => {
+    const home = await createTestTempDirectory("rea-same-key-doctor-");
+    const directory = join(home, ".config/opencode");
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "config.json"), v2());
+    await writeFile(join(directory, "opencode.json"), v2());
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (item) => item.client === "opencode",
+    );
+    expect(status).toMatchObject({ state: "aligned" });
+  });
+
+  it("still reports two distinct keys as stale", async () => {
+    const home = await createTestTempDirectory("rea-two-keys-doctor-");
+    const directory = join(home, ".config/opencode");
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "config.json"), v2());
+    await writeFile(
+      join(directory, "opencode.json"),
+      JSON.stringify({
+        mcp: {
+          servers: {
+            rea: {
+              type: "local",
+              command: [...NPX_REGISTRATION_COMMAND],
+              enabled: true,
+            },
+          },
+        },
+      }),
+    );
+
+    const status = (await readClientRegistrationStatuses(home)).find(
+      (item) => item.client === "opencode",
+    );
+    expect(status).toMatchObject({ state: "stale" });
+  });
+});

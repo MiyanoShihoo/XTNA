@@ -249,6 +249,26 @@ const collectRecords = (
   return records;
 };
 
+/**
+ * §5 conjunct 1 asks for *effective* registrations, not source records.
+ *
+ * A higher tier shadows a lower one that carries the same key: the client loads one member and the
+ * other is evidence of where it used to come from. Two *different* keys are two registrations and
+ * both take effect. Counting source records instead made a legitimate override look like a
+ * conflict.
+ */
+export const effectiveMembers = (
+  registration: ProductRegistration,
+): readonly ProductRegistrationMember[] => {
+  const documentKeys = new Set(
+    registration.members
+      .filter((member) => member.tier === "document")
+      .map((member) => member.key),
+  );
+  return registration.members.filter(
+    (member) => member.tier === "document" || !documentKeys.has(member.key),
+  );
+};
 export const resolveProductRegistration = (
   sources: readonly ProductRegistrationSource[],
   context: ProductRegistrationContext,

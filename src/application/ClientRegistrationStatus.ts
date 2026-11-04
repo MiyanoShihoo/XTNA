@@ -12,6 +12,7 @@ import { lstat, stat } from "node:fs/promises";
 import { err, ok, type Result } from "../domain/result.js";
 
 import {
+  effectiveMembers,
   identityFor,
   resolveProductRegistration,
   type RegistrationIdentity,
@@ -338,9 +339,9 @@ export const readClientRegistrationInspections = async (
         parsed,
         productServerName(parsed),
       );
-      const memberCount = resolvedMembers.members.length;
-      // Rows 6/10 and any dialect that cannot remove: the generic "run setup" advice is a command
-      // that will refuse this file. Say what the user can actually do instead.
+      // Effective registrations, not source records: a same-key lower layer is overridden, not a
+      // second registration.
+      const memberCount = effectiveMembers(resolvedMembers).length;
       const manualStructuralRemediation =
         memberCount > 1
           ? `Both "${PRODUCT_IDENTITY.mcpServerKey}" and "${LEGACY_MCP_SERVER_KEY}" registrations are present. Remove the one you do not want by hand, then rerun rea setup.${
