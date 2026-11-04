@@ -140,7 +140,9 @@ const entriesOf = (
   const found: { value: unknown }[] = [];
   if (Object.hasOwn(document.servers, key))
     found.push({ value: document.servers[key] });
-  if (!found.length && Object.hasOwn(document.legacyServers, key))
+  // §1 D names both tables as storage locations. Keeping only the native record hid the V1 one
+  // entirely, so a document holding the same key in both places had no evidence of the second.
+  if (Object.hasOwn(document.legacyServers, key))
     found.push({ value: document.legacyServers[key] });
   return found;
 };
