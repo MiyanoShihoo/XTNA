@@ -16,6 +16,7 @@ import {
   resolveProductRegistration,
   type RegistrationIdentity,
 } from "./ProductRegistrationResolution.js";
+import { toRegistrationSources } from "./ProductRegistrationSources.js";
 import {
   dialectCanDetectDuplicate,
   dialectCanRemoveHistorical,
@@ -212,7 +213,11 @@ export const readClientRegistrationInspections = async (
         });
         continue;
       }
-      const { document: parsed, configPath } = configuration.value;
+      const {
+        document: parsed,
+        configPath,
+        sources: stackSources,
+      } = configuration.value;
       selectedConfigPath = configPath;
       if (parsed === undefined) {
         record(unavailableStatus(client, "missing", configPath));
@@ -313,11 +318,11 @@ export const readClientRegistrationInspections = async (
       );
       const packageReference = commandFacts.package?.reference;
       const activation = registrationActivation(registration, client, parsed);
-      // §5 conjunct 1: health is a property of the whole document, not of the one member
-      // `productServerName` happens to resolve. The member set comes from the shared resolver so
-      // doctor and the writer count the same way.
+      // §5 conjunct 1: health is a property of the whole stack, not of the one member
+      // `productServerName` happens to resolve. The member set comes from the same reader pass —
+      // a lower-layer historical member is a member, and the effective document cannot see it.
       const resolvedMembers = resolveProductRegistration(
-        [{ document: parsed, tier: "document", writable: true }],
+        toRegistrationSources(stackSources, { targetPath: configPath }),
         {
           classifyOwnership: (value) =>
             clientRegistrationOwnership(value, client),

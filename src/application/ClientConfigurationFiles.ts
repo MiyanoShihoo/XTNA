@@ -243,6 +243,7 @@ export const readEffectiveClientRegistrationConfiguration = async (
     {
       readonly document: ClientConfigurationDocument | undefined;
       readonly configPath: string;
+      readonly sources: readonly ClientConfigurationSource[];
     },
     ClientConfigurationFileError
   >
@@ -265,7 +266,11 @@ export const readEffectiveClientRegistrationConfiguration = async (
     (nativeDocument !== undefined &&
       Object.keys(nativeDocument.servers).length > 0)
   )
-    return ok({ document: nativeDocument, configPath: client.configPath });
+    return ok({
+      document: nativeDocument,
+      configPath: client.configPath,
+      sources: nativeSources.value,
+    });
 
   const fallbackClient: SetupClient = {
     ...client,
@@ -286,7 +291,15 @@ export const readEffectiveClientRegistrationConfiguration = async (
   );
   return ok(
     fallbackDocument === undefined
-      ? { document: nativeDocument, configPath: client.configPath }
-      : { document: fallbackDocument, configPath: fallbackPath },
+      ? {
+          document: nativeDocument,
+          configPath: client.configPath,
+          sources: nativeSources.value,
+        }
+      : {
+          document: fallbackDocument,
+          configPath: fallbackPath,
+          sources: fallbackSources.value,
+        },
   );
 };
