@@ -14,7 +14,12 @@ import { cliTest } from "../../support/cli/cliFixture.js";
  * One OpenCode document holding this product in both storage locations:
  * `mcp.<key>` is the V1 table OpenCode still loads, `mcp.servers.<key>` is the
  * native V2 table this setup writes. Every case drives the real `setup` entry
- * point; none of them calls the ownership predicate directly.
+ * point.
+ *
+ * These cases cover the *planning* gate: a document the planner refuses never
+ * reaches the write path. The guard on the write path itself, which is what
+ * actually removes a V1 member, is proven separately in
+ * `tests/boundary/filesystem/setupOwnershipWriteSite.test.ts`.
  */
 const opencodeDocument = (
   legacy: Record<string, unknown>,
@@ -75,6 +80,14 @@ const prepareHome = async (text: string): Promise<string> => {
   return home;
 };
 
+/** The configuration directory must hold exactly the named files. */
+const expectConfigurationDirectory = async (
+  config: string,
+  names: readonly string[],
+): Promise<void> => {
+  expect((await readdir(dirname(config))).sort()).toEqual([...names].sort());
+};
+
 cliTest(
   "OpenCode setup blocks a dual-table document whose V1 member is foreign",
   async ({ cli }) => {
@@ -85,18 +98,12 @@ cliTest(
     expect(result.exitCode, result.stdout).toBe(1);
     expect(result.json).toMatchObject({
       status: "needs_human",
-      plannedActions: [],
       appliedActions: [],
       remediation: expect.stringContaining("foreign ownership"),
     });
     // The foreign V1 member is untouched and the owned V2 member is not partially written.
-    expect(await readFile(config, "utf8")).toBe(original);
-    await expect(
-      readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
-    ).rejects.toMatchObject({ code: "ENOENT" });
-    expect(
-      (await readdir(home)).filter((name) => name.includes(".recovery")),
-    ).toEqual([]);
+    expect((await readFile(config)).equals(Buffer.from(original))).toBe(true);
+    await expectConfigurationDirectory(config, ["opencode.json"]);
   },
 );
 
@@ -110,14 +117,11 @@ cliTest(
     expect(result.exitCode, result.stdout).toBe(1);
     expect(result.json).toMatchObject({
       status: "needs_human",
-      plannedActions: [],
       appliedActions: [],
       remediation: expect.stringContaining("unknown ownership"),
     });
-    expect(await readFile(config, "utf8")).toBe(original);
-    await expect(
-      readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`),
-    ).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await readFile(config)).equals(Buffer.from(original))).toBe(true);
+    await expectConfigurationDirectory(config, ["opencode.json"]);
   },
 );
 
@@ -128,29 +132,43 @@ cliTest(
     const home = await prepareHome(original);
     const { config, result } = await opencodeRun(cli, home, opencodeSetup);
 
-    // Two storage locations both proven owned is an admission decision only: the
-    // remaining write gates still decide the outcome, so only the ownership
-    // refusal must be absent here.
-    const status = expectSetupContract(result);
-    expect(status).not.toBe("failed");
+    // Two owned storage locations is an admission decision only: the remaining
+    // write gates still decide the outcome, so only the ownership refusal must
+    // be absent here.
+    expectSetupContract(result);
     const remediation = (result.json as { remediation?: unknown }).remediation;
-    const remediationText = typeof remediation === "string" ? remediation : "";
-    expect(remediationText).not.toContain("ownership");
-    expect(result.json).toMatchObject({ plannedActions: expect.any(Array) });
+    expect(typeof remediation === "string" ? remediation : "").not.toContain(
+      "ownership",
+    );
+    expect(result.json).toMatchObject({
+      appliedActions: expect.arrayContaining([`configured_opencode`]),
+    });
 
-    // The owned V1 member is retired and the native V2 member carries the current
-    // launcher; the document keeps its V2 table rather than gaining a duplicate.
+    // The owned V1 member is retired and the native V2 member carries a launcher
+    // OpenCode will load; the document keeps its V2 table rather than gaining a
+    // duplicate.
     const document = JSON.parse(await readFile(config, "utf8")) as {
       mcp: Record<string, unknown>;
     };
     expect(document.mcp).not.toHaveProperty(EXPECTED_MCP_KEY);
     const native = document.mcp.servers as Record<string, unknown>;
-    const nativeEntry = native[EXPECTED_MCP_KEY] as { command?: unknown };
+    const nativeEntry = native[EXPECTED_MCP_KEY] as {
+      type?: unknown;
+      disabled?: unknown;
+      command?: unknown;
+    };
+    expect(nativeEntry).toMatchObject({ type: "local", disabled: false });
     expect(Array.isArray(nativeEntry.command)).toBe(true);
     expect(nativeEntry.command).not.toEqual(ownedEntry.command);
     // A write happened, so the pre-edit document survives as the backup.
     expect(
-      await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
-    ).toBe(original);
+      (await readFile(`${config}.${EXPECTED_BACKUP_SUFFIX}.backup`)).equals(
+        Buffer.from(original),
+      ),
+    ).toBe(true);
+    await expectConfigurationDirectory(config, [
+      "opencode.json",
+      `opencode.json.${EXPECTED_BACKUP_SUFFIX}.backup`,
+    ]);
   },
 );
