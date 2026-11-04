@@ -1,4 +1,5 @@
 import { PRODUCT_IDENTITY } from "../identity.js";
+import { effectiveMembers } from "./ProductRegistrationResolution.js";
 import type {
   OwnedWritableMember,
   ProductRegistration,
@@ -55,11 +56,16 @@ const migrationBlocked = (): RegistrationActionPlan => ({
   policyEdits: [],
 });
 
+// Decisions are about registrations the client actually loads, not about source records. A
+// cross-file same-key override is one effective member; reading raw `members` saw two and refused
+// a document doctor calls aligned.
 const membersOf = (
   registration: ProductRegistration,
   identity: "current" | "legacy",
 ): readonly ProductRegistrationMember[] =>
-  registration.members.filter((member) => member.identity === identity);
+  effectiveMembers(registration).filter(
+    (member) => member.identity === identity,
+  );
 
 const only = (
   members: readonly ProductRegistrationMember[],
