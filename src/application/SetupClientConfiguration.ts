@@ -250,8 +250,8 @@ const configureClientDocument = async (
     if (historicalBlocker !== undefined)
       return {
         status: "failed",
-        reason: "historical_identity",
-        detail: historicalBlocker,
+        reason: historicalBlocker.reason,
+        detail: historicalBlocker.detail,
       };
     const policy = await readClientPolicyBlock(
       client,
@@ -685,6 +685,12 @@ const inspectClientDocument = async (
           : registrationOwnershipBlocker(client, inherited, "", files.value);
       if (ownershipBlocker !== undefined)
         return { status: "invalid", remediation: ownershipBlocker };
+      const inheritedHistorical =
+        inherited === undefined
+          ? undefined
+          : historicalIdentityBlocker(client, inherited, files.value);
+      if (inheritedHistorical !== undefined)
+        return { status: "invalid", remediation: inheritedHistorical.detail };
       // This read establishes absence; do not reuse an earlier user-file policy.
       const policy = await readClientPolicyBlock(
         client,
@@ -733,6 +739,13 @@ const inspectClientDocument = async (
     );
     if (ownershipBlocker !== undefined)
       return { status: "invalid", remediation: ownershipBlocker };
+    const historicalBlocker = historicalIdentityBlocker(
+      client,
+      parsed,
+      files.value,
+    );
+    if (historicalBlocker !== undefined)
+      return { status: "invalid", remediation: historicalBlocker.detail };
     const desired = await clientConfigurationDesired(
       client,
       providerEnvironment,
@@ -858,43 +871,63 @@ const registrationOwnershipBlocker = (
  * would still be loaded after the write; it introduces no second notion of
  * identity and defers to the same document the ownership admission reads.
  */
+type HistoricalIdentityBlocker = {
+  readonly reason: "registration_ownership" | "historical_identity";
+  readonly detail: string;
+};
+
 const historicalIdentityBlocker = (
   client: SetupClient,
   parsed: ClientConfigurationDocument,
   sources: readonly ClientConfigurationSource[] = [],
-): string | undefined => {
+): HistoricalIdentityBlocker | undefined => {
   // The Harness stores one Cordis entry per document under its stable entry id.
   if (parsed.dialect === "dsh") return undefined;
-  // A member the client does not load is not a second registration: an
-  // activation flag or a dialect disable list already answers that question.
-  const loaded = (document: ClientConfigurationDocument): boolean => {
-    if (
-      !Object.hasOwn(document.servers, LEGACY_MCP_SERVER_KEY) &&
-      !Object.hasOwn(document.legacyServers, LEGACY_MCP_SERVER_KEY)
-    )
-      return false;
-    if (clientServerListedDisabled(document, LEGACY_MCP_SERVER_KEY))
-      return false;
-    const member = effectiveClientServer(document, LEGACY_MCP_SERVER_KEY);
-    return !(
-      typeof member === "object" &&
-      member !== null &&
-      !Array.isArray(member) &&
-      (member as { disabled?: unknown }).disabled === true
-    );
-  };
-  // Only sources this transaction does not rewrite survive it. The write target
-  // is excluded: its own historical member in the native table is retired by
-  // the same write, so counting it would refuse a migration that works.
-  const survives =
-    loaded(parsed) && Object.hasOwn(parsed.legacyServers, LEGACY_MCP_SERVER_KEY)
-      ? true
-      : sources.some(
-          (source) => source.sourcePath !== client.configPath && loaded(source),
-        );
-  if (!survives) return undefined;
   const paths = client.configPaths ?? [client.configPath];
-  return `The configuration read from ${paths.join(", ")} also registers this product under its earlier key "${LEGACY_MCP_SERVER_KEY}". This setup cannot remove that registration safely, so it would leave two registrations of the same product for the client to load at once. No configuration file was changed. Rename or remove the "${LEGACY_MCP_SERVER_KEY}" registration by hand, then rerun setup.`;
+  // A member the client does not load is not a second registration. A V1 table
+  // spells activation `enabled`, a native V2 entry spells it `disabled`.
+  const loads = (
+    document: ClientConfigurationDocument,
+    fromLegacyTable: boolean,
+  ): unknown => {
+    const member = fromLegacyTable
+      ? document.legacyServers[LEGACY_MCP_SERVER_KEY]
+      : document.servers[LEGACY_MCP_SERVER_KEY];
+    const present = fromLegacyTable
+      ? Object.hasOwn(document.legacyServers, LEGACY_MCP_SERVER_KEY)
+      : Object.hasOwn(document.servers, LEGACY_MCP_SERVER_KEY);
+    if (!present || member === null || member === undefined) return undefined;
+    if (clientServerListedDisabled(document, LEGACY_MCP_SERVER_KEY))
+      return undefined;
+    if (typeof member === "object" && !Array.isArray(member)) {
+      const entry = member as { disabled?: unknown; enabled?: unknown };
+      if (entry.disabled === true) return undefined;
+      if (fromLegacyTable && entry.enabled === false) return undefined;
+    }
+    return member;
+  };
+  // The write target's own V1 member is never removed, so it always survives.
+  // Its native member is retired by the same transaction, so it never reaches
+  // this question. Any other source is outside the transaction entirely.
+  const surviving =
+    loads(parsed, true) ??
+    sources
+      .filter(({ sourcePath }) => sourcePath !== client.configPath)
+      .map((source) => loads(source, true) ?? loads(source, false))
+      .find((member) => member !== undefined);
+  if (surviving === undefined) return undefined;
+  // Ownership comes first: a registration this product does not own is the
+  // existing refusal's subject, not a historical-identity one.
+  const ownership = clientRegistrationOwnership(surviving, client);
+  if (ownership !== "owned")
+    return {
+      reason: "registration_ownership",
+      detail: clientRegistrationOwnershipRemediation(ownership, paths),
+    };
+  return {
+    reason: "historical_identity",
+    detail: `The configuration read from ${paths.join(", ")} also registers this product under its earlier key "${LEGACY_MCP_SERVER_KEY}". This setup cannot remove that registration safely, so it would leave two registrations of the same product for the client to load at once. No configuration file was changed. Rename or remove the "${LEGACY_MCP_SERVER_KEY}" registration by hand, then rerun setup.`,
+  };
 };
 
 /**

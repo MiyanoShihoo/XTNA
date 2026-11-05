@@ -101,10 +101,6 @@ describe("setup write path historical identity guard", () => {
       "only a V1 historical member, when setup would add the current one",
       { mcp: { servers: {}, rea: { type: "local", command: ["rea", "mcp"] } } },
     ],
-    [
-      "a foreign V1 historical member",
-      { mcp: { servers: {}, rea: { type: "local", command: ["other"] } } },
-    ],
   ] as const;
 
   for (const [name, document] of cases)
@@ -123,12 +119,35 @@ describe("setup write path historical identity guard", () => {
         result.status === "failed" && result.reason === "historical_identity"
           ? result.detail
           : "";
-      // States the coexistence and points at the historical key; it must not
-      // describe two storage locations for one identity as a conflict.
-      expect(detail).toContain("rea");
+      // Names the historical key; it must not describe two storage locations for
+      // one identity as a conflict.
+      expect(detail).toContain(`"${"rea"}"`);
       expect(detail.toLowerCase()).not.toContain("conflict");
       await expectUntouched(client.configPath, original);
     });
+
+  // Ownership is decided first: a historical registration this product does not
+  // own is the existing ownership refusal's subject, not a coexistence one.
+  it("refuses a foreign V1 historical member as an ownership refusal", async () => {
+    const client = await openCodeClient("rea-setup-legacy-foreign-");
+    const original = JSON.stringify({
+      mcp: { servers: {}, rea: { type: "local", command: ["other"] } },
+    });
+    await writeFile(client.configPath, original);
+
+    const result = await configureClientConfiguration(client, {}, command);
+
+    expect(result).toMatchObject({
+      status: "failed",
+      reason: "registration_ownership",
+    });
+    expect(
+      result.status === "failed" && result.reason === "registration_ownership"
+        ? result.detail
+        : "",
+    ).toContain("foreign ownership");
+    await expectUntouched(client.configPath, original);
+  });
 
   it("still configures a document holding one identity in both storage locations", async () => {
     const client = await openCodeClient("rea-setup-same-identity-");
@@ -167,5 +186,70 @@ describe("setup write path historical identity guard", () => {
       (await configureClientConfiguration(client, {}, command)).status,
     ).toBe("unchanged");
     await expectUntouched(client.configPath, original);
+  });
+
+  // A native historical member is the one case the write retires itself, so the
+  // guard must not refuse it: the migration that works has to stay available.
+  it("migrates a native historical member instead of refusing it", async () => {
+    const client = await openCodeClient("rea-setup-native-legacy-");
+    await writeFile(
+      client.configPath,
+      JSON.stringify({
+        mcp: { servers: { rea: { type: "local", command: ["rea", "mcp"] } } },
+      }),
+    );
+
+    expect(
+      (await configureClientConfiguration(client, {}, command)).status,
+    ).toBe("configured");
+    const document = JSON.parse(await readFile(client.configPath, "utf8")) as {
+      mcp: { servers: Record<string, unknown> };
+    };
+    expect(document.mcp.servers).not.toHaveProperty("rea");
+    expect(document.mcp.servers.xtna).toMatchObject({ type: "local" });
+  });
+
+  // A member the client does not load is not a second registration.
+  it("does not refuse a historical member the client is told not to load", async () => {
+    const client = await openCodeClient("rea-setup-legacy-disabled-");
+    const original = JSON.stringify({
+      mcp: {
+        rea: { type: "local", command: ["rea", "mcp"], enabled: false },
+        servers: {},
+      },
+    });
+    await writeFile(client.configPath, original);
+
+    expect(
+      (await configureClientConfiguration(client, {}, command)).status,
+    ).toBe("configured");
+  });
+
+  // The fallback table is merged into the write after the layers are read, so it
+  // needs its own admission before any byte is written.
+  it("refuses a historical member that lives only in the ZCode fallback", async () => {
+    const home = await createTestTempDirectory("rea-setup-zcode-fallback-");
+    const client = supportedClients(home).find(({ name }) => name === "zcode");
+    if (client === undefined) throw new Error("missing ZCode client");
+    const fallbackPath = client.zcodeFallbackPath;
+    if (fallbackPath === undefined) throw new Error("missing ZCode fallback");
+    await mkdir(dirname(fallbackPath), { recursive: true });
+    const fallback = JSON.stringify({
+      mcpServers: { rea: { command: "rea", args: ["mcp"] } },
+    });
+    await writeFile(fallbackPath, fallback);
+
+    const result = await configureClientConfiguration(client, {}, command);
+
+    expect(result).toMatchObject({
+      status: "failed",
+      reason: "historical_identity",
+    });
+    expect((await readFile(fallbackPath)).equals(Buffer.from(fallback))).toBe(
+      true,
+    );
+    await expect(readFile(client.configPath, "utf8")).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 });
