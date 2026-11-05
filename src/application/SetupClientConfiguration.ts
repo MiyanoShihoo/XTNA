@@ -175,6 +175,7 @@ export const configureClientConfiguration = async (
   }
 };
 
+// oxlint-disable-next-line max-lines-per-function -- One transaction: read, admit, decide, write and verify. Splitting it would separate the admission order from the write it protects.
 const configureClientDocument = async (
   {
     client,
@@ -293,8 +294,8 @@ const configureClientDocument = async (
   if (fallbackBlocker !== undefined)
     return {
       status: "failed",
-      reason: "historical_identity",
-      detail: fallbackBlocker,
+      reason: fallbackBlocker.reason,
+      detail: fallbackBlocker.detail,
     };
   const desired = await clientConfigurationDesired(
     client,
@@ -626,6 +627,7 @@ export const inspectClientConfiguration = async (
     : { status: "invalid", remediation: blocker };
 };
 
+// oxlint-disable-next-line max-lines-per-function -- One inspection: read, admit, decide and plan. The admission order is the point, so it is kept beside the decision it produces.
 const inspectClientDocument = async (
   client: SetupClient,
   providerEnvironment: SetupProviderEnvironment,
@@ -719,6 +721,9 @@ const inspectClientDocument = async (
           throwCleanupFailure(fallback.error);
         return { status: "invalid", remediation: fallback.error.detail };
       }
+      const fallbackBlocker = fallbackHistoricalBlocker(client, fallback.value);
+      if (fallbackBlocker !== undefined)
+        return { status: "invalid", remediation: fallbackBlocker.detail };
       return { status: "create" };
     }
     return {
@@ -764,14 +769,19 @@ const inspectClientDocument = async (
     }
     if (policy.value !== undefined)
       return { status: "invalid", remediation: policy.value };
-    if (registrationCurrent(parsed, desired))
-      return { status: "already_current" };
     const fallback = await readZcodeFallbackServers(client, parsed);
     if (!fallback.ok) {
       if (fallback.error.kind !== "registration_ownership")
         throwCleanupFailure(fallback.error);
       return { status: "invalid", remediation: fallback.error.detail };
     }
+    // The fallback is merged into the write, so a historical member living only
+    // there must refuse the plan before an already-current document hides it.
+    const fallbackBlocker = fallbackHistoricalBlocker(client, fallback.value);
+    if (fallbackBlocker !== undefined)
+      return { status: "invalid", remediation: fallbackBlocker.detail };
+    if (registrationCurrent(parsed, desired))
+      return { status: "already_current" };
   } catch (cause: unknown) {
     if (
       cause instanceof RegularFileCleanupFailure ||
@@ -901,16 +911,22 @@ const historicalIdentityBlocker = (
       return undefined;
     if (typeof member === "object" && !Array.isArray(member)) {
       const entry = member as { disabled?: unknown; enabled?: unknown };
-      if (entry.disabled === true) return undefined;
-      if (fromLegacyTable && entry.enabled === false) return undefined;
+      // Each table spells activation its own way: a V1 entry carries `enabled`,
+      // a native entry carries `disabled`. Honouring the other field would read
+      // a live registration as absent.
+      if (fromLegacyTable ? entry.enabled === false : entry.disabled === true)
+        return undefined;
     }
     return member;
   };
   // The write target's own V1 member is never removed, so it always survives.
-  // Its native member is retired by the same transaction, so it never reaches
-  // this question. Any other source is outside the transaction entirely.
+  // Its native member is retired by the same transaction — but only where the
+  // serializer can express that removal: the Hermes path upserts the current
+  // entry and leaves every other table in place.
+  const retiresNativeMember = parsed.dialect !== "hermes";
   const surviving =
     loads(parsed, true) ??
+    (retiresNativeMember ? undefined : loads(parsed, false)) ??
     sources
       .filter(({ sourcePath }) => sourcePath !== client.configPath)
       .map((source) => loads(source, true) ?? loads(source, false))
@@ -922,7 +938,11 @@ const historicalIdentityBlocker = (
   if (ownership !== "owned")
     return {
       reason: "registration_ownership",
-      detail: clientRegistrationOwnershipRemediation(ownership, paths),
+      detail: clientRegistrationOwnershipRemediation(
+        ownership,
+        paths,
+        LEGACY_MCP_SERVER_KEY,
+      ),
     };
   return {
     reason: "historical_identity",
@@ -932,15 +952,37 @@ const historicalIdentityBlocker = (
 
 /**
  * The same question for the ZCode fallback table, which is merged into the write
- * only after the layer sources are read.
+ * only after the layer sources are read. A member the client does not load is not
+ * a registration, and ownership decides before coexistence here too.
  */
 const fallbackHistoricalBlocker = (
   client: SetupClient,
   fallbackServers: Readonly<Record<string, unknown>>,
-): string | undefined => {
+): HistoricalIdentityBlocker | undefined => {
+  const member = fallbackServers[LEGACY_MCP_SERVER_KEY];
   if (!Object.hasOwn(fallbackServers, LEGACY_MCP_SERVER_KEY)) return undefined;
+  if (member === null || member === undefined) return undefined;
+  if (
+    typeof member === "object" &&
+    !Array.isArray(member) &&
+    (member as { disabled?: unknown }).disabled === true
+  )
+    return undefined;
   const path = client.zcodeFallbackPath ?? client.configPath;
-  return `The ZCode fallback configuration ${path} registers this product under its earlier key "${LEGACY_MCP_SERVER_KEY}". This setup cannot remove that registration safely, so it would leave two registrations of the same product for the client to load at once. No configuration file was changed. Rename or remove the "${LEGACY_MCP_SERVER_KEY}" registration by hand, then rerun setup.`;
+  const ownership = clientRegistrationOwnership(member, client);
+  if (ownership !== "owned")
+    return {
+      reason: "registration_ownership",
+      detail: clientRegistrationOwnershipRemediation(
+        ownership,
+        [path],
+        LEGACY_MCP_SERVER_KEY,
+      ),
+    };
+  return {
+    reason: "historical_identity",
+    detail: `The ZCode fallback configuration ${path} registers this product under its earlier key "${LEGACY_MCP_SERVER_KEY}". This setup cannot remove that registration safely, so it would leave two registrations of the same product for the client to load at once. No configuration file was changed. Rename or remove the "${LEGACY_MCP_SERVER_KEY}" registration by hand, then rerun setup.`,
+  };
 };
 
 /** Admit the fallback only when the first native ZCode server would suppress it. */

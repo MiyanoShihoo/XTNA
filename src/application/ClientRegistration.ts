@@ -131,8 +131,9 @@ export const clientRegistrationOwnership = (
 export const clientRegistrationOwnershipRemediation = (
   ownership: Exclude<ClientRegistrationCommandIdentity, "owned">,
   paths: readonly string[],
+  name: string = PRODUCT_IDENTITY.mcpServerKey,
 ): string =>
-  `The existing "${PRODUCT_IDENTITY.mcpServerKey}" registration read from ${paths.join(", ")} has ${ownership} ownership and was not changed. Review its launcher and manually rename or remove that registration before rerunning setup. A different installation path does not prove REA ownership.`;
+  `The existing "${name}" registration read from ${paths.join(", ")} has ${ownership} ownership and was not changed. Review its launcher and manually rename or remove that registration before rerunning setup. A different installation path does not prove REA ownership.`;
 
 /** Policy belongs to the client dialect, and is validated before refresh writes. */
 const validateClientPolicy = (

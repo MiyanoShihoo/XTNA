@@ -1,5 +1,5 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { basename, dirname } from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -46,7 +46,7 @@ const expectUntouched = async (
   original: string,
 ): Promise<void> => {
   expect((await readFile(configPath)).equals(Buffer.from(original))).toBe(true);
-  expect(await readdir(dirname(configPath))).toEqual(["opencode.json"]);
+  expect(await readdir(dirname(configPath))).toEqual([basename(configPath)]);
 };
 
 describe("setup write path ownership admission", () => {
@@ -187,7 +187,9 @@ describe("setup write path historical identity guard", () => {
     ).toBe("unchanged");
     await expectUntouched(client.configPath, original);
   });
+});
 
+describe("setup write path historical identity guard — activation and dialect", () => {
   // A native historical member is the one case the write retires itself, so the
   // guard must not refuse it: the migration that works has to stay available.
   it("migrates a native historical member instead of refusing it", async () => {
@@ -223,6 +225,81 @@ describe("setup write path historical identity guard", () => {
     expect(
       (await configureClientConfiguration(client, {}, command)).status,
     ).toBe("configured");
+  });
+
+  // A V1 entry spells activation `enabled`; `disabled` on that table is not an
+  // activation field, so the member is still loaded.
+  it("still blocks a V1 historical member that only carries a native spelling of disabled", async () => {
+    const client = await openCodeClient("rea-setup-legacy-native-spelling-");
+    const original = JSON.stringify({
+      mcp: {
+        rea: { type: "local", command: ["rea", "mcp"], disabled: true },
+        servers: {},
+      },
+    });
+    await writeFile(client.configPath, original);
+
+    expect(
+      await configureClientConfiguration(client, {}, command),
+    ).toMatchObject({ status: "failed", reason: "historical_identity" });
+    await expectUntouched(client.configPath, original);
+  });
+
+  // The Hermes serializer upserts the current entry and leaves every other table
+  // in place, so a native historical member is not retired by that write.
+  it("blocks a native historical member in a dialect whose writer cannot remove it", async () => {
+    const home = await createTestTempDirectory("rea-setup-hermes-legacy-");
+    const client = supportedClients(home).find(({ name }) => name === "hermes");
+    if (client === undefined) throw new Error("missing Hermes client");
+    await mkdir(dirname(client.configPath), { recursive: true });
+    const original = [
+      "mcp_servers:",
+      "  rea:",
+      "    command: npx",
+      "    args:",
+      "      - -y",
+      "      - rea-agents@6.6.0",
+      "      - mcp",
+      "",
+    ].join("\n");
+    await writeFile(client.configPath, original);
+
+    const result = await configureClientConfiguration(client, {}, command);
+
+    expect(result).toMatchObject({
+      status: "failed",
+      reason: "historical_identity",
+    });
+    await expectUntouched(client.configPath, original);
+  });
+
+  // The fallback membership check must classify ownership before coexistence.
+  it("reports a foreign historical member in the ZCode fallback as an ownership refusal", async () => {
+    const home = await createTestTempDirectory("rea-setup-zcode-foreign-");
+    const client = supportedClients(home).find(({ name }) => name === "zcode");
+    if (client === undefined) throw new Error("missing ZCode client");
+    const fallbackPath = client.zcodeFallbackPath;
+    if (fallbackPath === undefined) throw new Error("missing ZCode fallback");
+    await mkdir(dirname(fallbackPath), { recursive: true });
+    const fallback = JSON.stringify({
+      mcpServers: { rea: { command: "other-product" } },
+    });
+    await writeFile(fallbackPath, fallback);
+
+    const result = await configureClientConfiguration(client, {}, command);
+
+    expect(result).toMatchObject({
+      status: "failed",
+      reason: "registration_ownership",
+    });
+    expect(
+      result.status === "failed" && result.reason === "registration_ownership"
+        ? result.detail
+        : "",
+    ).toContain(`"${"rea"}"`);
+    expect((await readFile(fallbackPath)).equals(Buffer.from(fallback))).toBe(
+      true,
+    );
   });
 
   // The fallback table is merged into the write after the layers are read, so it
