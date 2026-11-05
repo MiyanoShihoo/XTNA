@@ -911,22 +911,21 @@ const historicalIdentityBlocker = (
       return undefined;
     if (typeof member === "object" && !Array.isArray(member)) {
       const entry = member as { disabled?: unknown; enabled?: unknown };
-      // Each table spells activation its own way: a V1 entry carries `enabled`,
-      // a native entry carries `disabled`. Honouring the other field would read
-      // a live registration as absent.
-      if (fromLegacyTable ? entry.enabled === false : entry.disabled === true)
+      // Activation is a dialect fact, not a storage-location fact: an OpenCode V1
+      // table and every Hermes table spell it `enabled`, the native JSON tables
+      // spell it `disabled`. Honouring the other field reads a live registration
+      // as absent.
+      const spellsEnabled = fromLegacyTable || document.dialect === "hermes";
+      if (spellsEnabled ? entry.enabled === false : entry.disabled === true)
         return undefined;
     }
     return member;
   };
   // The write target's own V1 member is never removed, so it always survives.
-  // Its native member is retired by the same transaction — but only where the
-  // serializer can express that removal: the Hermes path upserts the current
-  // entry and leaves every other table in place.
-  const retiresNativeMember = parsed.dialect !== "hermes";
+  // Its native member is retired by the same transaction. Any other source is
+  // outside the transaction entirely.
   const surviving =
     loads(parsed, true) ??
-    (retiresNativeMember ? undefined : loads(parsed, false)) ??
     sources
       .filter(({ sourcePath }) => sourcePath !== client.configPath)
       .map((source) => loads(source, true) ?? loads(source, false))
@@ -955,21 +954,24 @@ const historicalIdentityBlocker = (
  * only after the layer sources are read. A member the client does not load is not
  * a registration, and ownership decides before coexistence here too.
  */
+/**
+ * The same question for the ZCode fallback table. The whole fallback is merged
+ * into the write, so any member under the historical key would be copied into
+ * the native table beside the current registration — including one this guard
+ * would not treat as loaded. Nothing here is admitted member-by-member: the
+ * fallback is either free of the historical key or the write does not happen.
+ */
 const fallbackHistoricalBlocker = (
   client: SetupClient,
   fallbackServers: Readonly<Record<string, unknown>>,
 ): HistoricalIdentityBlocker | undefined => {
-  const member = fallbackServers[LEGACY_MCP_SERVER_KEY];
   if (!Object.hasOwn(fallbackServers, LEGACY_MCP_SERVER_KEY)) return undefined;
-  if (member === null || member === undefined) return undefined;
-  if (
-    typeof member === "object" &&
-    !Array.isArray(member) &&
-    (member as { disabled?: unknown }).disabled === true
-  )
-    return undefined;
+  const member = fallbackServers[LEGACY_MCP_SERVER_KEY];
   const path = client.zcodeFallbackPath ?? client.configPath;
-  const ownership = clientRegistrationOwnership(member, client);
+  const ownership =
+    member === null || member === undefined
+      ? "unknown"
+      : clientRegistrationOwnership(member, client);
   if (ownership !== "owned")
     return {
       reason: "registration_ownership",

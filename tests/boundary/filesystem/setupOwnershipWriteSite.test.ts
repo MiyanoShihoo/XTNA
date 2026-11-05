@@ -247,12 +247,13 @@ describe("setup write path historical identity guard — activation and dialect"
 
   // The Hermes serializer upserts the current entry and leaves every other table
   // in place, so a native historical member is not retired by that write.
-  it("blocks a native historical member in a dialect whose writer cannot remove it", async () => {
+  it("retires an owned historical Hermes table in the same write", async () => {
     const home = await createTestTempDirectory("rea-setup-hermes-legacy-");
     const client = supportedClients(home).find(({ name }) => name === "hermes");
     if (client === undefined) throw new Error("missing Hermes client");
     await mkdir(dirname(client.configPath), { recursive: true });
     const original = [
+      "# caller comment that the writer must keep",
       "mcp_servers:",
       "  rea:",
       "    command: npx",
@@ -266,11 +267,38 @@ describe("setup write path historical identity guard — activation and dialect"
 
     const result = await configureClientConfiguration(client, {}, command);
 
-    expect(result).toMatchObject({
-      status: "failed",
-      reason: "historical_identity",
-    });
-    await expectUntouched(client.configPath, original);
+    expect(result.status).toBe("configured");
+    const written = await readFile(client.configPath, "utf8");
+    expect(written).toContain("# caller comment that the writer must keep");
+    expect(written).not.toContain("rea-agents");
+    expect(written).toContain("xtna");
+  });
+
+  // A Hermes table spells activation `enabled`, so a member the client is told
+  // not to load is not a registration.
+  it("does not refuse an unloaded Hermes historical table", async () => {
+    const home = await createTestTempDirectory("rea-setup-hermes-disabled-");
+    const client = supportedClients(home).find(({ name }) => name === "hermes");
+    if (client === undefined) throw new Error("missing Hermes client");
+    await mkdir(dirname(client.configPath), { recursive: true });
+    await writeFile(
+      client.configPath,
+      [
+        "mcp_servers:",
+        "  rea:",
+        "    command: npx",
+        "    args:",
+        "      - -y",
+        "      - rea-agents@6.6.0",
+        "      - mcp",
+        "    enabled: false",
+        "",
+      ].join("\n"),
+    );
+
+    expect(
+      (await configureClientConfiguration(client, {}, command)).status,
+    ).toBe("configured");
   });
 
   // The fallback membership check must classify ownership before coexistence.

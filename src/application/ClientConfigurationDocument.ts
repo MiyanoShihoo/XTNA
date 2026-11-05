@@ -1770,11 +1770,23 @@ const serializeHermesConfiguration = (
     typeof servers === "object" && servers !== null
       ? (servers as Record<string, unknown>)[PRODUCT_IDENTITY.mcpServerKey]
       : undefined;
-  return editHermesConfigurationYaml(
+  const upserted = editHermesConfigurationYaml(
     originalText,
     [serversKey, PRODUCT_IDENTITY.mcpServerKey],
     entry,
   );
+  // The caller removed the historical member from the desired document, which is
+  // its retirement decision. Upserting only the current entry left the earlier
+  // table in place, so the client kept loading both registrations.
+  return typeof servers === "object" &&
+    servers !== null &&
+    !Object.hasOwn(servers, LEGACY_MCP_SERVER_KEY)
+    ? editHermesConfigurationYaml(
+        upserted,
+        [serversKey, LEGACY_MCP_SERVER_KEY],
+        undefined,
+      )
+    : upserted;
 };
 
 /** Build the stdio entry shape expected by one client's configuration dialect. */
