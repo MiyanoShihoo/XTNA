@@ -242,6 +242,17 @@ const configureClientDocument = async (
         reason: "registration_ownership",
         detail: ownershipBlocker,
       };
+    const historicalBlocker = historicalIdentityBlocker(
+      client,
+      parsed,
+      files.value,
+    );
+    if (historicalBlocker !== undefined)
+      return {
+        status: "failed",
+        reason: "historical_identity",
+        detail: historicalBlocker,
+      };
     const policy = await readClientPolicyBlock(
       client,
       parsed,
@@ -715,6 +726,13 @@ const inspectClientDocument = async (
     );
     if (ownershipBlocker !== undefined)
       return { status: "invalid", remediation: ownershipBlocker };
+    const historicalBlocker = historicalIdentityBlocker(
+      client,
+      parsed,
+      files.value,
+    );
+    if (historicalBlocker !== undefined)
+      return { status: "invalid", remediation: historicalBlocker };
     const desired = await clientConfigurationDesired(
       client,
       providerEnvironment,
@@ -826,6 +844,41 @@ const registrationOwnershipBlocker = (
       return clientRegistrationOwnershipRemediation(ownership, entry.paths);
   }
   return undefined;
+};
+
+/**
+ * Product decision: a registration under the historical key that this write
+ * cannot remove must not survive beside the current one. OpenCode loads the V1
+ * table and the native table together, so leaving `rea` in place registers this
+ * product twice: the second entry can shadow or duplicate the one setup just
+ * wrote. Removal is refused rather than attempted, because the guard has no
+ * independent authority to delete a registration it did not install.
+ *
+ * This gate is deliberately narrow. It only asks whether a historical member
+ * would still be loaded after the write; it introduces no second notion of
+ * identity and defers to the same document the ownership admission reads.
+ */
+const historicalIdentityBlocker = (
+  client: SetupClient,
+  parsed: ClientConfigurationDocument,
+  sources: readonly ClientConfigurationSource[] = [],
+): string | undefined => {
+  // The Harness stores one Cordis entry per document under its stable entry id.
+  if (parsed.dialect === "dsh") return undefined;
+  const effective = effectiveClientConfiguration(sources, {
+    client,
+    document: parsed,
+  });
+  // A historical member in a lower configuration layer survives this write for
+  // the same reason: the write only rewrites its own target file.
+  const inherited =
+    effective !== undefined &&
+    effective !== parsed &&
+    Object.hasOwn(effective.servers, LEGACY_MCP_SERVER_KEY);
+  if (!inherited && !Object.hasOwn(parsed.legacyServers, LEGACY_MCP_SERVER_KEY))
+    return undefined;
+  const paths = client.configPaths ?? [client.configPath];
+  return `The configuration read from ${paths.join(", ")} also registers this product under its earlier key "${LEGACY_MCP_SERVER_KEY}". This setup cannot remove that registration safely, so it would leave two registrations of the same product for the client to load at once. Nothing was changed. Rename or remove the "${LEGACY_MCP_SERVER_KEY}" registration by hand, then rerun setup.`;
 };
 
 /** Admit the fallback only when the first native ZCode server would suppress it. */

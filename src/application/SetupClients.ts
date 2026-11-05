@@ -12,6 +12,8 @@ export const failedConfigurationMessage = (
   switch (result.reason) {
     case "registration_ownership":
       return result.detail;
+    case "historical_identity":
+      return result.detail;
     case "conflict":
       return "Agent configuration changed during setup. Review the current file and rerun setup.";
     case "target_changed":

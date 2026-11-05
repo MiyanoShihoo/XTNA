@@ -112,7 +112,7 @@ const layered = async (lower: unknown, upper: unknown) => {
   const sources = [lower, upper].map((environment) =>
     JSON.stringify({
       mcp: {
-        rea: {
+        xtna: {
           ...clientRegistrationEntry("opencode", command, {}),
           environment,
         },

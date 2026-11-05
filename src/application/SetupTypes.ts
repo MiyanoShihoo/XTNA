@@ -42,6 +42,12 @@ export type ClientConfigurationResult =
     }
   | {
       readonly status: "failed";
+      /** A historical identity would survive this write beside the current one. */
+      readonly reason: "historical_identity";
+      readonly detail: string;
+    }
+  | {
+      readonly status: "failed";
       readonly reason: "conflict";
       readonly backupPath?: string;
     }
