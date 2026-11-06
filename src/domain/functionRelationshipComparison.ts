@@ -11,6 +11,7 @@ import {
   type ReferenceCompatibilityRow,
 } from "./functionReferenceCompatibility.js";
 import { nativeAddressInputSchema } from "./native/nativeAddress.js";
+import type { FunctionComparisonUnknownReason } from "./functionComparisonSchemas.js";
 
 type Reference = FunctionSnapshot["dossier"]["outgoing_references"][number];
 type KnownKind = Omit<
@@ -48,7 +49,11 @@ export type FunctionRelationshipComparison = {
   readonly rightCount: number;
   readonly limitations: readonly string[];
 } & (
-  | { readonly status: "unknown" }
+  | {
+      readonly status: "unknown";
+      /** Why the comparison stopped, classified where the condition was seen. */
+      readonly reasons: readonly FunctionComparisonUnknownReason[];
+    }
   | {
       readonly status: "changed" | "unchanged";
       readonly left: readonly RelationshipFact[];
@@ -310,8 +315,22 @@ const compareRelationshipFacts = (
         ...limitations,
       ],
     };
-  if (unknownIdentity || ambiguousIdentity || unknownKinds)
-    return { ...context, status: "unknown" };
+  if (unknownIdentity || ambiguousIdentity || unknownKinds) {
+    const reasons: FunctionComparisonUnknownReason[] = [];
+    if (unknownIdentity) reasons.push("identity_unstable");
+    if (ambiguousIdentity) reasons.push("membership_ambiguous");
+    if (unknownKinds) reasons.push("facet_unavailable");
+    if (
+      coordinateContext === "unknown" &&
+      (unknownIdentity || ambiguousIdentity)
+    )
+      reasons.push("coordinate_context_unknown");
+    return {
+      ...context,
+      status: "unknown",
+      reasons: reasons.length === 0 ? ["unspecified"] : reasons,
+    };
+  }
   return {
     ...context,
     status: "unchanged",

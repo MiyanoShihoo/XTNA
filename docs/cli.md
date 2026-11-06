@@ -582,8 +582,17 @@ Each input is an array of `analyze_function` Evidence records, or an object
 holding exactly one such array under `functions`, `items` or `evidence`. A
 document that declares more than one of those keys is rejected rather than
 guessed at. Output separates `paired`, `only_before`, `only_after` and
-`unpaired`; each pair carries `changed_dimensions`, `unknown_dimensions`, both
-`evidence_id` values and the comparison limitations.
+`unpaired`; each pair carries `changed_dimensions`, `unknown_dimensions`,
+`unknown_reasons`, both `evidence_id` values and the comparison limitations.
+
+`unknown_reasons` names why a dimension could not be judged: `provider_mismatch`
+(two providers cannot be compared as text), `facet_unavailable` (the provider
+declined the facet), `facet_undeclared` (an empty facet with no declared
+coverage), `normalization_failed` (offsets or CFG indices could not be
+normalized), `diff_budget_exceeded` (the bounded line diff stopped),
+`call_coverage_incomplete`, `coverage_partial`, `membership_ambiguous`,
+`coordinate_context_unknown` and `identity_unstable`. A record
+without a defensible reason says `unspecified`; the field never guesses.
 
 Pairing is strict on purpose. A name that occurs more than once on one side —
 including a generated namesake — and a side whose symbol the provider did not

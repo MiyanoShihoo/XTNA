@@ -29,6 +29,8 @@ const dossier = (input: {
     readonly successors: readonly string[];
   }[];
   readonly cfgAvailable?: boolean;
+  readonly undeclaredPseudocode?: boolean;
+  readonly partialCoverage?: boolean;
   readonly callees?: readonly string[];
   readonly strings?: readonly string[];
 }) =>
@@ -42,7 +44,10 @@ const dossier = (input: {
       locals: [],
       body: { available: false, reason: "fixture has no body range" },
     },
-    pseudocode: input.pseudocode ?? "return 0;",
+    pseudocode:
+      input.undeclaredPseudocode === true
+        ? ""
+        : (input.pseudocode ?? "return 0;"),
     assembly: ["ret"],
     comments: [],
     callers: [],
@@ -64,7 +69,9 @@ const dossier = (input: {
     native_api: null,
     native_value_flow: null,
     facet_availability: {
-      pseudocode: { available: true },
+      ...(input.undeclaredPseudocode === true
+        ? {}
+        : { pseudocode: { available: true } }),
       assembly: { available: true },
       comments: { available: true },
       callers: { available: true },
@@ -90,6 +97,7 @@ const snapshot = (
   value: ReturnType<typeof dossier>,
   seed: string,
   providerId = "fixture",
+  partialCoverage = false,
 ): FunctionSnapshot => {
   const observingProvider = {
     id: providerId,
@@ -124,7 +132,12 @@ const snapshot = (
       result: value,
       confidence: "derived",
       authority: "shipped-artifact",
-      relationshipCoverage: { status: "complete" },
+      relationshipCoverage: partialCoverage
+        ? {
+            status: "partial",
+            limitations: ["fixture: call discovery stopped at the first hop"],
+          }
+        : { status: "complete" },
     },
   );
   return functionSnapshotFixture(evidence);
@@ -452,5 +465,230 @@ describe("version diff record identity", () => {
     expect(forward).toEqual(reversed);
     expect(forward.paired.map(({ key }) => key)).toEqual(["main"]);
     expect(forward.only_before).toEqual(["FUN_1000"]);
+  });
+});
+
+describe("unknown reason codes", () => {
+  const reasonsOf = (
+    diff: ReturnType<typeof diffFunctionInventories>,
+    name: string,
+  ) => diff.paired.find(({ key }) => key === name)!.unknown_reasons;
+
+  it("reports provider_mismatch when two providers are compared", () => {
+    const left = snapshot(
+      dossier({ address: "0x1000", name: "main" }),
+      "e1",
+      "a",
+    );
+    const right = snapshot(
+      dossier({ address: "0x1000", name: "main" }),
+      "e2",
+      "b",
+    );
+    const diff = diffFunctionInventories([left], [right]);
+    const reasons = reasonsOf(diff, "main");
+    const text = reasons.filter(({ dimension }) =>
+      ["pseudocode", "assembly"].includes(dimension),
+    );
+    expect(text).toHaveLength(2);
+    expect(
+      text.every(({ reasons }) => reasons.includes("provider_mismatch")),
+    ).toBe(true);
+  });
+
+  it("reports facet_unavailable when the provider declines a facet", () => {
+    const left = snapshot(
+      dossier({ address: "0x1000", name: "main", cfgAvailable: false }),
+      "e3",
+    );
+    const right = snapshot(dossier({ address: "0x1000", name: "main" }), "e4");
+    const diff = diffFunctionInventories([left], [right]);
+    expect(reasonsOf(diff, "main")).toEqual([
+      { dimension: "cfg", reasons: ["facet_unavailable"] },
+    ]);
+  });
+
+  it("distinguishes an undeclared facet from an unavailable one", () => {
+    const left = snapshot(
+      dossier({ address: "0x1000", name: "main", undeclaredPseudocode: true }),
+      "e5",
+    );
+    const right = snapshot(dossier({ address: "0x1000", name: "main" }), "e6");
+    const diff = diffFunctionInventories([left], [right]);
+    const reasons = reasonsOf(diff, "main");
+    expect(reasons).toEqual([
+      { dimension: "pseudocode", reasons: ["facet_undeclared"] },
+    ]);
+  });
+
+  it("reports normalization_failed when CFG blocks cannot be indexed", () => {
+    const left = snapshot(
+      dossier({
+        address: "0x1000",
+        name: "main",
+        blocks: [
+          { start: "0x1000", end: "0x1004", successors: [] },
+          { start: "0x1000", end: "0x1008", successors: [] },
+        ],
+      }),
+      "e7",
+    );
+    const right = snapshot(dossier({ address: "0x1000", name: "main" }), "e8");
+    const diff = diffFunctionInventories([left], [right]);
+    expect(reasonsOf(diff, "main")).toEqual([
+      { dimension: "cfg", reasons: ["normalization_failed"] },
+    ]);
+  });
+
+  it("reports diff_budget_exceeded when the text diff is bounded out", () => {
+    const leftText = Array.from({ length: 6000 }, (_, i) => `line ${i} a`).join(
+      "\n",
+    );
+    const rightText = Array.from(
+      { length: 6000 },
+      (_, i) => `line ${i} b`,
+    ).join("\n");
+    const left = snapshot(
+      dossier({ address: "0x1000", name: "main", pseudocode: leftText }),
+      "e9",
+    );
+    const right = snapshot(
+      dossier({ address: "0x1000", name: "main", pseudocode: rightText }),
+      "ea",
+    );
+    const diff = diffFunctionInventories([left], [right]);
+    const pseudo = reasonsOf(diff, "main").find(
+      ({ dimension }) => dimension === "pseudocode",
+    );
+    expect(pseudo?.reasons).toContain("diff_budget_exceeded");
+  });
+
+  it("keeps changed and unknown dimensions side by side with their reasons", () => {
+    const left = snapshot(
+      dossier({
+        address: "0x1000",
+        name: "main",
+        pseudocode: "return 0;",
+        cfgAvailable: false,
+      }),
+      "eb",
+    );
+    const right = snapshot(
+      dossier({ address: "0x1000", name: "main", pseudocode: "return 1;" }),
+      "ec",
+    );
+    const diff = diffFunctionInventories([left], [right]);
+    const pair = diff.paired[0]!;
+    expect(pair.status).toBe("changed");
+    expect(pair.changed_dimensions).toContain("pseudocode");
+    expect(pair.unknown_dimensions).toContain("cfg");
+    expect(pair.unknown_reasons).toEqual([
+      { dimension: "cfg", reasons: ["facet_unavailable"] },
+    ]);
+  });
+});
+describe("unspecified reasons", () => {
+  it("records unspecified when a caller cannot name the limit", async () => {
+    const { unresolvedDimension } =
+      await import("./functionComparisonResults.js");
+    const dimension = unresolvedDimension({
+      dimension: "cfg",
+      links: ["ev_" + "1".repeat(64), "ev_" + "2".repeat(64)],
+      leftCount: null,
+      rightCount: null,
+      limitations: ["something the producer could not classify"],
+    });
+    expect(dimension.status).toBe("unknown");
+    if (dimension.status !== "unknown") throw new Error("expected unknown");
+    expect(dimension.unknown_reasons).toEqual(["unspecified"]);
+  });
+});
+
+describe("reason provenance", () => {
+  it("keeps a producer reason when a facet limit also applies", () => {
+    const left = snapshot(
+      dossier({
+        address: "0x1000",
+        name: "main",
+        undeclaredPseudocode: true,
+      }),
+      "f1",
+      "provider-a",
+    );
+    const right = snapshot(
+      dossier({ address: "0x1000", name: "main", pseudocode: "return 0;" }),
+      "f2",
+      "provider-b",
+    );
+    const diff = diffFunctionInventories([left], [right]);
+    const pseudo = diff.paired[0]!.unknown_reasons.find(
+      ({ dimension }) => dimension === "pseudocode",
+    );
+    expect(pseudo?.reasons).toEqual(["provider_mismatch", "facet_undeclared"]);
+  });
+
+  it("reports call_coverage_incomplete when call coverage is partial", () => {
+    const left = snapshot(
+      dossier({ address: "0x1000", name: "main" }),
+      "f3",
+      "fixture",
+      true,
+    );
+    const right = snapshot(dossier({ address: "0x1000", name: "main" }), "f4");
+    const diff = diffFunctionInventories([left], [right]);
+    expect(
+      diff.paired[0]!.unknown_reasons.find(
+        ({ dimension }) => dimension === "calls",
+      )?.reasons,
+    ).toEqual(["call_coverage_incomplete"]);
+  });
+
+  it("reports normalization_failed for an un-normalizable string offset", () => {
+    const left = snapshot(
+      dossier({
+        address: "0x1000",
+        name: "main",
+        strings: ["hello"],
+      }),
+      "f5",
+    );
+    // A string whose source address precedes the function cannot be normalised.
+    const degraded = JSON.parse(JSON.stringify(left)) as {
+      dossier: { referenced_strings: { source_address: string }[] };
+    };
+    degraded.dossier.referenced_strings[0]!.source_address = "0x1";
+    const rebuilt = snapshot(
+      degraded.dossier as unknown as ReturnType<typeof dossier>,
+      "f6",
+    );
+    const right = snapshot(
+      dossier({ address: "0x1000", name: "main", strings: ["hello"] }),
+      "f7",
+    );
+    const diff = diffFunctionInventories([rebuilt], [right]);
+    expect(
+      diff.paired[0]!.unknown_reasons.find(
+        ({ dimension }) => dimension === "strings_names",
+      )?.reasons,
+    ).toContain("normalization_failed");
+  });
+
+  it("reports identity_unstable when the compared symbols are generated", async () => {
+    const { compareFunctions } = await import("./functionComparison.js");
+    const first = snapshot(
+      dossier({ address: "0x1000", name: "FUN_1000", source: "default" }),
+      "f8",
+    );
+    const second = snapshot(
+      dossier({ address: "0x1000", name: "FUN_1000", source: "default" }),
+      "f9",
+    );
+    const comparison = compareFunctions(first, second);
+    const identity = comparison.dimensions.find(
+      ({ dimension }) => dimension === "identity",
+    );
+    if (identity?.status !== "unknown")
+      throw new Error("expected unknown identity");
+    expect(identity.unknown_reasons).toEqual(["identity_unstable"]);
   });
 });

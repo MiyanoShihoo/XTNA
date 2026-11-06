@@ -1,7 +1,10 @@
 import { compareUnicodeCodePoints } from "./unicodeCodePointOrder.js";
 import { hasStableNativeSymbol } from "./native/nativeSymbol.js";
 import { compareFunctions } from "./functionComparison.js";
-import type { DimensionName } from "./functionComparisonSchemas.js";
+import type {
+  DimensionName,
+  FunctionComparisonUnknownReason,
+} from "./functionComparisonSchemas.js";
 import type { FunctionSnapshot } from "./functionDossierEvidence.js";
 
 /**
@@ -25,6 +28,11 @@ export interface VersionFunctionChange {
   readonly paired_by: "stable_symbol";
   readonly changed_dimensions: readonly DimensionName[];
   readonly unknown_dimensions: readonly DimensionName[];
+  /** Why each unknown dimension could not be judged, as observed upstream. */
+  readonly unknown_reasons: readonly {
+    readonly dimension: DimensionName;
+    readonly reasons: readonly FunctionComparisonUnknownReason[];
+  }[];
   readonly dimension_counts: {
     readonly unchanged: number;
     readonly changed: number;
@@ -113,6 +121,16 @@ const changeOf = (
     unknown_dimensions: comparison.dimensions
       .filter(({ status }) => status === "unknown")
       .map(({ dimension }) => dimension),
+    unknown_reasons: comparison.dimensions.flatMap((dimension) =>
+      dimension.status === "unknown"
+        ? [
+            {
+              dimension: dimension.dimension,
+              reasons: dimension.unknown_reasons ?? ["unspecified"],
+            },
+          ]
+        : [],
+    ),
     dimension_counts: comparison.summary,
     left_evidence_id: left.evidence.evidence_id,
     right_evidence_id: right.evidence.evidence_id,
@@ -124,6 +142,66 @@ const names = (index: SideIndex): Set<string> => {
   const all = new Set<string>(index.stable.keys());
   for (const name of index.unstable.keys()) all.add(name);
   return all;
+};
+
+type NameOutcome =
+  | {
+      readonly kind: "pair";
+      readonly left: FunctionSnapshot;
+      readonly right: FunctionSnapshot;
+    }
+  | { readonly kind: "only_before" }
+  | { readonly kind: "only_after" }
+  | { readonly kind: "unpaired"; readonly entry: UnpairedFunction };
+
+/** Decide one name's fate from the counts on each side. */
+const classifyName = (
+  name: string,
+  leftIndex: SideIndex,
+  rightIndex: SideIndex,
+): NameOutcome => {
+  const leftStable = leftIndex.stable.get(name) ?? [];
+  const rightStable = rightIndex.stable.get(name) ?? [];
+  // Duplicates are counted across both tables: a generated namesake is still
+  // another function carrying that name, so pairing past it would hide it.
+  const leftCount =
+    leftStable.length + (leftIndex.unstable.get(name)?.length ?? 0);
+  const rightCount =
+    rightStable.length + (rightIndex.unstable.get(name)?.length ?? 0);
+  if (leftCount > 1 || rightCount > 1)
+    return {
+      kind: "unpaired",
+      entry: {
+        name,
+        side:
+          leftCount > 1 && rightCount > 1
+            ? "both"
+            : leftCount > 1
+              ? "left"
+              : "right",
+        reason: "duplicate_name",
+      },
+    };
+  if (leftCount === 1 && rightCount === 1) {
+    const left = leftStable[0];
+    const right = rightStable[0];
+    if (left !== undefined && right !== undefined)
+      return { kind: "pair", left, right };
+    return {
+      kind: "unpaired",
+      entry: {
+        name,
+        side:
+          leftStable.length === 1
+            ? "right"
+            : rightStable.length === 1
+              ? "left"
+              : "both",
+        reason: "missing_stable_symbol",
+      },
+    };
+  }
+  return leftCount === 1 ? { kind: "only_before" } : { kind: "only_after" };
 };
 
 /** Diff two function inventories, reusing the single-function comparison. */
@@ -139,51 +217,12 @@ export const diffFunctionInventories = (
   const unpaired: UnpairedFunction[] = [];
 
   for (const name of new Set([...names(leftIndex), ...names(rightIndex)])) {
-    const leftStable = leftIndex.stable.get(name) ?? [];
-    const rightStable = rightIndex.stable.get(name) ?? [];
-    // Duplicates are counted across both tables: a generated namesake is still
-    // another function carrying that name, so pairing past it would hide it.
-    const leftCount =
-      leftStable.length + (leftIndex.unstable.get(name)?.length ?? 0);
-    const rightCount =
-      rightStable.length + (rightIndex.unstable.get(name)?.length ?? 0);
-    if (leftCount > 1 || rightCount > 1) {
-      unpaired.push({
-        name,
-        side:
-          leftCount > 1 && rightCount > 1
-            ? "both"
-            : leftCount > 1
-              ? "left"
-              : "right",
-        reason: "duplicate_name",
-      });
-      continue;
-    }
-    if (leftCount === 1 && rightCount === 1) {
-      const left = leftStable[0];
-      const right = rightStable[0];
-      if (left !== undefined && right !== undefined) {
-        paired.push(changeOf(name, left, right));
-        continue;
-      }
-      const leftStableOnly = leftStable.length === 1;
-      const rightStableOnly = rightStable.length === 1;
-      unpaired.push({
-        name,
-        side: leftStableOnly ? "right" : rightStableOnly ? "left" : "both",
-        reason: "missing_stable_symbol",
-      });
-      continue;
-    }
-    if (leftCount === 1) {
-      onlyBefore.push(name);
-      continue;
-    }
-    if (rightCount === 1) {
-      onlyAfter.push(name);
-      continue;
-    }
+    const outcome = classifyName(name, leftIndex, rightIndex);
+    if (outcome.kind === "pair")
+      paired.push(changeOf(name, outcome.left, outcome.right));
+    else if (outcome.kind === "only_before") onlyBefore.push(name);
+    else if (outcome.kind === "only_after") onlyAfter.push(name);
+    else unpaired.push(outcome.entry);
   }
 
   const byKey = (a: { key: string }, b: { key: string }) =>
