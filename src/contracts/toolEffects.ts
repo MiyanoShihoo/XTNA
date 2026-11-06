@@ -758,6 +758,7 @@ export const TOOL_EFFECTS: Readonly<Record<string, ToolEffects>> = {
   compare_artifacts: evidence,
   compare_wasm_interfaces: evidence,
   compare_functions: evidence,
+  diff_functions: evidence,
   match_native_functions: evidence,
   compare_bundles: effects({ mutatesSession: true }),
   find_changed_behavior: evidence,

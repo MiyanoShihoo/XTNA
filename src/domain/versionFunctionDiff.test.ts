@@ -32,7 +32,17 @@ const dossier = (input: {
   readonly undeclaredPseudocode?: boolean;
   readonly partialCoverage?: boolean;
   readonly callees?: readonly string[];
+  readonly generatedCallees?: readonly string[];
   readonly strings?: readonly string[];
+  readonly stringRows?: readonly {
+    readonly source: string;
+    readonly value: string;
+    readonly typed?: {
+      readonly encoding: string;
+      readonly termination: "missing" | "present_or_not_required";
+      readonly byte_length: number;
+    };
+  }[];
 }) =>
   functionDossierSchema.parse({
     procedure: {
@@ -51,20 +61,41 @@ const dossier = (input: {
     assembly: ["ret"],
     comments: [],
     callers: [],
-    callees: (input.callees ?? []).map((name, index) => ({
-      address: `0x${String(9000 + index)}`,
-      name,
-      symbol: symbol("imported"),
-      classification: null,
-      body: { available: false, reason: "fixture has no body range" },
-    })),
+    callees: [
+      ...(input.callees ?? []).map((name, index) => ({
+        address: `0x${String(9000 + index)}`,
+        name,
+        symbol: symbol("imported"),
+        classification: null,
+        body: { available: false, reason: "fixture has no body range" },
+      })),
+      // A callee the provider never resolved leaves the relationship identity
+      // unknown, which is what the calls-dimension reason fixture needs.
+      ...(input.generatedCallees ?? []).map((name, index) => ({
+        address: `0x${String(9500 + index)}`,
+        name,
+        symbol: symbol("default"),
+        classification: null,
+        body: { available: false, reason: "fixture has no body range" },
+      })),
+    ],
     incoming_references: [],
     outgoing_references: [],
-    referenced_strings: (input.strings ?? []).map((value, index) => ({
-      address: `0x${String(8000 + index)}`,
-      value,
-      source_address: `0x${String(1000 + index)}`,
-    })),
+    referenced_strings: [
+      ...(input.strings ?? []).map((value, index) => ({
+        address: `0x${String(8000 + index)}`,
+        value,
+        source_address: `0x${String(1000 + index)}`,
+      })),
+      // Repeated rows at one source offset with mixed typed metadata: the
+      // shape that proves a metadata limit is reported as a reason, not prose.
+      ...(input.stringRows ?? []).map((row, index) => ({
+        address: `0x${String(7000 + index)}`,
+        value: row.value,
+        source_address: row.source,
+        ...(row.typed === undefined ? {} : { string: row.typed }),
+      })),
+    ],
     referenced_names: [],
     native_api: null,
     native_value_flow: null,
@@ -690,5 +721,69 @@ describe("reason provenance", () => {
     if (identity?.status !== "unknown")
       throw new Error("expected unknown identity");
     expect(identity.unknown_reasons).toEqual(["identity_unstable"]);
+  });
+
+  it("keeps an observed identity reason when call coverage is also partial", () => {
+    const observed = (seed: string, partial: boolean) =>
+      snapshot(
+        dossier({
+          address: "0x1000",
+          name: "main",
+          callees: ["puts"],
+          generatedCallees: ["FUN_9001"],
+        }),
+        seed,
+        "fixture",
+        partial,
+      );
+    const diff = diffFunctionInventories(
+      [observed("1a", true)],
+      [observed("1b", false)],
+    );
+    const calls = diff.paired[0]!.unknown_reasons.find(
+      ({ dimension }) => dimension === "calls",
+    );
+    // Incomplete coverage is one finding. A callee whose identity the provider
+    // never established is another. Reporting only the first would erase a
+    // reason that was actually observed, which is what this test pins down.
+    expect(calls?.reasons).toEqual([
+      "identity_unstable",
+      "call_coverage_incomplete",
+    ]);
+  });
+
+  it("names the metadata facet when repeated rows carry mixed typed metadata", () => {
+    const typed = {
+      encoding: "utf-8",
+      termination: "present_or_not_required" as const,
+      byte_length: 5,
+    };
+    const side = (seed: string, bothTyped: boolean) =>
+      snapshot(
+        dossier({
+          address: "0x1000",
+          name: "main",
+          stringRows: [
+            { source: "0x1004", value: "hello", typed },
+            {
+              source: "0x1004",
+              value: "hello",
+              ...(bothTyped ? { typed } : {}),
+            },
+          ],
+        }),
+        seed,
+      );
+    const diff = diffFunctionInventories(
+      [side("2a", true)],
+      [side("2b", false)],
+    );
+    const strings = diff.paired[0]!.unknown_reasons.find(
+      ({ dimension }) => dimension === "strings_names",
+    );
+    // The cause is a missing typed-metadata facet that both rows were observed
+    // to carry. Before this fix it surfaced as `unspecified` while the prose
+    // limitation already stated the exact reason.
+    expect(strings?.reasons).toEqual(["facet_unavailable"]);
   });
 });

@@ -281,8 +281,15 @@ const compareStringsAndNames = (
       rightCount: null,
       limitations: [
         "Reference source locations could not be normalized to function offsets.",
+        ...stringFacts.limitations,
       ],
-      reasons: ["normalization_failed"],
+      // The projection failing is one finding; the decoding, metadata and
+      // coverage limits observed on the strings themselves are others. Naming
+      // only the first would erase reasons that were actually observed.
+      reasons: stringReasons(complete, [
+        ...stringFacts.reasons,
+        "normalization_failed",
+      ]),
     });
   const compared = compareValues(
     "strings_names",
@@ -447,6 +454,9 @@ const compareReferencedStrings = (
         changed ||= repeated.changed;
         for (const limitation of repeated.limitations)
           limitations.add(limitation);
+        // The metadata limit is a real reason, not only prose: carrying it
+        // upward is what keeps this dimension out of `unspecified`.
+        for (const reason of repeated.reasons) reasons.add(reason);
         continue;
       }
       reasons.add("membership_ambiguous");
@@ -496,6 +506,7 @@ const compareRepeatedStringRows = (
 ): {
   readonly changed: boolean;
   readonly limitations: readonly string[];
+  readonly reasons: readonly FunctionComparisonUnknownReason[];
 } | null => {
   if (
     left.some(({ content }) => content === null) ||
@@ -509,6 +520,7 @@ const compareRepeatedStringRows = (
     right.flatMap(({ content }) => (content === null ? [] : [content])),
   );
   const limitations = new Set<string>();
+  const reasons = new Set<FunctionComparisonUnknownReason>();
   for (const content of new Set([
     ...leftByContent.keys(),
     ...rightByContent.keys(),
@@ -527,6 +539,9 @@ const compareRepeatedStringRows = (
       leftMetadata.some((metadata) => metadata === null) ||
       rightMetadata.some((metadata) => metadata === null)
     ) {
+      // The single-row path already reports this as facet_unavailable; a
+      // repeated offset is the same missing facet, so it says the same thing.
+      reasons.add("facet_unavailable");
       limitations.add(
         "Typed string metadata is unavailable for repeated content at a source offset.",
       );
@@ -537,7 +552,7 @@ const compareRepeatedStringRows = (
       rightMetadata.map((metadata) => JSON.stringify(metadata)),
     );
   }
-  return { changed, limitations: [...limitations] };
+  return { changed, limitations: [...limitations], reasons: [...reasons] };
 };
 
 const groupStringsByContent = (
@@ -651,8 +666,20 @@ const compareCalls = (
       links: context.links,
       leftCount: comparison.leftCount,
       rightCount: comparison.rightCount,
-      limitations: [...coverageLimitations, ...coverageDiagnostics],
-      reasons: ["call_coverage_incomplete"],
+      limitations: [
+        ...comparison.limitations,
+        ...coverageLimitations,
+        ...coverageDiagnostics,
+      ],
+      // Incomplete coverage is an additional finding, not a replacement for
+      // what the relationship comparison already established. Both were
+      // observed, so reporting only the coverage limit would erase the other.
+      reasons: [
+        ...new Set([
+          ...(comparison.status === "unknown" ? comparison.reasons : []),
+          "call_coverage_incomplete" as const,
+        ]),
+      ],
     });
   if (comparison.status === "unknown")
     return unresolvedDimension({

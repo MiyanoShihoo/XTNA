@@ -7,6 +7,7 @@ import { artifactComparisonInputSchema } from "../domain/artifactComparison.js";
 import { callPathInputSchema } from "../domain/callPathSchemas.js";
 import { changedBehaviorInputSchema } from "../domain/changedBehavior.js";
 import { functionComparisonInputSchema } from "../domain/functionComparisonSchemas.js";
+import { functionInventoryDiffInputSchema } from "../domain/versionFunctionDiffSchema.js";
 import { processScenarioSchema } from "../domain/process/processScenario.js";
 import {
   recordUnknownInputSchema,
@@ -117,6 +118,11 @@ export const SESSION_TOOL_CONTRACTS = [
     "compare_functions",
     "Compare two explicit analyze_function Evidence records or exact retained session references across identity, exact provider text, calls, references, strings, and address-normalized CFG topology. Missing or provider-incompatible facets remain truncated or unknown; every conclusion cites both Evidence sets.",
     functionComparisonInputSchema,
+  ),
+  session(
+    "diff_functions",
+    "Compare two inline inventories of analyze_function Evidence records by stable symbol and report, per paired function, which comparison dimensions are unchanged, changed or unknown and why. Inputs are inline records only: no filesystem path, provider, decompiler or target is read or executed. Pairing never guesses — a duplicate name, a generated symbol or a missing stable symbol is reported as unpaired instead of matched. A dimension whose facet the provider declared unavailable stays unknown, so absence of evidence never reads as absence of change. Returns every pair, the unpaired entries and the summary inline as derived Evidence.",
+    functionInventoryDiffInputSchema,
   ),
   session(
     "compare_bundles",

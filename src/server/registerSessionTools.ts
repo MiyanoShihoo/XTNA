@@ -26,6 +26,7 @@ import { registerArtifactComparisonTool } from "./registerArtifactComparisonTool
 import { registerBundleComparisonTool } from "./registerBundleComparisonTool.js";
 import { registerCloseLifecycleTool } from "./registerCloseLifecycleTool.js";
 import { registerFunctionComparisonTool } from "./registerFunctionComparisonTool.js";
+import { registerFunctionInventoryDiffTool } from "./registerFunctionInventoryDiffTool.js";
 import { registerInvestigationTools } from "./registerInvestigationTools.js";
 import { registerProcessComparisonTool } from "./registerProcessComparisonTool.js";
 import {
@@ -290,6 +291,7 @@ export const registerSessionTools = (
   const compareContract = toolContract("compare_process_captures");
   const compareArtifactsContract = toolContract("compare_artifacts");
   const compareFunctionsContract = toolContract("compare_functions");
+  const diffFunctionsContract = toolContract("diff_functions");
   const compareBundlesContract = toolContract("compare_bundles");
   const snapshotContract = toolContract("get_evidence_bundle");
   const processResources = new ProcessCaptureResourceScope();
@@ -411,6 +413,7 @@ export const registerSessionTools = (
   registerProcessComparisonTool(server, session, compareContract);
   registerArtifactComparisonTool(server, session, compareArtifactsContract);
   registerFunctionComparisonTool(server, session, compareFunctionsContract);
+  registerFunctionInventoryDiffTool(server, session, diffFunctionsContract);
   registerNativeFunctionMatchingTool(
     server,
     session,
