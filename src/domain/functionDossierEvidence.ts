@@ -26,7 +26,10 @@ export interface FunctionSnapshot {
 export const parseFunctionEvidence = (
   input: unknown,
   selection: {
-    readonly operation: "compare_functions" | "build_call_path";
+    readonly operation:
+      | "compare_functions"
+      | "build_call_path"
+      | "diff_functions";
     readonly path: readonly (string | number)[];
   },
 ): Result<FunctionSnapshot, AnalysisInputError | EvidenceIntegrityError> => {

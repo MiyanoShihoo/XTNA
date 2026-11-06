@@ -75,16 +75,17 @@ const push = (
 };
 
 /**
- * Count functions, not records: the same function returned twice in one
- * inventory (same subject bytes and address) is one function.
+ * Collapse only an identical record: the same Evidence appearing twice is one
+ * observation. Two different records at one address — another provider, another
+ * name — stay separate so the caller can see the ambiguity instead of losing it.
  */
 const indexSide = (snapshots: readonly FunctionSnapshot[]): SideIndex => {
   const stable = new Map<string, FunctionSnapshot[]>();
   const unstable = new Map<string, FunctionSnapshot[]>();
   const seen = new Set<string>();
   for (const snapshot of snapshots) {
-    const { name, symbol, address } = snapshot.dossier.procedure;
-    const identity = `${snapshot.subject.digest.sha256}\u0000${address}`;
+    const { name, symbol } = snapshot.dossier.procedure;
+    const identity = snapshot.evidence.evidence_id;
     if (seen.has(identity)) continue;
     seen.add(identity);
     push(
@@ -140,32 +141,49 @@ export const diffFunctionInventories = (
   for (const name of new Set([...names(leftIndex), ...names(rightIndex)])) {
     const leftStable = leftIndex.stable.get(name) ?? [];
     const rightStable = rightIndex.stable.get(name) ?? [];
-    const leftPresent = leftStable.length > 0 || leftIndex.unstable.has(name);
-    const rightPresent =
-      rightStable.length > 0 || rightIndex.unstable.has(name);
-    if (leftStable.length === 1 && rightStable.length === 1) {
-      paired.push(changeOf(name, leftStable[0]!, rightStable[0]!));
+    // Duplicates are counted across both tables: a generated namesake is still
+    // another function carrying that name, so pairing past it would hide it.
+    const leftCount =
+      leftStable.length + (leftIndex.unstable.get(name)?.length ?? 0);
+    const rightCount =
+      rightStable.length + (rightIndex.unstable.get(name)?.length ?? 0);
+    if (leftCount > 1 || rightCount > 1) {
+      unpaired.push({
+        name,
+        side:
+          leftCount > 1 && rightCount > 1
+            ? "both"
+            : leftCount > 1
+              ? "left"
+              : "right",
+        reason: "duplicate_name",
+      });
       continue;
     }
-    if (leftPresent && !rightPresent) {
+    if (leftCount === 1 && rightCount === 1) {
+      const left = leftStable[0];
+      const right = rightStable[0];
+      if (left !== undefined && right !== undefined) {
+        paired.push(changeOf(name, left, right));
+        continue;
+      }
+      const leftStableOnly = leftStable.length === 1;
+      const rightStableOnly = rightStable.length === 1;
+      unpaired.push({
+        name,
+        side: leftStableOnly ? "right" : rightStableOnly ? "left" : "both",
+        reason: "missing_stable_symbol",
+      });
+      continue;
+    }
+    if (leftCount === 1) {
       onlyBefore.push(name);
       continue;
     }
-    if (rightPresent && !leftPresent) {
+    if (rightCount === 1) {
       onlyAfter.push(name);
       continue;
     }
-    const leftUnique = leftStable.length === 1;
-    const rightUnique = rightStable.length === 1;
-    unpaired.push({
-      name,
-      side:
-        !leftUnique && !rightUnique ? "both" : !leftUnique ? "left" : "right",
-      reason:
-        leftStable.length > 1 || rightStable.length > 1
-          ? "duplicate_name"
-          : "missing_stable_symbol",
-    });
   }
 
   const byKey = (a: { key: string }, b: { key: string }) =>

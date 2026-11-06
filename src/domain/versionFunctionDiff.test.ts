@@ -9,8 +9,6 @@ import { functionSnapshotFixture } from "./functionDossierEvidence.fixture.js";
 import { diffFunctionInventories } from "./versionFunctionDiff.js";
 import type { FunctionSnapshot } from "./functionDossierEvidence.js";
 
-const provider = { id: "fixture", name: "fixture", version: "1" } as const;
-
 const symbol = (source: "imported" | "default") => ({
   primary: true,
   dynamic: false,
@@ -31,6 +29,8 @@ const dossier = (input: {
     readonly successors: readonly string[];
   }[];
   readonly cfgAvailable?: boolean;
+  readonly callees?: readonly string[];
+  readonly strings?: readonly string[];
 }) =>
   functionDossierSchema.parse({
     procedure: {
@@ -46,10 +46,20 @@ const dossier = (input: {
     assembly: ["ret"],
     comments: [],
     callers: [],
-    callees: [],
+    callees: (input.callees ?? []).map((name, index) => ({
+      address: `0x${String(9000 + index)}`,
+      name,
+      symbol: symbol("imported"),
+      classification: null,
+      body: { available: false, reason: "fixture has no body range" },
+    })),
     incoming_references: [],
     outgoing_references: [],
-    referenced_strings: [],
+    referenced_strings: (input.strings ?? []).map((value, index) => ({
+      address: `0x${String(8000 + index)}`,
+      value,
+      source_address: `0x${String(1000 + index)}`,
+    })),
     referenced_names: [],
     native_api: null,
     native_value_flow: null,
@@ -79,7 +89,13 @@ const dossier = (input: {
 const snapshot = (
   value: ReturnType<typeof dossier>,
   seed: string,
+  providerId = "fixture",
 ): FunctionSnapshot => {
+  const observingProvider = {
+    id: providerId,
+    name: providerId,
+    version: "1",
+  } as const;
   const evidence: Evidence = createEvidence(
     {
       path: `/fixture/${seed}`,
@@ -87,10 +103,10 @@ const snapshot = (
       format: "mach-o",
       architecture: "arm64",
     },
-    provider,
+    observingProvider,
     {
       operation: "analyze_function",
-      analysisProfile: createAnalysisProfile(provider, {
+      analysisProfile: createAnalysisProfile(observingProvider, {
         architecture: "arm64",
         loader: "auto-from-header",
         function_coordinate_context: createFunctionCoordinateContext({
@@ -239,7 +255,9 @@ describe("version diff pairing refusals", () => {
     expect(diff.summary).toMatchObject({ only_after: 1, unpaired: 0 });
   });
 
-  it("pairs the unique stable candidate despite an unstable namesake", () => {
+  // A generated namesake is another function carrying the name: pairing past it
+  // would drop that observation without saying so.
+  it("reports a duplicated name when a generated namesake shares it", () => {
     const stableLeft = snapshot(
       dossier({ address: "0x1000", name: "init" }),
       "9",
@@ -256,8 +274,20 @@ describe("version diff pairing refusals", () => {
       [stableLeft, generatedLeft],
       [stableRight],
     );
-    expect(diff.paired.map(({ key }) => key)).toEqual(["init"]);
-    expect(diff.unpaired).toEqual([]);
+    expect(diff.paired).toEqual([]);
+    expect(diff.unpaired).toEqual([
+      { name: "init", side: "left", reason: "duplicate_name" },
+    ]);
+  });
+
+  it("reports a one-sided duplicate instead of collapsing it into an arrival", () => {
+    const first = snapshot(dossier({ address: "0x1000", name: "main" }), "c1");
+    const second = snapshot(dossier({ address: "0x2000", name: "main" }), "c2");
+    const diff = diffFunctionInventories([first, second], []);
+    expect(diff.only_before).toEqual([]);
+    expect(diff.unpaired).toEqual([
+      { name: "main", side: "left", reason: "duplicate_name" },
+    ]);
   });
 
   it("names a non-pseudocode dimension when only that dimension differs", () => {
@@ -299,5 +329,128 @@ describe("version diff pairing refusals", () => {
     const diff = diffFunctionInventories([left], [right]);
     expect(diff.paired[0]!.status).toBe("unknown");
     expect(diff.paired[0]!.unknown_dimensions).toContain("cfg");
+  });
+});
+
+describe("version diff over calls and strings", () => {
+  it("reports a changed callee set", () => {
+    const left = snapshot(
+      dossier({ address: "0x1000", name: "main", callees: ["puts"] }),
+      "01",
+    );
+    const right = snapshot(
+      dossier({ address: "0x1000", name: "main", callees: ["puts", "malloc"] }),
+      "02",
+    );
+    const diff = diffFunctionInventories([left], [right]);
+    expect(diff.paired[0]!.changed_dimensions).toEqual(["calls"]);
+    expect(diff.paired[0]!.dimension_counts.changed).toBe(1);
+  });
+
+  it("reports a changed referenced-string set", () => {
+    const left = snapshot(
+      dossier({ address: "0x1000", name: "main", strings: ["hello"] }),
+      "03",
+    );
+    const right = snapshot(
+      dossier({ address: "0x1000", name: "main", strings: ["hello", "world"] }),
+      "04",
+    );
+    const diff = diffFunctionInventories([left], [right]);
+    expect(diff.paired[0]!.changed_dimensions).toEqual(["strings_names"]);
+  });
+
+  it("reports both dimensions when both changed", () => {
+    const left = snapshot(
+      dossier({
+        address: "0x1000",
+        name: "main",
+        callees: ["puts"],
+        strings: ["a"],
+      }),
+      "05",
+    );
+    const right = snapshot(
+      dossier({
+        address: "0x1000",
+        name: "main",
+        callees: ["fwrite"],
+        strings: ["b"],
+      }),
+      "06",
+    );
+    const diff = diffFunctionInventories([left], [right]);
+    expect(diff.paired[0]!.changed_dimensions).toEqual([
+      "calls",
+      "strings_names",
+    ]);
+    expect(diff.paired[0]!.dimension_counts.changed).toBe(2);
+  });
+
+  it("does not depend on the order of the input inventories", () => {
+    const alpha = snapshot(dossier({ address: "0x1000", name: "alpha" }), "07");
+    const beta = snapshot(dossier({ address: "0x2000", name: "beta" }), "08");
+    const forward = diffFunctionInventories([alpha, beta], [alpha, beta]);
+    const reversed = diffFunctionInventories([beta, alpha], [beta, alpha]);
+    expect(forward).toEqual(reversed);
+    expect(forward.paired.map(({ key }) => key)).toEqual(["alpha", "beta"]);
+    expect(forward.summary.unchanged).toBe(2);
+  });
+
+  it("counts a repeated observation of the same function once", () => {
+    const observation = snapshot(
+      dossier({ address: "0x1000", name: "main" }),
+      "09",
+    );
+    const diff = diffFunctionInventories(
+      [observation, observation],
+      [observation],
+    );
+    expect(diff.paired).toHaveLength(1);
+    expect(diff.unpaired).toEqual([]);
+    expect(diff.summary.unchanged).toBe(1);
+  });
+
+  it("keeps observations from different providers apart", () => {
+    const first = snapshot(
+      dossier({ address: "0x1000", name: "main" }),
+      "0a",
+      "provider-a",
+    );
+    const second = snapshot(
+      dossier({ address: "0x1000", name: "main" }),
+      "0a",
+      "provider-b",
+    );
+    const diff = diffFunctionInventories([first, second], [first]);
+    expect(diff.paired).toEqual([]);
+    expect(diff.unpaired).toEqual([
+      { name: "main", side: "left", reason: "duplicate_name" },
+    ]);
+  });
+
+  it("preserves both evidence ids and the comparison limitations", () => {
+    const left = snapshot(dossier({ address: "0x1000", name: "main" }), "0b");
+    const right = snapshot(dossier({ address: "0x1000", name: "main" }), "0c");
+    const diff = diffFunctionInventories([left], [right]);
+    expect(diff.paired[0]!.left_evidence_id).toBe(left.evidence.evidence_id);
+    expect(diff.paired[0]!.right_evidence_id).toBe(right.evidence.evidence_id);
+    expect(diff.paired[0]!.limitations).toEqual([]);
+  });
+});
+
+describe("version diff record identity", () => {
+  it("keeps two records at one address distinct and order-independent", () => {
+    const generated = snapshot(
+      dossier({ address: "0x1000", name: "FUN_1000", source: "default" }),
+      "d1",
+    );
+    const named = snapshot(dossier({ address: "0x1000", name: "main" }), "d2");
+    const right = snapshot(dossier({ address: "0x1000", name: "main" }), "d3");
+    const forward = diffFunctionInventories([generated, named], [right]);
+    const reversed = diffFunctionInventories([named, generated], [right]);
+    expect(forward).toEqual(reversed);
+    expect(forward.paired.map(({ key }) => key)).toEqual(["main"]);
+    expect(forward.only_before).toEqual(["FUN_1000"]);
   });
 });
