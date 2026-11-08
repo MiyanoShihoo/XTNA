@@ -29,6 +29,14 @@ jobs:
       - name: Format
         run: npm run format:check
 
+      # The only gate in this workflow that exercises what the product computes
+      # rather than that it builds and ships. stability:smoke also runs real
+      # CLI utilities, but as a health check, not as a semantic regression net.
+      # The domain suite is in-memory only: no filesystem, network, provider,
+      # target or client-configuration access, so it needs no host setup.
+      - name: Domain tests
+        run: npm run test:domain
+
       - name: Compile
         run: npm run compile
 
