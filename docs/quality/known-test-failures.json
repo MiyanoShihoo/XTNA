@@ -1,456 +1,1274 @@
 {
-  "version": 1,
-  "purpose": "Machine-readable record of the tests that failed in the suites measured for this commit, so a red baseline can be told apart from a new regression. It does not cover suites that were not run. This is not a list of accepted behaviour: an entry here is a known failure, not a pass.",
-  "method": "Each suite is run through the repository vitest configuration with the JSON reporter. Only suites actually executed for this commit appear as measured; anything else is listed as unverified with the reason. Counts are never copied forward from an earlier report.",
-  "baseline": {
-    "commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-    "host": "Windows x64, Node 24",
-    "isolation": "vitest.config.ts injects REA_TEST_ISOLATION_ROOTS for every run. That guard covers the destructive client-configuration commands (setup, uninstall, update) and is inert for suites that spawn nothing; it is not a general filesystem sandbox."
-  },
+  "version": 2,
+  "purpose": "Machine-readable record of an immutable historical baseline and the latest independently measured code commit. Known failures are not accepted behaviour and do not justify weakening tests.",
+  "method": "Every snapshot names its measured code commit. Historical baseline data is immutable. Current results live only under current_snapshot; partial test selections name their exact scope and leave all other files unverified. A ledger-only follow-up may record results measured on code commit C without claiming the ledger commit itself was measured. If code or tests change after C, current_snapshot must be rerun. Counts are never carried forward.",
   "attribution_values": {
     "confirmed-defect": "A real product or harness defect, reproduced and understood.",
     "stale-fixture": "The test fixture predates a product change; the product is behaving as designed.",
     "platform-difference": "Behaviour differs by host platform and the test does not account for it.",
     "under-investigation": "Observed, not yet attributed. Default state."
   },
-  "suites": [
-    {
-      "project": "domain",
-      "status": "measured",
-      "vitest_suites": 428,
-      "tests": 8823,
-      "passed": 8823,
-      "failed": 0,
-      "skipped": 0,
-      "duration_seconds": 92,
-      "ci": "gate added by this change; not yet observed running in CI",
-      "note": "Project include is src/{contracts,domain}/**/*.test.ts. Measured on Windows x64; the gate runs on ubuntu-latest, so the Linux lane is unverified until the first CI run."
+  "baseline": {
+    "commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+    "host": "Windows x64, Node 24",
+    "isolation": "vitest.config.ts injects REA_TEST_ISOLATION_ROOTS for every run. That guard covers the destructive client-configuration commands (setup, uninstall, update) and is inert for suites that spawn nothing; it is not a general filesystem sandbox.",
+    "suites": [
+      {
+        "project": "domain",
+        "status": "measured",
+        "vitest_suites": 428,
+        "tests": 8823,
+        "passed": 8823,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 92,
+        "ci": "gate added by this change; not yet observed running in CI",
+        "note": "Project include is src/{contracts,domain}/**/*.test.ts. Measured on Windows x64; the gate runs on ubuntu-latest, so the Linux lane is unverified until the first CI run."
+      },
+      {
+        "project": "conformance",
+        "status": "measured",
+        "vitest_suites": 80,
+        "tests": 408,
+        "passed": 405,
+        "failed": 1,
+        "skipped": 2,
+        "duration_seconds": 11,
+        "ci": "not wired",
+        "note": "The two skipped tests are both it.skipIf(process.platform === \"win32\")."
+      },
+      {
+        "project": "acceptance/setup",
+        "status": "partially measured",
+        "vitest_suites": 29,
+        "tests": 183,
+        "passed": 140,
+        "failed": 28,
+        "skipped": 15,
+        "duration_seconds": 561,
+        "ci": "not wired",
+        "note": "Only tests/acceptance/setup was executed. The wider acceptance project did not complete locally and was not forced."
+      },
+      {
+        "project": "acceptance (all other files)",
+        "status": "unverified",
+        "ci": "not wired",
+        "note": "Not executed for this commit. Any earlier count is unverified and must not be quoted as current."
+      },
+      {
+        "project": "boundary (boundary, cli-boundary, process-boundary, mcp-boundary, process-global)",
+        "status": "unverified",
+        "ci": "not wired",
+        "note": "Not executed for this commit. Any earlier count is unverified and must not be quoted as current."
+      },
+      {
+        "project": "services, adapters, composition, evaluation",
+        "status": "unverified",
+        "ci": "not wired",
+        "note": "Not executed for this commit."
+      }
+    ],
+    "counts": {
+      "measured_failures": 29,
+      "suites_measured": 3,
+      "suites_unverified": 3
     },
-    {
-      "project": "conformance",
-      "status": "measured",
-      "vitest_suites": 80,
-      "tests": 408,
-      "passed": 405,
-      "failed": 1,
-      "skipped": 2,
-      "duration_seconds": 11,
-      "ci": "not wired",
-      "note": "The two skipped tests are both it.skipIf(process.platform === \"win32\")."
-    },
-    {
-      "project": "acceptance/setup",
-      "status": "partially measured",
-      "vitest_suites": 29,
-      "tests": 183,
-      "passed": 140,
-      "failed": 28,
-      "skipped": 15,
-      "duration_seconds": 561,
-      "ci": "not wired",
-      "note": "Only tests/acceptance/setup was executed. The wider acceptance project did not complete locally and was not forced."
-    },
-    {
-      "project": "acceptance (all other files)",
-      "status": "unverified",
-      "ci": "not wired",
-      "note": "Not executed for this commit. Any earlier count is unverified and must not be quoted as current."
-    },
-    {
-      "project": "boundary (boundary, cli-boundary, process-boundary, mcp-boundary, process-global)",
-      "status": "unverified",
-      "ci": "not wired",
-      "note": "Not executed for this commit. Any earlier count is unverified and must not be quoted as current."
-    },
-    {
-      "project": "services, adapters, composition, evaluation",
-      "status": "unverified",
-      "ci": "not wired",
-      "note": "Not executed for this commit."
-    }
-  ],
-  "counts": {
-    "measured_failures": 29,
-    "suites_measured": 3,
-    "suites_unverified": 3
+    "entries": [
+      {
+        "id": "CONF-001",
+        "suite": "conformance",
+        "test_file": "tests/conformance/destructiveCliSpawnAudit.test.ts",
+        "test_name": "accounts for every test that can start a destructive CLI",
+        "symptom": "AssertionError: tests/acceptance/setup/setupDualTableOwnership.test.ts can start a destructive CLI without a guarded fixture or an isolation marker: expected false to be true // Object.is equality at E:/deepseek project/XTNA/tests/conformance/destructiveCliSpawnAudit.test.ts:58:7 at async file:///E:",
+        "attribution": "confirmed-defect",
+        "attribution_reason": "tests/acceptance/setup/setupDualTableOwnership.test.ts can start the destructive CLI without a guarded fixture. Verified byte-identical between dd6c383 and 2263e75, so the gap predates this branch; it is a harness defect, not a product defect.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-001",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/droidSelectedHomeCli.test.ts",
+        "test_name": "registers Droid in its selected home and preserves peers and backups",
+        "symptom": "AssertionError: expected { Object (mcpServers) } to match object { Object (mcpServers) } (4 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-002",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "test_name": "Claude Code setup edits the effective member of a repeated server table",
+        "symptom": "AssertionError: expected { Object (mcpServers) } to match object { mcpServers: { rea: { …(1) } } } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "stale-fixture",
+        "attribution_reason": "Assertion names the legacy \"rea\" registration key while the product now writes \"xtna\"; the fixture still expects the pre-rename identity.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-003",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "test_name": "Claude Code setup edits the effective member of a repeated rea member",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:claude_code\",\"kind\":\"configure_client\",\"label\":\"Claude Code\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-json-duplicate-HtAZu8\\\\.claude.json\",\"detail\":\"Add the REA MCP registration for Clau",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-004",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "test_name": "JSONC setup keeps comments and the shadowed server table",
+        "symptom": "AssertionError: expected -1 to be greater than 105 at E:/deepseek project/XTNA/tests/acceptance/setup/duplicateJsonMemberSetup.test.ts:98:41 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-005",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "test_name": "OpenCode setup migrates every owned repeated V1 entry while preserving the V2 peer",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidr",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-006",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/hermesAliasedTableSetup.test.ts",
+        "test_name": "Hermes uninstall detaches an aliased table before deleting REA",
+        "symptom": "AssertionError: expected { healthy: false, …(8) } to match object { identity: { …(1) } } (39 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-007",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/hermesClientSetup.test.ts",
+        "test_name": "Hermes setup preserves string environment values under YAML 1.2 with plain keys",
+        "symptom": "AssertionError: expected [Function] to throw an error at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2287:114) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-008",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/hermesClientSetup.test.ts",
+        "test_name": "Hermes setup preserves an existing tool allowlist and client-owned policy",
+        "symptom": "AssertionError: expected { mcp_servers: { xtna: { …(4) } } } to match object { mcp_servers: { xtna: { …(6) } } } at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/v",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-009",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/homeDirectoryFallback.test.ts",
+        "test_name": "setup dry run resolves empty home values without writing to the cwd",
+        "symptom": "Error: Refusing destructive \"setup\": opencode config E:\\deepseek project\\XTNA\\.config\\opencode\\opencode.json resolves outside the test root C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-test-run-votf3X\\rea-cli-compile-cache-MGn5qV, C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-test-run-votf3X\\rea-empty-home-dry-run-Kc1",
+        "attribution": "stale-fixture",
+        "attribution_reason": "The product isolation guard refused the write because the fixture-derived config path resolves outside the declared test root; the fixture, not the guard, is wrong.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-010",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/ompClientSetup.test.ts",
+        "test_name": "OMP explicit default selection overrides an invalid legacy profile",
+        "symptom": "AssertionError: expected { mcpServers: { xtna: { …(3) } } } to have property \"mcpServers.rea\" at E:/deepseek project/XTNA/tests/acceptance/setup/ompClientSetup.test.ts:110:7 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "stale-fixture",
+        "attribution_reason": "Assertion names the legacy \"rea\" registration key while the product now writes \"xtna\"; the fixture still expects the pre-rename identity.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-011",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSON over a lower disabled=true registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:opencode\",\"kind\":\"configure_client\",\"label\":\"OpenCode\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-opencode-v2-activation-1U5jf1\\\\config\\\\opencode\\\\opencode.json\",\"detail\":\"Add the REA MCP ",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-012",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSONC over a lower disabled=true registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:opencode\",\"kind\":\"configure_client\",\"label\":\"OpenCode\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-opencode-v2-activation-83Sxv8\\\\config\\\\opencode\\\\opencode.jsonc\",\"detail\":\"Add the REA MCP",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-013",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSON over a lower disabled=false registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidr",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-014",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSONC over a lower disabled=false registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidr",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-015",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
+        "test_name": "setup preserves a configured compact catalog through CLI migration and MCP startup",
+        "symptom": "ZodError: [ { \"expected\": \"object\",",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-016",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
+        "test_name": "Pi public CLI plans, requires approval, applies, diagnoses, repeats, and uninstalls only owned content",
+        "symptom": "AssertionError: expected { mcpServers: { …(2) }, …(1) } to match object { mcpServers: { …(2) }, …(1) } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-017",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
+        "test_name": "Pi public CLI creates missing strict-JSON configuration and never repairs a malformed file",
+        "symptom": "AssertionError: expected { mcpServers: { xtna: { …(4) } } } to match object { Object (mcpServers) } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-018",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/qwenProfileSetup.test.ts",
+        "test_name": "keeps Qwen profile registration and shared skill consistent through setup, doctor and uninstall",
+        "symptom": "AssertionError: expected { model: { name: 'existing' }, …(1) } to match object { model: { name: 'existing' }, …(1) } (3 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-019",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/registrationOwnershipSetup.test.ts",
+        "test_name": "OpenCode setup refreshes an owned inherited launcher through a policy fragment",
+        "symptom": "Error: ENOENT: no such file or directory, open 'C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-test-run-votf3X\\rea-setup-owned-layer-feozRv\\.config\\opencode\\opencode.json.rea.backup' at async open (node:internal/fs/promises:1345:25) at async readFile (node:internal/fs/promises:2003:14)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Not a fixture rename: the missing file is the product-generated \"${configPath}.rea.backup\", and the product still emits that suffix (src/application/Uninstall.ts:873), which the fixture also expects (tests/fixtures/acceptance/productContract.ts:24). Sibling tests reading the same suffix do not fail here, so a backup-write regression is possible and is not ruled out.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-020",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
+        "test_name": "rejects a linked skill root during planning before configuring a client",
+        "symptom": "AssertionError: expected '{\"status\":\"needs_human\",\"plannedActio…' to contain 'C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-t…' at E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:67:29 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:2",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-021",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
+        "test_name": "rejects a linked skill references during planning before configuring a client",
+        "symptom": "AssertionError: expected '{\"status\":\"needs_human\",\"plannedActio…' to contain 'C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-t…' at E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:67:29 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:2",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-022",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
+        "test_name": "skill-only setup verifies its selected client copy on install, rerun and repair",
+        "symptom": "AssertionError: expected 1 to be +0 // Object.is equality at assertAligned (E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:261:11) at E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:264:5",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-023",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlCommentPreservationCli.test.ts",
+        "test_name": "TOML client setup and uninstall keep comments around a stale REA table between other tables",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-toml-comments-zeSdXI\\\\.codex\\\\config.toml\",\"detail\":\"Add the REA MCP registration for Codex; pre",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-024",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlCommentPreservationCli.test.ts",
+        "test_name": "TOML client setup and uninstall keep comments around a leading REA table and a final note without a line break",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-toml-comments-nbdIyM\\\\.codex\\\\config.toml\",\"detail\":\"Add the REA MCP registration for Codex; pre",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-025",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlConfigurationCapacityCli.test.ts",
+        "test_name": "codex setup and uninstall preserve large valid TOML documents",
+        "symptom": "AssertionError: expected { model: 'local-control', …(1) } to match object { mcp_servers: { …(2) } } (6 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-026",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlConfigurationCapacityCli.test.ts",
+        "test_name": "grok_build setup and uninstall preserve large valid TOML documents",
+        "symptom": "AssertionError: expected { model: 'local-control', …(1) } to match object { mcp_servers: { …(2) } } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-027",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts",
+        "test_name": "codex setup and uninstall preserve signed 64-bit TOML integers exactly",
+        "symptom": "AssertionError: expected '[history]\\nmax_bytes = 92233720368547…' to contain '[mcp_servers.rea]' at E:/deepseek project/XTNA/tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts:57:24 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "stale-fixture",
+        "attribution_reason": "Assertion names the legacy \"rea\" registration key while the product now writes \"xtna\"; the fixture still expects the pre-rename identity.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "ACC-028",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts",
+        "test_name": "codex setup keeps exact integers and a large REA timeout in an inline server table",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-toml-int64-inline-edmx4m\\\\.codex\\\\config.toml\",\"detail\":\"Add the REA MCP registration for Codex;",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned"
+      }
+    ]
   },
-  "entries": [
-    {
-      "id": "CONF-001",
-      "suite": "conformance",
-      "test_file": "tests/conformance/destructiveCliSpawnAudit.test.ts",
-      "test_name": "accounts for every test that can start a destructive CLI",
-      "symptom": "AssertionError: tests/acceptance/setup/setupDualTableOwnership.test.ts can start a destructive CLI without a guarded fixture or an isolation marker: expected false to be true // Object.is equality at E:/deepseek project/XTNA/tests/conformance/destructiveCliSpawnAudit.test.ts:58:7 at async file:///E:",
-      "attribution": "confirmed-defect",
-      "attribution_reason": "tests/acceptance/setup/setupDualTableOwnership.test.ts can start the destructive CLI without a guarded fixture. Verified byte-identical between dd6c383 and 2263e75, so the gap predates this branch; it is a harness defect, not a product defect.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
+  "current_snapshot": {
+    "measured_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+    "measured_at": "2026-11-12T04:45:25.527+08:00",
+    "environment": {
+      "os": "Ubuntu 24.04.4 LTS",
+      "platform": "linux",
+      "architecture": "x86_64",
+      "node": "v24.22.1",
+      "npm": "11.19.1",
+      "vitest": "5.0.3"
     },
-    {
-      "id": "ACC-001",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/droidSelectedHomeCli.test.ts",
-      "test_name": "registers Droid in its selected home and preserves peers and backups",
-      "symptom": "AssertionError: expected { Object (mcpServers) } to match object { Object (mcpServers) } (4 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
+    "suites": [
+      {
+        "project": "domain",
+        "status": "measured",
+        "vitest_suites": 1041,
+        "tests": 8823,
+        "passed": 8820,
+        "failed": 0,
+        "skipped": 3,
+        "command": "npm run test:domain -- --reporter=json --outputFile=/tmp/xtna-domain-C.json"
+      },
+      {
+        "project": "conformance",
+        "status": "measured",
+        "vitest_suites": 80,
+        "tests": 410,
+        "passed": 410,
+        "failed": 0,
+        "skipped": 0,
+        "command": "npx vitest run --project conformance --reporter=json --outputFile=/tmp/xtna-conformance-C.json"
+      },
+      {
+        "project": "acceptance/setup",
+        "status": "measured",
+        "vitest_suites": 29,
+        "tests": 183,
+        "passed": 170,
+        "failed": 12,
+        "skipped": 1,
+        "command": "npx vitest run --project acceptance tests/acceptance/setup --reporter=json --outputFile=/tmp/xtna-acceptance-C.json"
+      },
+      {
+        "project": "boundary: clientLifecycle.test.ts",
+        "status": "partially measured",
+        "scope": ["tests/boundary/filesystem/clientLifecycle.test.ts"],
+        "vitest_suites": 26,
+        "tests": 65,
+        "passed": 41,
+        "failed": 24,
+        "skipped": 0,
+        "command": "npx vitest run --project boundary tests/boundary/filesystem/clientLifecycle.test.ts --reporter=json --outputFile=/tmp/xtna-clientLifecycle-C.json",
+        "not_measured": "All other boundary files and boundary subprojects."
+      },
+      {
+        "project": "acceptance (all other files)",
+        "status": "unverified",
+        "reason": "Only tests/acceptance/setup was run on this commit."
+      },
+      {
+        "project": "boundary (all other files and subprojects)",
+        "status": "unverified",
+        "reason": "Only the named clientLifecycle file and focused regressions were run."
+      },
+      {
+        "project": "services, adapters, composition, evaluation",
+        "status": "unverified",
+        "reason": "Not run on this commit."
+      }
+    ],
+    "counts": {
+      "measured_failures": 36,
+      "current_failure_entries": 36,
+      "suites_measured": 3,
+      "suites_partially_measured": 1,
+      "suites_unverified": 3
     },
-    {
-      "id": "ACC-002",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
-      "test_name": "Claude Code setup edits the effective member of a repeated server table",
-      "symptom": "AssertionError: expected { Object (mcpServers) } to match object { mcpServers: { rea: { …(1) } } } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "stale-fixture",
-      "attribution_reason": "Assertion names the legacy \"rea\" registration key while the product now writes \"xtna\"; the fixture still expects the pre-rename identity.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-003",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
-      "test_name": "Claude Code setup edits the effective member of a repeated rea member",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:claude_code\",\"kind\":\"configure_client\",\"label\":\"Claude Code\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-json-duplicate-HtAZu8\\\\.claude.json\",\"detail\":\"Add the REA MCP registration for Clau",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-004",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
-      "test_name": "JSONC setup keeps comments and the shadowed server table",
-      "symptom": "AssertionError: expected -1 to be greater than 105 at E:/deepseek project/XTNA/tests/acceptance/setup/duplicateJsonMemberSetup.test.ts:98:41 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-005",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
-      "test_name": "OpenCode setup migrates every owned repeated V1 entry while preserving the V2 peer",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidr",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-006",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/hermesAliasedTableSetup.test.ts",
-      "test_name": "Hermes uninstall detaches an aliased table before deleting REA",
-      "symptom": "AssertionError: expected { healthy: false, …(8) } to match object { identity: { …(1) } } (39 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-007",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/hermesClientSetup.test.ts",
-      "test_name": "Hermes setup preserves string environment values under YAML 1.2 with plain keys",
-      "symptom": "AssertionError: expected [Function] to throw an error at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2287:114) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-008",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/hermesClientSetup.test.ts",
-      "test_name": "Hermes setup preserves an existing tool allowlist and client-owned policy",
-      "symptom": "AssertionError: expected { mcp_servers: { xtna: { …(4) } } } to match object { mcp_servers: { xtna: { …(6) } } } at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/v",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-009",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/homeDirectoryFallback.test.ts",
-      "test_name": "setup dry run resolves empty home values without writing to the cwd",
-      "symptom": "Error: Refusing destructive \"setup\": opencode config E:\\deepseek project\\XTNA\\.config\\opencode\\opencode.json resolves outside the test root C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-test-run-votf3X\\rea-cli-compile-cache-MGn5qV, C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-test-run-votf3X\\rea-empty-home-dry-run-Kc1",
-      "attribution": "stale-fixture",
-      "attribution_reason": "The product isolation guard refused the write because the fixture-derived config path resolves outside the declared test root; the fixture, not the guard, is wrong.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-010",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/ompClientSetup.test.ts",
-      "test_name": "OMP explicit default selection overrides an invalid legacy profile",
-      "symptom": "AssertionError: expected { mcpServers: { xtna: { …(3) } } } to have property \"mcpServers.rea\" at E:/deepseek project/XTNA/tests/acceptance/setup/ompClientSetup.test.ts:110:7 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
-      "attribution": "stale-fixture",
-      "attribution_reason": "Assertion names the legacy \"rea\" registration key while the product now writes \"xtna\"; the fixture still expects the pre-rename identity.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-011",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
-      "test_name": "OpenCode V2 setup activates JSON over a lower disabled=true registration",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:opencode\",\"kind\":\"configure_client\",\"label\":\"OpenCode\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-opencode-v2-activation-1U5jf1\\\\config\\\\opencode\\\\opencode.json\",\"detail\":\"Add the REA MCP ",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-012",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
-      "test_name": "OpenCode V2 setup activates JSONC over a lower disabled=true registration",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:opencode\",\"kind\":\"configure_client\",\"label\":\"OpenCode\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-opencode-v2-activation-83Sxv8\\\\config\\\\opencode\\\\opencode.jsonc\",\"detail\":\"Add the REA MCP",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-013",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
-      "test_name": "OpenCode V2 setup activates JSON over a lower disabled=false registration",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidr",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-014",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
-      "test_name": "OpenCode V2 setup activates JSONC over a lower disabled=false registration",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidr",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-015",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
-      "test_name": "setup preserves a configured compact catalog through CLI migration and MCP startup",
-      "symptom": "ZodError: [ { \"expected\": \"object\",",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-016",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
-      "test_name": "Pi public CLI plans, requires approval, applies, diagnoses, repeats, and uninstalls only owned content",
-      "symptom": "AssertionError: expected { mcpServers: { …(2) }, …(1) } to match object { mcpServers: { …(2) }, …(1) } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-017",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
-      "test_name": "Pi public CLI creates missing strict-JSON configuration and never repairs a malformed file",
-      "symptom": "AssertionError: expected { mcpServers: { xtna: { …(4) } } } to match object { Object (mcpServers) } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-018",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/qwenProfileSetup.test.ts",
-      "test_name": "keeps Qwen profile registration and shared skill consistent through setup, doctor and uninstall",
-      "symptom": "AssertionError: expected { model: { name: 'existing' }, …(1) } to match object { model: { name: 'existing' }, …(1) } (3 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-019",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/registrationOwnershipSetup.test.ts",
-      "test_name": "OpenCode setup refreshes an owned inherited launcher through a policy fragment",
-      "symptom": "Error: ENOENT: no such file or directory, open 'C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-test-run-votf3X\\rea-setup-owned-layer-feozRv\\.config\\opencode\\opencode.json.rea.backup' at async open (node:internal/fs/promises:1345:25) at async readFile (node:internal/fs/promises:2003:14)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Not a fixture rename: the missing file is the product-generated \"${configPath}.rea.backup\", and the product still emits that suffix (src/application/Uninstall.ts:873), which the fixture also expects (tests/fixtures/acceptance/productContract.ts:24). Sibling tests reading the same suffix do not fail here, so a backup-write regression is possible and is not ruled out.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-020",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
-      "test_name": "rejects a linked skill root during planning before configuring a client",
-      "symptom": "AssertionError: expected '{\"status\":\"needs_human\",\"plannedActio…' to contain 'C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-t…' at E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:67:29 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:2",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-021",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
-      "test_name": "rejects a linked skill references during planning before configuring a client",
-      "symptom": "AssertionError: expected '{\"status\":\"needs_human\",\"plannedActio…' to contain 'C:\\Users\\xxy\\AppData\\Local\\Temp\\rea-t…' at E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:67:29 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:2",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-022",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
-      "test_name": "skill-only setup verifies its selected client copy on install, rerun and repair",
-      "symptom": "AssertionError: expected 1 to be +0 // Object.is equality at assertAligned (E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:261:11) at E:/deepseek project/XTNA/tests/acceptance/setup/selectedSkillSetup.test.ts:264:5",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-023",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/tomlCommentPreservationCli.test.ts",
-      "test_name": "TOML client setup and uninstall keep comments around a stale REA table between other tables",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-toml-comments-zeSdXI\\\\.codex\\\\config.toml\",\"detail\":\"Add the REA MCP registration for Codex; pre",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-024",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/tomlCommentPreservationCli.test.ts",
-      "test_name": "TOML client setup and uninstall keep comments around a leading REA table and a final note without a line break",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-toml-comments-nbdIyM\\\\.codex\\\\config.toml\",\"detail\":\"Add the REA MCP registration for Codex; pre",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-025",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/tomlConfigurationCapacityCli.test.ts",
-      "test_name": "codex setup and uninstall preserve large valid TOML documents",
-      "symptom": "AssertionError: expected { model: 'local-control', …(1) } to match object { mcp_servers: { …(2) } } (6 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-026",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/tomlConfigurationCapacityCli.test.ts",
-      "test_name": "grok_build setup and uninstall preserve large valid TOML documents",
-      "symptom": "AssertionError: expected { model: 'local-control', …(1) } to match object { mcp_servers: { …(2) } } (5 matching properties omitted from actual) at Proxy.<anonymous> (file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-027",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts",
-      "test_name": "codex setup and uninstall preserve signed 64-bit TOML integers exactly",
-      "symptom": "AssertionError: expected '[history]\\nmax_bytes = 92233720368547…' to contain '[mcp_servers.rea]' at E:/deepseek project/XTNA/tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts:57:24 at async file:///E:/deepseek%20project/XTNA/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
-      "attribution": "stale-fixture",
-      "attribution_reason": "Assertion names the legacy \"rea\" registration key while the product now writes \"xtna\"; the fixture still expects the pre-rename identity.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
-    },
-    {
-      "id": "ACC-028",
-      "suite": "acceptance/setup",
-      "test_file": "tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts",
-      "test_name": "codex setup keeps exact integers and a large REA timeout in an inline server table",
-      "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"C:\\\\Users\\\\xxy\\\\AppData\\\\Local\\\\Temp\\\\rea-test-run-votf3X\\\\rea-toml-int64-inline-edmx4m\\\\.codex\\\\config.toml\",\"detail\":\"Add the REA MCP registration for Codex;",
-      "attribution": "under-investigation",
-      "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
-      "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
-      "affects_release": false,
-      "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
-      "owner": "unassigned"
+    "entries": [
+      {
+        "id": "ACC-003",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "test_name": "Claude Code setup edits the effective member of a repeated rea member",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:claude_code\",\"kind\":\"configure_client\",\"label\":\"Claude Code\",\"target\":\"/tmp/rea-test-run-up95Iq/rea-json-duplicate-JWNrfs/.claude.json\",\"detail\":\"Add the REA MCP registration for Claude Code; preserve unrelated configuration. The backup path reflects the configuration inspected for this plan; if that file changes before execution, setup will select a recovery path for its current contents. Command: \\\"/usr/local/bin/node\\\" \\\"/workspace/XTNA-integration/scripts/rea.mjs\\\" \\\"mcp\\\". No additional provider environment variables. Existing server environment overrides are retained.\",\"external\":false,\"operation\":\"update\",\"backupPath\":\"/tmp/rea-test-run-up95Iq/rea-json-duplicate-JWNrfs/.claude.json.rea.backup\"}],\"appliedActions\":[],\"clients\":{\"claude_code\":{\"status\":\"failed\",\"reason\":\"shadowed_member\",\"path\":[\"mcpSer",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-005",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "test_name": "OpenCode setup migrates every owned repeated V1 entry while preserving the V2 peer",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidra\",\"configured\":false,\"available\":false,\"providerVersion\":null,\"registrationEnvironment\":{},\"checks\":[{\"name\":\"configuration\",\"ok\":false,\"code\":\"not_configured\",\"detail\":\"GHIDRA_INSTALL_DIR is not set\",\"remediation\":\"Set GHIDRA_INSTALL_DIR to an extracted Ghidra 12.x (>=12.1) release directory.\",\"classification\":\"missing_analysis_engine\"}]},{\"id\":\"ida\",\"configured\":false,\"available\":false,\"providerVersion\":null,\"registrationEnvironment\":{},\"checks\":[{\"name\":\"registration\",\"ok\":false,\"code\":\"not_configured\",\"detail\":\"IDA MCP registration is not configured.\",\"remediation\":\"Set REA_IDA_MCP_CONFIG",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-006",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/hermesAliasedTableSetup.test.ts",
+        "test_name": "Hermes uninstall detaches an aliased table before deleting REA",
+        "symptom": "AssertionError: expected { healthy: false, …(8) } to match object { identity: { …(1) } }\n(39 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/acceptance/setup/hermesAliasedTableSetup.test.ts:276:32\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-007",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/hermesClientSetup.test.ts",
+        "test_name": "Hermes setup preserves string environment values under YAML 1.2 with plain keys",
+        "symptom": "AssertionError: expected [Function] to throw an error\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2287:114)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/acceptance/setup/hermesClientSetup.test.ts:100:13\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-008",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/hermesClientSetup.test.ts",
+        "test_name": "Hermes setup preserves an existing tool allowlist and client-owned policy",
+        "symptom": "AssertionError: expected { mcp_servers: { xtna: { …(4) } } } to match object { mcp_servers: { xtna: { …(6) } } }\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/acceptance/setup/hermesClientSetup.test.ts:182:31\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-011",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSON over a lower disabled=true registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:opencode\",\"kind\":\"configure_client\",\"label\":\"OpenCode\",\"target\":\"/tmp/rea-test-run-up95Iq/rea-opencode-v2-activation-SySu88/config/opencode/opencode.json\",\"detail\":\"Add the REA MCP registration for OpenCode; preserve unrelated configuration. The backup path reflects the configuration inspected for this plan; if that file changes before execution, setup will select a recovery path for its current contents. Command: \\\"/usr/local/bin/node\\\" \\\"/workspace/XTNA-integration/scripts/rea.mjs\\\" \\\"mcp\\\". Detected provider environment: HOPPER_LAUNCHER_PATH=/tmp/rea-test-run-up95Iq/rea-opencode-v2-activation-SySu88/absent-hopper. Existing server environment overrides are retained; detected values replace matching keys.\",\"external\":false,\"operation\":\"update\",\"backupPath\":\"/tmp/rea-test-run-up95Iq/rea-opencode-v2-activati",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-012",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSONC over a lower disabled=true registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:opencode\",\"kind\":\"configure_client\",\"label\":\"OpenCode\",\"target\":\"/tmp/rea-test-run-up95Iq/rea-opencode-v2-activation-9QmDrH/config/opencode/opencode.jsonc\",\"detail\":\"Add the REA MCP registration for OpenCode; preserve unrelated configuration. The backup path reflects the configuration inspected for this plan; if that file changes before execution, setup will select a recovery path for its current contents. Command: \\\"/usr/local/bin/node\\\" \\\"/workspace/XTNA-integration/scripts/rea.mjs\\\" \\\"mcp\\\". Detected provider environment: HOPPER_LAUNCHER_PATH=/tmp/rea-test-run-up95Iq/rea-opencode-v2-activation-9QmDrH/absent-hopper. Existing server environment overrides are retained; detected values replace matching keys.\",\"external\":false,\"operation\":\"update\",\"backupPath\":\"/tmp/rea-test-run-up95Iq/rea-opencode-v2-activat",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-013",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSON over a lower disabled=false registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidra\",\"configured\":false,\"available\":false,\"providerVersion\":null,\"registrationEnvironment\":{},\"checks\":[{\"name\":\"configuration\",\"ok\":false,\"code\":\"not_configured\",\"detail\":\"GHIDRA_INSTALL_DIR is not set\",\"remediation\":\"Set GHIDRA_INSTALL_DIR to an extracted Ghidra 12.x (>=12.1) release directory.\",\"classification\":\"missing_analysis_engine\"}]},{\"id\":\"ida\",\"configured\":false,\"available\":false,\"providerVersion\":null,\"registrationEnvironment\":{},\"checks\":[{\"name\":\"registration\",\"ok\":false,\"code\":\"not_configured\",\"detail\":\"IDA MCP registration is not configured.\",\"remediation\":\"Set REA_IDA_MCP_CONFIG",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-014",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/opencodeV2ClientSetup.test.ts",
+        "test_name": "OpenCode V2 setup activates JSONC over a lower disabled=false registration",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[],\"appliedActions\":[],\"clients\":{},\"doctor\":{\"healthy\":false,\"environment_healthy\":false,\"scope\":{\"mode\":\"explicit\",\"clients\":[\"opencode\"],\"providers\":[],\"skill\":false,\"target\":null},\"availableProviders\":[],\"providerInspections\":[{\"id\":\"ghidra\",\"configured\":false,\"available\":false,\"providerVersion\":null,\"registrationEnvironment\":{},\"checks\":[{\"name\":\"configuration\",\"ok\":false,\"code\":\"not_configured\",\"detail\":\"GHIDRA_INSTALL_DIR is not set\",\"remediation\":\"Set GHIDRA_INSTALL_DIR to an extracted Ghidra 12.x (>=12.1) release directory.\",\"classification\":\"missing_analysis_engine\"}]},{\"id\":\"ida\",\"configured\":false,\"available\":false,\"providerVersion\":null,\"registrationEnvironment\":{},\"checks\":[{\"name\":\"registration\",\"ok\":false,\"code\":\"not_configured\",\"detail\":\"IDA MCP registration is not configured.\",\"remediation\":\"Set REA_IDA_MCP_CONFIG",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-023",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlCommentPreservationCli.test.ts",
+        "test_name": "TOML client setup and uninstall keep comments around a stale REA table between other tables",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"/tmp/rea-test-run-up95Iq/rea-toml-comments-k7qcXs/.codex/config.toml\",\"detail\":\"Add the REA MCP registration for Codex; preserve unrelated configuration. The backup path reflects the configuration inspected for this plan; if that file changes before execution, setup will select a recovery path for its current contents. Command: \\\"/usr/local/bin/node\\\" \\\"/workspace/XTNA-integration/scripts/rea.mjs\\\" \\\"mcp\\\". No additional provider environment variables. Existing server environment overrides are retained.\",\"external\":false,\"operation\":\"update\",\"backupPath\":\"/tmp/rea-test-run-up95Iq/rea-toml-comments-k7qcXs/.codex/config.toml.rea.backup\"},{\"id\":\"configure_client:grok_build\",\"kind\":\"configure_client\",\"label\":\"Grok Build\",\"target\":\"/tmp/rea-test-run-up95",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-024",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlCommentPreservationCli.test.ts",
+        "test_name": "TOML client setup and uninstall keep comments around a leading REA table and a final note without a line break",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"/tmp/rea-test-run-up95Iq/rea-toml-comments-b4cdKa/.codex/config.toml\",\"detail\":\"Add the REA MCP registration for Codex; preserve unrelated configuration. The backup path reflects the configuration inspected for this plan; if that file changes before execution, setup will select a recovery path for its current contents. Command: \\\"/usr/local/bin/node\\\" \\\"/workspace/XTNA-integration/scripts/rea.mjs\\\" \\\"mcp\\\". No additional provider environment variables. Existing server environment overrides are retained.\",\"external\":false,\"operation\":\"update\",\"backupPath\":\"/tmp/rea-test-run-up95Iq/rea-toml-comments-b4cdKa/.codex/config.toml.rea.backup\"},{\"id\":\"configure_client:grok_build\",\"kind\":\"configure_client\",\"label\":\"Grok Build\",\"target\":\"/tmp/rea-test-run-up95",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "ACC-028",
+        "suite": "acceptance/setup",
+        "test_file": "tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts",
+        "test_name": "codex setup keeps exact integers and a large REA timeout in an inline server table",
+        "symptom": "AssertionError: {\"status\":\"needs_human\",\"plannedActions\":[{\"id\":\"configure_client:codex\",\"kind\":\"configure_client\",\"label\":\"Codex\",\"target\":\"/tmp/rea-test-run-up95Iq/rea-toml-int64-inline-siGYgI/.codex/config.toml\",\"detail\":\"Add the REA MCP registration for Codex; preserve unrelated configuration. The backup path reflects the configuration inspected for this plan; if that file changes before execution, setup will select a recovery path for its current contents. Command: \\\"/usr/local/bin/node\\\" \\\"/workspace/XTNA-integration/scripts/rea.mjs\\\" \\\"mcp\\\". No additional provider environment variables. Existing server environment overrides are retained.\",\"external\":false,\"operation\":\"update\",\"backupPath\":\"/tmp/rea-test-run-up95Iq/rea-toml-int64-inline-siGYgI/.codex/config.toml.rea.backup\"}],\"appliedActions\":[],\"clients\":{\"codex\":{\"status\":\"failed\",\"reason\":\"registration_ownership\",\"detail\":\"The ",
+        "attribution": "under-investigation",
+        "attribution_reason": "Assertion message does not name a cause that can be attributed from this run alone.",
+        "first_confirmed_at_commit": "2263e75b0b059c8ff7d31e1456e938b8dcc2217e",
+        "affects_release": false,
+        "release_note": "Not touched by this change and not gated by CI, so it does not block this release candidate. Whether it affects released behaviour is not assessed here.",
+        "owner": "unassigned",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6"
+      },
+      {
+        "id": "BND-001",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "client configuration filesystem lifecycle preserves unrelated Codex TOML and supports an installed command",
+        "symptom": "AssertionError: expected 'model = \"gpt-5\"\\n[mcp_servers.other]\\…' to contain '[mcp_servers.rea]'\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:105:24\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-002",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Codex MCP tool deadlines preserves positive caller-selected Codex startup and tool deadlines",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:186:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-003",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "client configuration filesystem lifecycle updates a symlink target without replacing the TOML config symlink",
+        "symptom": "AssertionError: expected 'model = \"gpt-5\"\\n\\n[mcp_servers.xtna]…' to contain '[mcp_servers.rea]'\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:212:48\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-004",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build server table edits edits only the Grok Build REA tables and removes them on uninstall",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:282:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-005",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build disabled server list removes rea from disabled_mcp_servers and leaves other names",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:381:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-006",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build disabled server list removes multiline rea entries from disabled_mcp_servers",
+        "symptom": "AssertionError: expected { Object (disabled_mcp_servers, mcp_servers) } to match object { Object (disabled_mcp_servers, mcp_servers) }\n(4 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:440:35\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-007",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build text that resembles a server table preserves Grok text that only looks like an REA table",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:495:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-008",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build text that resembles a server table replaces spaced and escaped Grok REA headers without duplicating them",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:562:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-009",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build multiline and escaped headers preserves a multiline string opened on the line that closed the previous one",
+        "symptom": "AssertionError: expected { banner: [ 'first\\n', …(1) ], …(2) } to match object { banner: [ 'first\\n', …(1) ], …(2) }\n(4 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:622:35\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-010",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build multiline and escaped headers replaces a hex-escaped Grok REA header and keeps a hex-escaped foreign name",
+        "symptom": "AssertionError: expected 'failed' to be 'complete' // Object.is equality\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:656:75\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-011",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build inline and dotted assignments updates and removes inline and dotted Grok REA assignments",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:741:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-012",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build closed inline tables splices REA into a closed mcp_servers inline table",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:842:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-013",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build closed inline tables keeps a quote that belongs to a multiline string closer",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:922:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-014",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build scalar and nested values preserves a basic string that uses the escape smol-toml accepts",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:960:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-015",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build scalar and nested values updates a closed inline table whose last value is a scalar",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:985:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-016",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build scalar and nested values removes a nested array inside a Grok REA table",
+        "symptom": "AssertionError: expected 'failed' to be 'complete' // Object.is equality\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1012:75\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-017",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build newlines and leading marks edits a BOM-prefixed Grok document without losing the first table",
+        "symptom": "AssertionError: expected { …(2) } to match object { …(2) }\n(4 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1060:35\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-018",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build newlines and leading marks keeps CRLF string values in a Grok file that also uses LF",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1092:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-019",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build newlines and leading marks keeps LF string values in a Grok file that also uses CRLF",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1123:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-020",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build inline comments keeps comments on dotted Grok fields without repeating a comma",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1151:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-021",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build inline comments keeps an inline comment that sits before the Grok REA pair",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1188:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-022",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build inline comments keeps inline-table comments and encodes a DEL in an inline value",
+        "symptom": "AssertionError: expected { status: 'failed', …(2) } to match object { status: 'configured' }\n(2 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:2050:10)\n    at Proxy.<anonymous> (file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/index.C4tKZ0yW.js:1944:14)\n    at Proxy.methodWrapper (file:///workspace/XTNA-integration/node_modules/chai/index.js:1737:25)\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1224:7\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-023",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Grok Build inline comments keeps comments when uninstall removes the only inline Grok server",
+        "symptom": "AssertionError: expected 'failed' to be 'complete' // Object.is equality\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1248:75\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      },
+      {
+        "id": "BND-024",
+        "suite": "boundary/clientLifecycle (partial)",
+        "test_file": "tests/boundary/filesystem/clientLifecycle.test.ts",
+        "test_name": "Codex configuration comments keeps Codex comments and value spelling through setup and uninstall",
+        "symptom": "AssertionError: expected '# Keep this explanation.\\nnotify = [\"…' to contain '[mcp_servers.rea]'\n    at /workspace/XTNA-integration/tests/boundary/filesystem/clientLifecycle.test.ts:1393:24\n    at async file:///workspace/XTNA-integration/node_modules/vitest/dist/chunks/run.BTlFXlnv.js:2783:20",
+        "attribution": "under-investigation",
+        "attribution_reason": "This failure also appeared in the clean 2fc18af baseline. Matching titles alone do not establish a cause; attribute each failure only after its assertion evidence is reviewed.",
+        "first_confirmed_at_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "last_observed_at_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "affects_release": null,
+        "release_note": "This is a baseline-matched boundary test failure. Runtime/release impact has not been assessed, and the rest of the boundary project is unverified.",
+        "owner": "unassigned"
+      }
+    ],
+    "closed_ids": [
+      {
+        "id": "CONF-001",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/conformance/destructiveCliSpawnAudit.test.ts",
+        "passing_tests": [
+          "accounts for every test that can start a destructive CLI"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-001",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/droidSelectedHomeCli.test.ts",
+        "passing_tests": [
+          "registers Droid in its selected home and preserves peers and backups"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-002",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "passing_tests": [
+          "Claude Code setup edits the effective member of a repeated server table"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-004",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/duplicateJsonMemberSetup.test.ts",
+        "passing_tests": [
+          "JSONC setup keeps comments and the shadowed server table"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-009",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/homeDirectoryFallback.test.ts",
+        "passing_tests": [
+          "setup dry run uses a temporary USERPROFILE without writing to the cwd",
+          "setup, doctor, and uninstall use the nonempty fallback home when HOME is empty"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-010",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/ompClientSetup.test.ts",
+        "passing_tests": [
+          "OMP explicit default selection overrides an invalid legacy profile"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-015",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
+        "passing_tests": [
+          "setup preserves a configured compact catalog through CLI migration and MCP startup"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-016",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
+        "passing_tests": [
+          "Pi public CLI plans, requires approval, applies, diagnoses, repeats, and uninstalls only owned content"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-017",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/piClientSetup.test.ts",
+        "passing_tests": [
+          "Pi public CLI creates missing strict-JSON configuration and never repairs a malformed file"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-018",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/qwenProfileSetup.test.ts",
+        "passing_tests": [
+          "keeps Qwen profile registration and shared skill consistent through setup, doctor and uninstall"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-019",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/registrationOwnershipSetup.test.ts",
+        "passing_tests": [
+          "OpenCode setup refreshes an owned inherited launcher through a policy fragment"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-020",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
+        "passing_tests": [
+          "rejects a linked skill root during planning before configuring a client"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-021",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
+        "passing_tests": [
+          "rejects a linked skill references during planning before configuring a client"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-022",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/selectedSkillSetup.test.ts",
+        "passing_tests": [
+          "skill-only setup verifies its selected client copy on install, rerun and repair"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-025",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/tomlConfigurationCapacityCli.test.ts",
+        "passing_tests": [
+          "codex setup and uninstall preserve large valid TOML documents"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-026",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/tomlConfigurationCapacityCli.test.ts",
+        "passing_tests": [
+          "grok_build setup and uninstall preserve large valid TOML documents"
+        ],
+        "result": "passed"
+      },
+      {
+        "id": "ACC-027",
+        "fixed_in_commit": "8145e2116f570827e2809d31a08e6f088e1a07b6",
+        "test_file": "tests/acceptance/setup/tomlConfigurationIntegerRangeCli.test.ts",
+        "passing_tests": [
+          "codex setup and uninstall preserve signed 64-bit TOML integers exactly"
+        ],
+        "result": "passed"
+      }
+    ],
+    "baseline_comparisons": [
+      {
+        "project": "boundary: clientLifecycle.test.ts",
+        "baseline_commit": "2fc18af0313d6af9115ceb7fd546a7ffe2cc798a",
+        "baseline_file_blob": "df8f2604ec8b4eff654c5f54d90eee07db8258c2",
+        "baseline_environment": "Ubuntu 24.04.4 LTS, Linux x86_64, Node v24.22.1, npm 11.19.1, Vitest 5.0.3",
+        "baseline_command": "./node_modules/.bin/vitest run --project boundary tests/boundary/filesystem/clientLifecycle.test.ts --reporter=verbose --maxWorkers=1",
+        "baseline_result": {
+          "tests": 62,
+          "passed": 38,
+          "failed": 24,
+          "skipped": 0
+        },
+        "current_result": {
+          "tests": 65,
+          "passed": 41,
+          "failed": 24,
+          "skipped": 0
+        },
+        "failure_title_matches": 24,
+        "comparison": "Independent clean-baseline comparison reported exact ordered equality of all 24 failing titles; the 3 additional tests on the current commit passed."
+      }
+    ],
+    "validation_checks": [
+      {
+        "command": "npm run check:fast",
+        "result": "passed; typecheck and lint, 2/2 tasks"
+      },
+      {
+        "command": "npm run docs:check",
+        "result": "passed; built documentation checks and README consistency, 8/8"
+      },
+      {
+        "command": "npm run test:domain -- --reporter=json --outputFile=/tmp/xtna-domain-C.json",
+        "result": "passed; 1041 suites, 8820 passed, 0 failed, 3 skipped"
+      },
+      {
+        "command": "npx vitest run --project conformance --reporter=json --outputFile=/tmp/xtna-conformance-C.json",
+        "result": "passed; 80 suites, 410 passed, 0 failed, 0 skipped"
+      },
+      {
+        "command": "npx vitest run --project acceptance tests/acceptance/setup --reporter=json --outputFile=/tmp/xtna-acceptance-C.json",
+        "result": "29 files, 183 tests, 170 passed, 12 failed, 1 skipped"
+      },
+      {
+        "command": "npx vitest run --project boundary tests/boundary/filesystem/clientLifecycle.test.ts --reporter=json --outputFile=/tmp/xtna-clientLifecycle-C.json",
+        "result": "partial boundary measurement; 26 suites, 65 tests, 41 passed, 24 failed, 0 skipped"
+      },
+      {
+        "command": "npx vitest run src/application/functionInventoryDiff.test.ts src/domain/versionFunctionDiff.test.ts tests/boundary/mcp/functionInventoryDiffMcp.test.ts",
+        "result": "passed; 3 files, 48/48 tests"
+      },
+      {
+        "command": "npm run test:focused -- tests/boundary/cli/configIsolation.test.ts",
+        "result": "passed; 30 tests passed, 2 platform-conditional skipped"
+      },
+      {
+        "command": "npm run test:focused -- tests/boundary/cli/ownedRootsLifecycle.test.ts",
+        "result": "passed; 2/2 tests"
+      },
+      {
+        "command": "npx vitest run --project boundary tests/boundary/filesystem/clientLifecycle.test.ts -t 'OpenCode'",
+        "result": "passed; 5 passed, 60 filtered/skipped"
+      },
+      {
+        "command": "tests/acceptance/setup/registrationOwnershipSetup.test.ts (included in acceptance/setup run)",
+        "result": "passed; 9/9 tests"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed; no whitespace errors"
+      }
+    ],
+    "remote_validation": {
+      "ci": "not run",
+      "reason": "The workflow runs on pull_request and push to main; this feature-branch push alone does not trigger CI.",
+      "pull_request": "not created"
     }
-  ]
+  }
 }
