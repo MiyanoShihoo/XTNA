@@ -83,7 +83,7 @@ cliTest.skipIf(process.platform === "win32")(
     const document = z
       .object({
         mcpServers: z.object({
-          rea: z.object({
+          xtna: z.object({
             command: z.string(),
             args: z.array(z.string()),
             env: z.record(z.string(), z.string()),
@@ -92,7 +92,7 @@ cliTest.skipIf(process.platform === "win32")(
         }),
       })
       .parse(JSON.parse(configured));
-    const registration = document.mcpServers.rea;
+    const registration = document.mcpServers.xtna;
     expect(registration).toMatchObject({
       command: process.execPath,
       args: [entrypoint, "mcp"],

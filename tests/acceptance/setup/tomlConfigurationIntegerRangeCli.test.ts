@@ -54,7 +54,7 @@ cliTest(
     expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);
     const configured = await readFile(config, "utf8");
     expect(configured.startsWith(original)).toBe(true);
-    expect(configured).toContain("[mcp_servers.rea]");
+    expect(configured).toContain("[mcp_servers.xtna]");
 
     const repeated = await run([...setupArguments, "--yes"]);
     expect(repeated.exitCode, repeated.stdout).toBe(0);

@@ -12,6 +12,7 @@ import { parse } from "yaml";
 import { expect, onTestFinished } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
+import { registerOwnedRoot } from "../../support/cli/configIsolation.js";
 import {
   EXPECTED_BACKUP_SUFFIX,
   EXPECTED_MCP_KEY,
@@ -83,6 +84,9 @@ for (const [version, keyStyle] of [
           [EXPECTED_MCP_KEY]: { env: environment, enabled: true },
         },
       });
+      expect(parse(configured, { version })).not.toHaveProperty(
+        "mcp_servers.rea",
+      );
       // Hermes's C loader applies YAML 1.1 even with the explicit directive.
       // Independently model that schema; real Hermes loader verification is
       // recorded in the PR rather than requiring Python dependencies in CI.
@@ -713,6 +717,7 @@ cliTest.skipIf(process.platform === "win32")(
     const home = await createTestTempDirectory("rea-hermes-named-caller-");
     const account = userInfo();
     const profile = await mkdtemp(join(account.homedir, ".rea-hermes-named-"));
+    registerOwnedRoot(profile);
     onTestFinished(() => removeTestWorkspace(profile));
     const override = `~${account.username}//${relative(account.homedir, profile)}`;
     const config = join(profile, "config.yaml");

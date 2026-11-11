@@ -42,7 +42,7 @@ cliTest(
     expect(JSON.parse(configured)).toMatchObject({
       mcpServers: {
         peer: { command: "peer" },
-        rea: { args: expect.arrayContaining(["mcp"]) },
+        xtna: { args: expect.arrayContaining(["mcp"]) },
       },
     });
     expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);

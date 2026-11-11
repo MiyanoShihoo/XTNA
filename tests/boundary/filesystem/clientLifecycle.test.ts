@@ -1755,7 +1755,9 @@ describe("uninstall registration ownership preflight", () => {
       readFile(`${cursor}.rea.backup`, "utf8"),
     ).rejects.toMatchObject({ code: "ENOENT" });
   });
+});
 
+describe("OpenCode uninstall registration ownership preflight", () => {
   it("keeps an owned OpenCode V2 registration when its V1 fallback is foreign", async () => {
     const home = await createTestTempDirectory(
       "rea-uninstall-opencode-fallback-",
@@ -1786,6 +1788,110 @@ describe("uninstall registration ownership preflight", () => {
     await expect(
       readFile(`${config}.rea.backup`, "utf8"),
     ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it.each([
+    ["foreign", { type: "local", command: ["/usr/bin/other"] }],
+    ["unknown", { type: "local", command: ["node", "rea.mjs", "mcp"] }],
+  ] as const)(
+    "refuses layered OpenCode removal when the lower registration is %s",
+    async (_ownership, lowerEntry) => {
+      const home = await createTestTempDirectory(
+        "rea-uninstall-opencode-layered-unowned-",
+      );
+      const directory = join(home, ".config/opencode");
+      const lower = join(directory, "config.json");
+      const upper = join(directory, "opencode.json");
+      await mkdir(directory, { recursive: true });
+      const lowerOriginal = `// lower layer; preserve exact bytes\n${JSON.stringify(
+        {
+          mcp: { servers: { xtna: lowerEntry } },
+        },
+      )}\n`;
+      const upperOriginal = ` { "mcp": { "servers": { "xtna": ${JSON.stringify({
+        type: "local",
+        command: [PRODUCT_IDENTITY.cliBinary, "mcp"],
+        enabled: true,
+      })} } } }\n`;
+      await writeFile(lower, lowerOriginal);
+      await writeFile(upper, upperOriginal);
+
+      const result = await runUninstall(false, systemUninstallHost(home));
+
+      expect(result.status).toBe("failed");
+      expect(result.items).toContainEqual(
+        expect.objectContaining({ name: "opencode", status: "failed" }),
+      );
+      expect(result.items).toContainEqual(
+        expect.objectContaining({ name: "uninstall", status: "skipped" }),
+      );
+      expect(
+        result.items.some(
+          (entry) =>
+            entry.status === "removed" ||
+            entry.actions?.some((action) => action.status === "removed"),
+        ),
+      ).toBe(false);
+      expect((await readFile(lower)).equals(Buffer.from(lowerOriginal))).toBe(
+        true,
+      );
+      expect((await readFile(upper)).equals(Buffer.from(upperOriginal))).toBe(
+        true,
+      );
+      await expect(readFile(`${lower}.rea.backup`)).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      await expect(readFile(`${upper}.rea.backup`)).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    },
+  );
+
+  it("removes owned OpenCode registrations from every layer", async () => {
+    const home = await createTestTempDirectory(
+      "rea-uninstall-opencode-layered-owned-",
+    );
+    const directory = join(home, ".config/opencode");
+    const lower = join(directory, "config.json");
+    const upper = join(directory, "opencode.json");
+    await mkdir(directory, { recursive: true });
+    const registration = {
+      type: "local",
+      command: [PRODUCT_IDENTITY.cliBinary, "mcp"],
+      enabled: true,
+    };
+    const lowerOriginal = JSON.stringify({
+      mcp: { servers: { xtna: registration } },
+    });
+    const upperOriginal = `// upper layer\n${JSON.stringify({
+      mcp: { servers: { xtna: registration } },
+    })}\n`;
+    await writeFile(lower, lowerOriginal);
+    await writeFile(upper, upperOriginal);
+
+    const result = await runUninstall(false, systemUninstallHost(home));
+
+    expect(result.status).toBe("complete");
+    const opencode = result.items.find(({ name }) => name === "opencode");
+    expect(opencode?.status).toBe("removed");
+    expect(opencode?.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          configuration_path: lower,
+          status: "removed",
+        }),
+        expect.objectContaining({
+          configuration_path: upper,
+          status: "removed",
+        }),
+      ]),
+    );
+    expect(JSON.parse(await readFile(lower, "utf8"))).toEqual({
+      mcp: { servers: {} },
+    });
+    expect(parseJsonc(await readFile(upper, "utf8"))).toEqual({
+      mcp: { servers: {} },
+    });
   });
 });
 

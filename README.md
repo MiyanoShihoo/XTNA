@@ -4,6 +4,8 @@ XTNA is a local command-line tool and MCP server for reverse engineering and app
 analysis. It reads a binary, an app package, a page or a capture and returns structured records;
 each record says how it was observed and where the analysis stopped.
 
+[![MCP tool catalog](https://img.shields.io/badge/MCP-tool_catalog-5c4ee5?style=flat-square)](docs/mcp-contracts.md#generated-catalog)
+
 Deep analysis needs tools you install yourself (Ghidra, IDA, Hopper, Rizin, apktool, JADX).
 Several modules are still partial — [docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md) marks each one
 `shipped`, `partial` or `planned`.
@@ -72,7 +74,8 @@ per-client paths and the registry snippet are in
 the MCP entry is a single stdio command and can be registered by hand.
 
 The generated tool catalog in [docs/mcp-contracts.md](docs/mcp-contracts.md#generated-catalog)
-lists the tools, their inputs and how results are represented.
+lists the tools, their inputs and how results are represented. The published server entry is in
+the [MCP Registry](docs/installation.md#mcp-registry).
 
 ## Requirements and limitations
 

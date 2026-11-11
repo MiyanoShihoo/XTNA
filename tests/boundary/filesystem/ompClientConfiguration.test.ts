@@ -19,8 +19,10 @@ const command = NPX_REGISTRATION_COMMAND;
 beforeEach(clearClientLocationEnvironment);
 afterEach(() => vi.unstubAllEnvs());
 
-const ompPath = (env: Parameters<typeof supportedClients>[2]) =>
-  supportedClients("/home/a", "linux", env).find(({ name }) => name === "omp");
+const ompPath = (env: Parameters<typeof supportedClients>[2], cwd?: string) =>
+  supportedClients("/home/a", "linux", env, cwd).find(
+    ({ name }) => name === "omp",
+  );
 
 describe("OMP configuration paths", () => {
   it("uses the default agent directory and OMP's environment overrides", () => {
@@ -41,6 +43,13 @@ describe("OMP configuration paths", () => {
     // Match OMP by resolving the override against the caller working directory.
     expect(ompPath({ PI_CODING_AGENT_DIR: "agent" })?.configPath).toBe(
       resolve("agent", "mcp.json"),
+    );
+  });
+
+  it("resolves a relative agent override against the supplied invocation cwd", () => {
+    const cwd = resolve("invocation-cwd");
+    expect(ompPath({ PI_CODING_AGENT_DIR: "agent" }, cwd)?.configPath).toBe(
+      resolve(cwd, "agent", "mcp.json"),
     );
   });
 
