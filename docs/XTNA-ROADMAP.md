@@ -61,6 +61,7 @@ not implemented here.
 
 - `npm run test:fast`: the 1,148-file / 20,671-passed / 430-skipped result (Windows x64, Node v24.22.1) is historical, not a current green result. The historical `conformance` slice at baseline `2263e75` had 405 passed, 2 skipped, and 1 failed (`tests/conformance/destructiveCliSpawnAudit.test.ts`); `conformance` is part of the `test:fast` source lane.
 - A prior uncommitted local candidate reported 80 conformance suites, 409 passed, 0 failed and 0 pending (Linux x86_64, Node v24.22.1). That run predates the final quality-closure changes and is not a measurement of the current commit; see `docs/quality/known-test-failures.json` for the current snapshot. It was not a complete `test:fast` run or a CI result.
+- Quality-closure code commit `8145e2116f570827e2809d31a08e6f088e1a07b6`: domain 8,820 passed / 3 skipped; conformance 410/410 passed; acceptance/setup 170 passed / 12 failed / 1 skipped. One boundary file was measured separately at 41 passed / 24 failed, with all 24 failure titles matching the clean `2fc18af` baseline; the rest of boundary is unverified. This is local Linux evidence, not CI. See `docs/quality/known-test-failures.json` for the complete scope and active entries.
 - `npm run typecheck`: passed.
 - `npm run test:acceptance` (mock and Hermes CLI scope): `xtnaMockCli.test.ts` 1/1 and `xtnaHermesCli.test.ts` 1/1 passed.
 - `npm run docs:check`: passed.
