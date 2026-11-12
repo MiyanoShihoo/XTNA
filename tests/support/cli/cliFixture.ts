@@ -1,6 +1,8 @@
 import { delimiter, resolve } from "node:path";
+import { onTestFinished } from "vitest";
 import {
   assertDestructiveIsolation,
+  clearOwnedRoots,
   registeredRoots,
 } from "./configIsolation.js";
 import { tmpdir } from "node:os";
@@ -284,7 +286,14 @@ export const createTestCli = (
     // Refuse a destructive command whose configuration surfaces escape the temporary
     // roots this test owns. This runs before the child starts, so a real client file is
     // never opened by a test that inherited a redirect such as DSH_HOME.
-    assertDestructiveIsolation(arguments_[0] ?? "", [], environment ?? {});
+    assertDestructiveIsolation(
+      arguments_[0] ?? "",
+      [],
+      environment ?? {},
+      process.platform,
+      cwd ?? process.cwd(),
+      arguments_.slice(1),
+    );
     const result = await processes.run(
       process.execPath,
       [resolve("scripts/rea.mjs"), ...arguments_],
@@ -349,6 +358,12 @@ export const cliTest = processTest.extend<{
     { processes, cliCompileCache, mcpSession, cliCommandSession },
     use,
   ) => {
+    // Roots are per test, not per worker: never inherit trust from an earlier
+    // case. Keep roots registered during this case for repeated CLI calls.
+    clearOwnedRoots();
+    // Registered before test-body temp cleanup hooks, so Vitest's reverse
+    // onTestFinished order clears the set only after those directories are gone.
+    onTestFinished(() => clearOwnedRoots());
     const cli = createTestCli(processes, cliCompileCache);
     await use({
       ...cli,

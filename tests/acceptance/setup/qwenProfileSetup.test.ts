@@ -53,7 +53,7 @@ cliTest(
       model: { name: "existing" },
       mcpServers: {
         other: { command: "other-server" },
-        rea: {
+        xtna: {
           command: process.execPath,
           args: [resolve("scripts/rea.mjs"), "mcp"],
         },

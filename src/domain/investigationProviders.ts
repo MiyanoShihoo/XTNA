@@ -150,6 +150,13 @@ export const BUNDLE_COMPARISON_PROVIDER = {
   version: "1",
 } as const;
 
+/** Provider identity for deterministic version-level function inventory diffs. */
+export const FUNCTION_INVENTORY_DIFF_PROVIDER = {
+  id: "rea-function-inventory-diff",
+  name: "REA function inventory diff",
+  version: "1",
+} as const;
+
 /** Provider identity for comparison-Evidence behavior aggregation. */
 export const CHANGED_BEHAVIOR_PROVIDER = {
   id: "rea-changed-behavior",

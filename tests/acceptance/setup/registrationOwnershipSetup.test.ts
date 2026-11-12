@@ -1,5 +1,6 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 
 import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
@@ -290,6 +291,9 @@ cliTest(
   "OpenCode setup refreshes an owned inherited launcher through a policy fragment",
   async ({ cli }) => {
     const home = await createTestTempDirectory("rea-setup-owned-layer-");
+    const launcher = fileURLToPath(
+      new URL("../../../scripts/rea.mjs", import.meta.url),
+    );
     const directory = join(home, ".config", "opencode");
     await mkdir(directory, { recursive: true });
     const lower = join(directory, "config.json");
@@ -319,13 +323,21 @@ cliTest(
       },
     });
     expectSetupContract(result);
+    expect(result.json).toMatchObject({
+      clients: { opencode: { status: "configured" } },
+      appliedActions: expect.arrayContaining(["configured_opencode"]),
+    });
     expect(await readFile(lower, "utf8")).toBe(originalLower);
     expect(
       await readFile(`${upper}.${EXPECTED_BACKUP_SUFFIX}.backup`, "utf8"),
     ).toBe(originalUpper);
     expect(JSON.parse(await readFile(upper, "utf8"))).toMatchObject({
       mcp: {
-        [EXPECTED_MCP_KEY]: { type: "local", environment: { CUSTOM: "keep" } },
+        [EXPECTED_MCP_KEY]: {
+          type: "local",
+          command: [process.execPath, launcher, "mcp"],
+          environment: { CUSTOM: "keep" },
+        },
       },
     });
     const foreignFragment = JSON.stringify({
@@ -351,6 +363,7 @@ cliTest(
     expect(blocked.exitCode, blocked.stdout).toBe(1);
     expect(blocked.json).toMatchObject({
       status: "needs_human",
+      appliedActions: [],
       remediation: expect.stringContaining("foreign ownership"),
     });
     expect(await readFile(upper, "utf8")).toBe(foreignFragment);

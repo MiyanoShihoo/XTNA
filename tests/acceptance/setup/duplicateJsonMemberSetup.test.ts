@@ -62,7 +62,12 @@ for (const [layout, original] of [
         layout === "a repeated server table" ? shadowParent : shadowLeaf,
       );
       expect(JSON.parse(configured)).toMatchObject({
-        mcpServers: { rea: { command: expect.not.stringMatching(/^\/usr/) } },
+        mcpServers: {
+          xtna: {
+            command: process.execPath,
+            args: [resolve("scripts/rea.mjs"), "mcp"],
+          },
+        },
       });
 
       const repeated = await run(setupArguments("claude_code"));
@@ -95,7 +100,7 @@ cliTest(
     const configured = await readFile(config, "utf8");
     expect(configured.startsWith(head)).toBe(true);
     expect(configured).toContain("// peer");
-    expect(configured.indexOf('"rea"')).toBeGreaterThan(head.length);
+    expect(configured.indexOf('"xtna"')).toBeGreaterThan(head.length);
   },
 );
 

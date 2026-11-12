@@ -2,6 +2,7 @@ import { digestCanonicalValue } from "./canonicalDigest.js";
 import type {
   DimensionName,
   FunctionComparisonResult,
+  FunctionComparisonUnknownReason,
   FunctionDimension,
 } from "./functionComparisonSchemas.js";
 
@@ -52,9 +53,17 @@ export const unresolvedDimension = (input: {
   readonly leftCount: number | null;
   readonly rightCount: number | null;
   readonly limitations: readonly string[];
+  readonly reasons?: readonly FunctionComparisonUnknownReason[];
 }): FunctionDimension => ({
   dimension: input.dimension,
   status: "unknown",
+  // A caller that cannot name the limit says so instead of inventing one. An
+  // empty list is the same silence, and the contract requires at least one
+  // reason, so an empty array must not reach the record as-is.
+  unknown_reasons:
+    input.reasons === undefined || input.reasons.length === 0
+      ? ["unspecified"]
+      : [...new Set(input.reasons)],
   left_digest: null,
   right_digest: null,
   left_count: input.leftCount,

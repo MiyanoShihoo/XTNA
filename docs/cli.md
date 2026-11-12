@@ -567,6 +567,39 @@ ancestor on that same filesystem and removes the unused stage. Existing output
 protection still applies. A genuine pathname refusal uses `resource_constraint`
 with `details.reason: path-limit` and `boundary: filesystem-path`.
 
+### Compare two function inventories
+
+`diff-functions` pairs two inventories of `analyze_function` Evidence by stable
+symbol name and reports which observed dimensions changed. Input is JSON from a
+file, stdin (`-`) or an inline argument; no target is executed and no decompiler
+or provider runs.
+
+```bash
+rea diff-functions left.json right.json --json
+```
+
+Each input is an array of `analyze_function` Evidence records, or an object
+holding exactly one such array under `functions`, `items` or `evidence`. A
+document that declares more than one of those keys is rejected rather than
+guessed at. Output separates `paired`, `only_before`, `only_after` and
+`unpaired`; each pair carries `changed_dimensions`, `unknown_dimensions`,
+`unknown_reasons`, both `evidence_id` values and the comparison limitations.
+
+`unknown_reasons` names why a dimension could not be judged: `provider_mismatch`
+(two providers cannot be compared as text), `facet_unavailable` (the provider
+declined the facet), `facet_undeclared` (an empty facet with no declared
+coverage), `normalization_failed` (offsets or CFG indices could not be
+normalized), `diff_budget_exceeded` (the bounded line diff stopped),
+`call_coverage_incomplete`, `coverage_partial`, `membership_ambiguous`,
+`coordinate_context_unknown` and `identity_unstable`. A record
+without a defensible reason says `unspecified`; the field never guesses.
+
+Pairing is strict on purpose. A name that occurs more than once on one side —
+including a generated namesake — and a side whose symbol the provider did not
+establish as stable are both reported as unpaired rather than matched by
+guesswork. `unchanged` means every compared dimension agreed and none was
+reported unknown; it is not a claim that the two functions behave the same.
+
 For application traces and version comparisons, see
 [JavaScript application workflows](javascript-application-workflows.md).
 MCP [retained Evidence references](mcp-contracts.md#retained-application-evidence-inputs)

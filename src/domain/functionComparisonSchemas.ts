@@ -5,6 +5,23 @@ import { evidenceInputSchema } from "./evidenceReference.js";
 import { digestSchema, prefixedDigestSchema } from "./../domain/digests.js";
 
 const comparisonStatusSchema = z.enum(["unchanged", "changed", "unknown"]);
+/** Why a dimension could not be judged; produced where the limit is hit. */
+export const functionComparisonUnknownReasonSchema = z.enum([
+  "provider_mismatch",
+  "facet_unavailable",
+  "facet_undeclared",
+  "normalization_failed",
+  "diff_budget_exceeded",
+  "call_coverage_incomplete",
+  "coverage_partial",
+  "membership_ambiguous",
+  "coordinate_context_unknown",
+  "identity_unstable",
+  "unspecified",
+]);
+export type FunctionComparisonUnknownReason = z.infer<
+  typeof functionComparisonUnknownReasonSchema
+>;
 export const functionComparisonDimensionNameSchema = z.enum([
   "identity",
   "pseudocode",
@@ -57,6 +74,12 @@ const functionDimensionSchema = z.union([
   z.object({
     ...functionDimensionContextShape,
     status: z.literal("unknown"),
+    // Optional in the contract: a record without reasons is read as
+    // unspecified, never as a confident absence of limits.
+    unknown_reasons: z
+      .array(functionComparisonUnknownReasonSchema)
+      .min(1)
+      .optional(),
     left_digest: z.null(),
     right_digest: z.null(),
     text_delta: z.null(),

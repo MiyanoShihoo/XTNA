@@ -13,12 +13,12 @@ import {
   nameAndSwiftProjection,
   normalizeCfg,
   referencedStringProjection,
-  sorted,
   swiftLiteralCoverage,
   swiftLiteralSitesConflict,
 } from "./functionComparisonNormalization.js";
 import type {
   DimensionName,
+  FunctionComparisonUnknownReason,
   FunctionDimension,
 } from "./functionComparisonSchemas.js";
 import {
@@ -58,31 +58,51 @@ export const compareDimensions = (
     compareStringsAndNames(left, right, context),
     compareCfg(left, right, context),
   ].map((result) => {
-    const limitations = [
-      ...facetLimitations(left, result.dimension).map(
-        (reason) => `Left: ${reason}`,
-      ),
-      ...facetLimitations(right, result.dimension).map(
-        (reason) => `Right: ${reason}`,
-      ),
+    const facets = [
+      ...facetLimitations(left, result.dimension).map((entry) => ({
+        ...entry,
+        side: "Left",
+      })),
+      ...facetLimitations(right, result.dimension).map((entry) => ({
+        ...entry,
+        side: "Right",
+      })),
     ];
-    return limitations.length === 0
+    return facets.length === 0
       ? result
       : unresolvedDimension({
           dimension: result.dimension,
           links: context.links,
           leftCount: null,
           rightCount: null,
-          limitations: [...result.limitations, ...limitations],
+          limitations: [
+            ...result.limitations,
+            ...facets.map(({ side, message }) => `${side}: ${message}`),
+          ],
+          // Keep what the producer already established: a facet limit does not
+          // erase a coverage or provider finding that was observed earlier.
+          reasons: [
+            ...new Set([
+              ...(result.status === "unknown"
+                ? (result.unknown_reasons ?? [])
+                : []),
+              ...facets.map(({ reason }) => reason),
+            ]),
+          ],
         });
   });
 };
+
+interface FacetLimit {
+  readonly message: string;
+  readonly reason: "facet_unavailable" | "facet_undeclared";
+}
 
 /** An empty undeclared facet is not evidence of observed absence. */
 const facetLimitations = (
   snapshot: FunctionSnapshot,
   dimension: DimensionName,
-): string[] => {
+): readonly FacetLimit[] => {
   const { dossier } = snapshot;
   const fields = {
     identity: [],
@@ -112,12 +132,22 @@ const facetLimitations = (
     DimensionName,
     [keyof NonNullable<typeof dossier.facet_availability>, number][]
   >;
-  return fields[dimension].flatMap(([field, count]) => {
+  return fields[dimension].flatMap(([field, count]): FacetLimit[] => {
     const availability = dossier.facet_availability?.[field];
     if (availability?.available === false)
-      return [`${field}: ${availability.reason}`];
+      return [
+        {
+          message: `${field}: ${availability.reason}`,
+          reason: "facet_unavailable" as const,
+        },
+      ];
     return availability === undefined && count === 0
-      ? [`${field}: Provider did not declare coverage for this empty facet.`]
+      ? [
+          {
+            message: `${field}: Provider did not declare coverage for this empty facet.`,
+            reason: "facet_undeclared" as const,
+          },
+        ]
       : [];
   });
 };
@@ -146,6 +176,7 @@ const compareText = (
         ...limitations,
         "Exact text comparison requires one provider identity.",
       ],
+      reasons: ["provider_mismatch"],
     });
   const changes = diffLines(left, right, {
     timeout: 100,
@@ -161,6 +192,7 @@ const compareText = (
         ...limitations,
         "Bounded line diff exceeded its time or edit-distance limit.",
       ],
+      reasons: ["diff_budget_exceeded"],
     });
   const delta = changes.reduce(
     (summary, change) => ({
@@ -201,6 +233,7 @@ const compareComments = (
       limitations: [
         "Comment locations could not be normalized relative to the function.",
       ],
+      reasons: ["normalization_failed"],
     });
   return compareValues("comments", leftValues, rightValues, context);
 };
@@ -248,7 +281,15 @@ const compareStringsAndNames = (
       rightCount: null,
       limitations: [
         "Reference source locations could not be normalized to function offsets.",
+        ...stringFacts.limitations,
       ],
+      // The projection failing is one finding; the decoding, metadata and
+      // coverage limits observed on the strings themselves are others. Naming
+      // only the first would erase reasons that were actually observed.
+      reasons: stringReasons(complete, [
+        ...stringFacts.reasons,
+        "normalization_failed",
+      ]),
     });
   const compared = compareValues(
     "strings_names",
@@ -312,8 +353,21 @@ const compareStringsAndNames = (
     leftCount: null,
     rightCount: null,
     limitations,
+    ...(stringReasons(complete, stringFacts.reasons).length === 0
+      ? {}
+      : { reasons: stringReasons(complete, stringFacts.reasons) }),
   });
 };
+
+const stringReasons = (
+  complete: boolean,
+  observed: readonly FunctionComparisonUnknownReason[],
+): FunctionComparisonUnknownReason[] => [
+  ...new Set([
+    ...observed,
+    ...(complete ? [] : (["coverage_partial"] as const)),
+  ]),
+];
 
 const stringsAndNamesResult = ({
   leftStrings,
@@ -357,34 +411,41 @@ type ReferencedStringFact = ReturnType<
 const compareReferencedStrings = (
   left: readonly ReferencedStringFact[],
   right: readonly ReferencedStringFact[],
-): { readonly changed: boolean; readonly limitations: readonly string[] } => {
+): {
+  readonly changed: boolean;
+  readonly limitations: readonly string[];
+  readonly reasons: readonly FunctionComparisonUnknownReason[];
+} => {
   const leftGroups = groupStringsByOffset(left);
   const rightGroups = groupStringsByOffset(right);
   const leftUnlocated = leftGroups.get(null) !== undefined;
   const rightUnlocated = rightGroups.get(null) !== undefined;
+  const reasons = new Set<FunctionComparisonUnknownReason>();
   const limitations = new Set(
-    [...left, ...right].flatMap(({ decoding_reason }) =>
-      decoding_reason === null
-        ? []
-        : [`Referenced string decoding unavailable: ${decoding_reason}`],
-    ),
+    [...left, ...right].flatMap(({ decoding_reason }) => {
+      if (decoding_reason === null) return [];
+      reasons.add("facet_unavailable");
+      return [`Referenced string decoding unavailable: ${decoding_reason}`];
+    }),
   );
   let changed = false;
   for (const offset of new Set([...leftGroups.keys(), ...rightGroups.keys()])) {
     const leftRows = leftGroups.get(offset);
     const rightRows = rightGroups.get(offset);
     if (offset === null) {
+      reasons.add("normalization_failed");
       limitations.add(
         "Referenced string source location could not be normalized.",
       );
       continue;
     }
     if (leftRows === undefined || rightRows === undefined) {
-      if (leftUnlocated || rightUnlocated)
+      if (leftUnlocated || rightUnlocated) {
+        reasons.add("normalization_failed");
         limitations.add(
           `Referenced string membership at source offset ${offset} is ambiguous because another source location is unavailable.`,
         );
-      else changed = true;
+      } else changed = true;
       continue;
     }
     if (leftRows.length !== 1 || rightRows.length !== 1) {
@@ -393,8 +454,12 @@ const compareReferencedStrings = (
         changed ||= repeated.changed;
         for (const limitation of repeated.limitations)
           limitations.add(limitation);
+        // The metadata limit is a real reason, not only prose: carrying it
+        // upward is what keeps this dimension out of `unspecified`.
+        for (const reason of repeated.reasons) reasons.add(reason);
         continue;
       }
+      reasons.add("membership_ambiguous");
       limitations.add(
         `Multiple referenced strings at source offset ${offset} cannot be paired without ambiguity.`,
       );
@@ -417,18 +482,22 @@ const compareReferencedStrings = (
         leftRow.metadata.byte_length !== rightRow.metadata.byte_length)
     )
       changed = true;
-    if ((leftRow.metadata === null) !== (rightRow.metadata === null))
+    if ((leftRow.metadata === null) !== (rightRow.metadata === null)) {
+      reasons.add("facet_unavailable");
       limitations.add(
         `Typed string metadata is unavailable at source offset ${offset}.`,
       );
+    }
     if (leftRow.content === null || rightRow.content === null) {
-      if (leftRow.content !== null || rightRow.content !== null)
+      if (leftRow.content !== null || rightRow.content !== null) {
+        reasons.add("facet_unavailable");
         limitations.add(
           `Referenced string content is unavailable on one side at source offset ${offset}.`,
         );
+      }
     }
   }
-  return { changed, limitations: [...limitations] };
+  return { changed, limitations: [...limitations], reasons: [...reasons] };
 };
 
 const compareRepeatedStringRows = (
@@ -437,6 +506,7 @@ const compareRepeatedStringRows = (
 ): {
   readonly changed: boolean;
   readonly limitations: readonly string[];
+  readonly reasons: readonly FunctionComparisonUnknownReason[];
 } | null => {
   if (
     left.some(({ content }) => content === null) ||
@@ -450,6 +520,7 @@ const compareRepeatedStringRows = (
     right.flatMap(({ content }) => (content === null ? [] : [content])),
   );
   const limitations = new Set<string>();
+  const reasons = new Set<FunctionComparisonUnknownReason>();
   for (const content of new Set([
     ...leftByContent.keys(),
     ...rightByContent.keys(),
@@ -468,6 +539,9 @@ const compareRepeatedStringRows = (
       leftMetadata.some((metadata) => metadata === null) ||
       rightMetadata.some((metadata) => metadata === null)
     ) {
+      // The single-row path already reports this as facet_unavailable; a
+      // repeated offset is the same missing facet, so it says the same thing.
+      reasons.add("facet_unavailable");
       limitations.add(
         "Typed string metadata is unavailable for repeated content at a source offset.",
       );
@@ -478,7 +552,7 @@ const compareRepeatedStringRows = (
       rightMetadata.map((metadata) => JSON.stringify(metadata)),
     );
   }
-  return { changed, limitations: [...limitations] };
+  return { changed, limitations: [...limitations], reasons: [...reasons] };
 };
 
 const groupStringsByContent = (
@@ -529,6 +603,7 @@ const compareReferences = (
       leftCount: compared.leftCount,
       rightCount: compared.rightCount,
       limitations: compared.limitations,
+      reasons: compared.reasons,
     });
   return dimensionResult({
     dimension: "references",
@@ -561,6 +636,7 @@ const compareIdentity = (
       limitations: [
         "Empty names, generated symbols and unknown symbol origins do not establish cross-version identity.",
       ],
+      reasons: ["identity_unstable"],
     });
   return compareValues(
     "identity",
@@ -590,7 +666,20 @@ const compareCalls = (
       links: context.links,
       leftCount: comparison.leftCount,
       rightCount: comparison.rightCount,
-      limitations: [...coverageLimitations, ...coverageDiagnostics],
+      limitations: [
+        ...comparison.limitations,
+        ...coverageLimitations,
+        ...coverageDiagnostics,
+      ],
+      // Incomplete coverage is an additional finding, not a replacement for
+      // what the relationship comparison already established. Both were
+      // observed, so reporting only the coverage limit would erase the other.
+      reasons: [
+        ...new Set([
+          ...(comparison.status === "unknown" ? comparison.reasons : []),
+          "call_coverage_incomplete" as const,
+        ]),
+      ],
     });
   if (comparison.status === "unknown")
     return unresolvedDimension({
@@ -599,6 +688,7 @@ const compareCalls = (
       leftCount: comparison.leftCount,
       rightCount: comparison.rightCount,
       limitations: [...comparison.limitations, ...coverageDiagnostics],
+      reasons: comparison.reasons,
     });
   return dimensionResult({
     dimension: "calls",
@@ -627,6 +717,7 @@ const compareCfg = (
       limitations: [
         "CFG addresses could not be normalized to local block indices.",
       ],
+      reasons: ["normalization_failed"],
     });
   return compareValues("cfg", leftGraph, rightGraph, context);
 };

@@ -14,6 +14,9 @@ export const TOOL_EXAMPLE_OVERRIDES: Readonly<
 > = {
   ...UNKNOWN_CONTRACT_EXAMPLES,
   ...INVESTIGATION_EXAMPLES,
+  // Both inventories are required and have no default; an empty inventory is
+  // the smallest document the contract accepts.
+  diff_functions: { left: [], right: [] },
   inspect_byte_entropy: { path: "/artifacts/firmware.bin" },
   goto_address: { address: "0x1000" },
   procedure_address: { procedure: "main" },

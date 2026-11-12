@@ -1,41 +1,18 @@
 # XTNA
 
-XTNA is a local command-line tool and MCP server for reverse engineering and application
-analysis. It reads a binary, an app package, a page or a capture and returns structured records;
-each record says how it was observed and where the analysis stopped.
+**Reverse-engineer software artifacts with one CLI and MCP server.**
 
-Deep analysis needs tools you install yourself (Ghidra, IDA, Hopper, Rizin, apktool, JADX).
-Several modules are still partial — [docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md) marks each one
-`shipped`, `partial` or `planned`.
+XTNA helps you inspect binaries, application packages, JavaScript/Electron apps, and captured web or network behavior. It returns structured findings with their source, evidence strength, and coverage—and keeps observations, derived facts, inferences, and unknowns distinguishable.
+
+[![MCP tool catalog](https://img.shields.io/badge/MCP-tool_catalog-5c4ee5?style=flat-square)](docs/mcp-contracts.md#generated-catalog)
 
 [English](#english) · [简体中文](#chinese)
 
 <a id="english"></a>
 
-## What it does
+## Get started
 
-XTNA reads an artifact and returns records that state four things: which backend observed it,
-how strong the claim is (`observed`, `derived`, `inferred`), how far the analysis reached, and
-what it could not do. Truncated output says it is truncated. An observation is not silently
-promoted to an inference.
-
-The current code covers four areas:
-
-- Binaries and managed code: PE, ELF and Mach-O, PE/CLI metadata, function dossiers, call-path
-  tracing, decompiler adapters.
-- Apps and pages: JavaScript and Electron graphs, source maps, APK/AAB and IPA/.app bundles,
-  passive browser inspection.
-- Containers and traffic: ZIP, DMG, Godot PCK, PyInstaller, Node SEA, Hermes headers; HAR,
-  mitmproxy, SAZ and qlog.
-- Agent tooling: MCP tools, mock servers, client SDK generation, dossiers, checkpoints, a local
-  panel.
-
-The per-area documents under [docs/](docs/) are the reference for each area. This list is a map,
-not a claim that every sub-feature is finished.
-
-## Getting started
-
-Node.js `^22.23.4 || ^24.22.1 || >=26.12.1` is required.
+Requires Node.js `^22.23.4 || ^24.22.1 || >=26.12.1`.
 
 ```bash
 git clone https://github.com/MiyanoShihoo/XTNA.git
@@ -45,70 +22,54 @@ npm run compile
 node scripts/rea.mjs --help
 ```
 
-`package.json` names the binary `xtna`; in a clone the entry point is `scripts/rea.mjs`.
-
-Two commands to try first:
+Start with an artifact inspection; this command does not require an external analysis provider:
 
 ```bash
-# Inspect an artifact without any external provider.
 node scripts/rea.mjs inspect-artifact ./target.exe --format json --evidence_output evidence.json
+```
 
-# Decompile one function through Ghidra, which you must install and point XTNA at.
+For deeper native analysis, install and configure a provider such as Ghidra, then run:
+
+```bash
 node scripts/rea.mjs decompile ./target.exe 0x401000 --provider ghidra --format json
 ```
 
-## CLI and MCP
-
-The CLI is the same code path the MCP server exposes:
+To use XTNA through MCP, run its stdio server:
 
 ```bash
-node scripts/rea.mjs mcp        # stdio transport
+node scripts/rea.mjs mcp
 ```
 
-`setup` can modify client configuration files. Review the installation guide and protect existing
-configurations before running it. Configuration safety checks are still under review. The
-per-client paths and the registry snippet are in
-[docs/installation.md](docs/installation.md#supported-agents). If you would rather not use it,
-the MCP entry is a single stdio command and can be registered by hand.
+The optional `setup` command can modify agent configuration files. Read the [installation guide](docs/installation.md#supported-agents) and review its planned changes before applying them; you can also register the stdio command manually. The published server entry is listed in the [MCP Registry](docs/installation.md#mcp-registry).
 
-The generated tool catalog in [docs/mcp-contracts.md](docs/mcp-contracts.md#generated-catalog)
-lists the tools, their inputs and how results are represented.
+## What you can inspect
 
-## Requirements and limitations
+- **Binaries and managed code:** PE, ELF, Mach-O, managed-code metadata, and provider-backed function analysis.
+- **Applications and packages:** JavaScript/Electron applications, Android packages, and Apple application bundles.
+- **Captures and containers:** browser or network captures, plus formats such as ZIP, DMG, Godot PCK, and Node SEA.
+- **Agent-assisted workflows:** MCP tools and structured investigation results.
 
-- Deep analysis requires providers you supply. XTNA does not download or install them, and a
-  missing provider is reported as such rather than substituted.
-- Provider processes run with your permissions. Point them at untrusted input only inside a
-  sandbox you control.
-- Some modules are partial by design: the roadmap names the missing part for each. Do not read
-  a `partial` label as "mostly done".
-- The test suites are runnable locally, but not every lane is green on every platform and some
-  acceptance lanes have known failures. The repository does not claim a green board it cannot
-  reproduce.
-- Windows client configuration paths differ per client and change between versions. `setup`
-  refuses what it cannot verify instead of guessing.
+These are entry points, not a promise that every sub-feature is complete. See the [documentation index](docs/index.md) for task-specific guides and the [roadmap](docs/XTNA-ROADMAP.md) for delivery status.
 
-## Verification
+## What to expect from results
 
-Local gates that exist in `package.json`: `npm run typecheck`, `npm run lint`, `npm run
-docs:check`, `npm run test:fast`. `npm run verify:xtna` runs the project's own verification
-script. What was actually observed on a given platform is recorded in
-[docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md#verified-baseline); anything unrun stays unrun.
+XTNA identifies the analysis backend and records how far an analysis got. Results distinguish direct observations from derived facts and inferences, and report gaps or unknowns instead of silently presenting them as facts. Truncated output is marked as truncated.
 
-## Security notes
+## Requirements and safe use
 
-- Analysis reads local files. XTNA does not add an upload step to that flow; individual providers
-  may behave differently, so read the provider's own guide before pointing it at sensitive input.
-- The MCP gateway redacts secret-shaped values from retained evidence. Coverage is per tool and
-  stated in each tool's record, not a global guarantee.
-- The local panel binds to loopback and checks the WebSocket Origin before accepting a connection
-  ([docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md)).
+- Deeper analysis may need providers that you install and configure yourself. XTNA reports a missing provider rather than silently substituting another one.
+- Provider processes run with your permissions. Analyze untrusted inputs only in a sandbox you control.
+- XTNA's analysis reads local files and does not add an upload step; individual providers may behave differently. Check their documentation before using them with sensitive inputs.
+- Some modules are partial and have specific known gaps. Check the [roadmap](docs/XTNA-ROADMAP.md) before relying on a particular capability.
+- `setup` edits client configuration. Review the installation guide and its plan before approving changes.
 
-## Documentation
+## Documentation and status
 
-Start at [docs/](docs/): `installation.md`, `cli.md`, `mcp-contracts.md`, `client-configuration.md`
-and the per-format guides. Delivery status per module is in
-[docs/XTNA-ROADMAP.md](docs/XTNA-ROADMAP.md).
+- [Task guides](docs/index.md)
+- [Installation and agent setup](docs/installation.md)
+- [CLI reference](docs/cli.md)
+- [MCP tools and result contracts](docs/mcp-contracts.md)
+- [Feature status and verification notes](docs/XTNA-ROADMAP.md#verified-baseline)
 
 ## License
 
@@ -120,22 +81,9 @@ Apache-2.0. See [LICENSE](LICENSE).
 
 ## 简体中文
 
-XTNA 提供命令行工具和 MCP 接口，用于分析二进制文件、应用程序及相关产物。分析结果包含结构化信息，
-并尽可能说明证据来源与能力限制。部分功能仍在开发中，具体状态见项目路线图。
+**用一套 CLI 和 MCP 服务，以证据为依据分析软件产物。**
 
-深度分析依赖你自备的外部工具（Ghidra、IDA、Hopper、Rizin、apktool、JADX 等），XTNA 不下载、
-不安装它们；缺少时直接报缺少，不会用别的东西顶替。
-
-### 功能范围
-
-当前代码覆盖四类：
-
-- 二进制与托管代码：PE、ELF、Mach-O，PE/CLI 元数据，函数档案，调用路径追踪，反编译适配。
-- 应用与页面：JavaScript/Electron 应用图、source map，APK/AAB 与 IPA/.app，被动式浏览器检查。
-- 容器与流量：ZIP、DMG、Godot PCK、PyInstaller、Node SEA、Hermes 头；HAR、mitmproxy、SAZ、qlog。
-- Agent 工具：MCP 工具、mock 服务器、客户端 SDK 生成、dossier、checkpoint、本地面板。
-
-各领域的细节以 [docs/](docs/) 下对应文档为准；这份清单是索引，不代表每个子功能都已完成。
+XTNA 可用于检查二进制文件、应用程序包、JavaScript/Electron 应用，以及网页或网络采集数据。它会把分析结果整理为结构化记录，标明来源、证据强度和覆盖范围，并区分直接观察、推导、推断与未知项。
 
 ### 快速开始
 
@@ -149,32 +97,52 @@ npm run compile
 node scripts/rea.mjs --help
 ```
 
-`package.json` 里的命令名是 `xtna`；在克隆目录中用 `scripts/rea.mjs`。
+可以先检查产物；此命令不需要外部分析 provider：
 
 ```bash
-# 不依赖外部 provider 的产物检查
 node scripts/rea.mjs inspect-artifact ./target.exe --format json --evidence_output evidence.json
+```
 
-# 通过 Ghidra 反编译单个函数（需自行安装并配置 Ghidra）
+如需进一步分析原生二进制，请自行安装并配置 Ghidra 等 provider，再运行：
+
+```bash
 node scripts/rea.mjs decompile ./target.exe 0x401000 --provider ghidra --format json
+```
 
-# MCP 服务器（stdio）
+通过 MCP 使用 XTNA 时，运行 stdio 服务：
+
+```bash
 node scripts/rea.mjs mcp
 ```
 
-`setup` 会修改客户端配置文件。运行前先阅读安装文档，并保护好现有配置；配置安全检查仍在评审中。
-各客户端的路径与注册片段见
-[docs/installation.md](docs/installation.md#supported-agents)。不想用 `setup` 时，MCP 入口就是
-一条 stdio 命令，可以手工注册。
+可选的 `setup` 命令会修改 Agent 配置文件。执行前请阅读[安装指南](docs/installation.md#supported-agents)并检查它计划修改的内容；也可以手动注册这条 stdio 命令。已发布的服务器条目见 [MCP Registry](docs/installation.md#mcp-registry)。
 
-### 限制
+### 能检查哪些内容
 
-- 外部 provider 由你提供并以其自身权限运行；对不可信输入使用前，先在你自己控制的沙箱里跑。
-- 分析读取本地文件，XTNA 不为该流程增加上传步骤；各 provider 行为可能不同，指向敏感输入前先读其文档。
-- MCP 网关会对保留证据中的凭据形态内容做脱敏，覆盖范围按工具记录为准，不构成全局保证。
-- 部分功能标为 partial，代表有可用切片但存在明确缺口，不等于"基本完成"。
-- 测试套件可在本地运行，但并非每个 lane 在所有平台都通过，部分 acceptance lane 存在已知失败。
-- 不同客户端的配置路径与格式会随版本变化；`setup` 对无法核实的状态直接拒绝，不做猜测。
+- **二进制与托管代码：** PE、ELF、Mach-O、托管代码元数据，以及通过 provider 进行的函数分析。
+- **应用与程序包：** JavaScript/Electron 应用、Android 程序包和 Apple 应用包。
+- **采集数据与容器：** 浏览器或网络采集数据，以及 ZIP、DMG、Godot PCK、Node SEA 等格式。
+- **Agent 工作流：** MCP 工具与结构化调查结果。
+
+这些是常见入口，不代表每个子功能都已完成。按任务查阅[文档索引](docs/index.md)，并在[路线图](docs/XTNA-ROADMAP.md)查看各功能的交付状态。
+
+### 分析结果与安全边界
+
+XTNA 会标明分析后端和分析到达的范围；结果会区分直接观察、推导和推断，并报告缺口或未知项，不会把它们默默当成事实。被截断的输出会明确标记。
+
+- 深度分析可能需要你自行安装和配置 provider。缺少 provider 时，XTNA 会报告缺失，不会悄悄换用其他工具。
+- Provider 进程以你的权限运行。分析不可信输入时，请使用你自己控制的沙箱。
+- XTNA 的分析读取本地文件，不会额外增加上传步骤；具体 provider 的行为可能不同。处理敏感输入前请先查看其文档。
+- 部分模块仍有明确缺口。依赖某项具体能力前，请先查看[路线图](docs/XTNA-ROADMAP.md)。
+- `setup` 会修改客户端配置。执行前请阅读安装指南并检查变更计划。
+
+### 文档与状态
+
+- [按任务查找指南](docs/index.md)
+- [安装与 Agent 配置](docs/installation.md)
+- [CLI 参考](docs/cli.md)
+- [MCP 工具与结果约定](docs/mcp-contracts.md)
+- [功能状态与验证记录](docs/XTNA-ROADMAP.md#verified-baseline)
 
 ### 许可
 

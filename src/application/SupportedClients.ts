@@ -80,6 +80,7 @@ interface ClientPathContext {
   readonly home: string;
   readonly platform: NodeJS.Platform;
   readonly env: Readonly<NodeJS.ProcessEnv>;
+  readonly cwd: string;
 }
 
 /** One resolved configuration location and its detection evidence. */
@@ -129,6 +130,7 @@ const vscodeUserDirectory = ({
   home,
   platform,
   env,
+  cwd,
 }: ClientPathContext): string => {
   // Match VS Code's user-data selection before appending the User scope.
   // Empty overrides are unset; portable storage takes precedence over appdata.
@@ -140,7 +142,7 @@ const vscodeUserDirectory = ({
         ? join(windowsAppDataRoots(home, env).roaming, "Code")
         : platform === "darwin"
           ? join(home, "Library", "Application Support", "Code")
-          : join(xdgConfigHome({ home, platform, env }), "Code");
+          : join(xdgConfigHome({ home, platform, env, cwd }), "Code");
   // The catalog can describe Windows clients on another host; retain its
   // drive-absolute paths instead of resolving them against that host cwd.
   const absoluteUserData =
@@ -148,7 +150,10 @@ const vscodeUserDirectory = ({
       ? userData
       : isAbsolute(userData)
         ? resolve(userData)
-        : resolve(env.VSCODE_CWD || process.cwd(), userData);
+        : resolve(
+            env.VSCODE_CWD ? resolve(cwd, env.VSCODE_CWD) : cwd,
+            userData,
+          );
   return join(absoluteUserData, "User");
 };
 
@@ -156,12 +161,13 @@ const traeUserDirectory = ({
   home,
   platform,
   env,
+  cwd,
 }: ClientPathContext): string => {
   if (platform === "win32")
     return join(windowsAppDataRoots(home, env).roaming, "Trae", "User");
   if (platform === "darwin")
     return join(home, "Library", "Application Support", "Trae", "User");
-  return join(xdgConfigHome({ home, platform, env }), "Trae", "User");
+  return join(xdgConfigHome({ home, platform, env, cwd }), "Trae", "User");
 };
 
 /** Windows packaging decides which file Claude Desktop reads; see its resolver. */
@@ -201,7 +207,7 @@ const factoryDirectory = ({ home, env }: ClientPathContext): string =>
   join(env.FACTORY_HOME_OVERRIDE || home, ".factory");
 
 /** Match Qwen Code's home override, including tilde and cwd-relative paths. */
-const qwenCodeDirectory = ({ home, env }: ClientPathContext): string => {
+const qwenCodeDirectory = ({ home, env, cwd }: ClientPathContext): string => {
   const override = env.QWEN_HOME;
   if (!override) return join(home, ".qwen");
   const expanded =
@@ -216,7 +222,7 @@ const qwenCodeDirectory = ({ home, env }: ClientPathContext): string => {
               .filter(Boolean),
           )
         : override;
-  return isAbsolute(expanded) ? expanded : resolve(expanded);
+  return isAbsolute(expanded) ? expanded : resolve(cwd, expanded);
 };
 
 const grokDirectory = ({ home, env }: ClientPathContext): string =>
@@ -227,6 +233,7 @@ const dshDirectory = (
   home: string,
   override: string | undefined,
   fallback: string,
+  cwd: string,
 ): string => {
   const selected =
     override !== undefined && override.trim().length > 0
@@ -238,11 +245,11 @@ const dshDirectory = (
       : selected.startsWith("~/") || selected.startsWith("~\\")
         ? join(home, selected.slice(2))
         : selected;
-  return resolve(expanded);
+  return resolve(cwd, expanded);
 };
 
-const dshHomeDirectory = ({ home, env }: ClientPathContext): string =>
-  dshDirectory(home, env.DSH_HOME, ".dsh");
+const dshHomeDirectory = ({ home, env, cwd }: ClientPathContext): string =>
+  dshDirectory(home, env.DSH_HOME, ".dsh", cwd);
 
 const dshPatchDirectory = (context: ClientPathContext): string =>
   join(dshHomeDirectory(context), "cordis.patch.yml");
@@ -353,7 +360,7 @@ const ompAgentDirectory = (context: ClientPathContext): ClientPathResult => {
     return ok(join(root, "profiles", profile, "agent"));
   }
   const override = context.env.PI_CODING_AGENT_DIR;
-  return ok(override ? resolve(override) : join(root, "agent"));
+  return ok(override ? resolve(context.cwd, override) : join(root, "agent"));
 };
 
 /**
@@ -430,7 +437,7 @@ const openCodeConfigurationPaths = (
         ]
       : []),
   ];
-  const resolved = paths.map((path) => resolve(path));
+  const resolved = paths.map((path) => resolve(context.cwd, path));
   return resolved.filter((path, index) => resolved.lastIndexOf(path) === index);
 };
 
@@ -442,13 +449,13 @@ const existingOpenCodeConfigPath = (context: ClientPathContext): string => {
       ? [
           join(overrideDirectory, "opencode.json"),
           join(overrideDirectory, "opencode.jsonc"),
-        ].map((path) => resolve(path))
+        ].map((path) => resolve(context.cwd, path))
       : context.env.OPENCODE_CONFIG
-        ? [resolve(context.env.OPENCODE_CONFIG)]
+        ? [resolve(context.cwd, context.env.OPENCODE_CONFIG)]
         : [
             join(opencodeDirectory(context), "opencode.json"),
             join(opencodeDirectory(context), "opencode.jsonc"),
-          ].map((path) => resolve(path));
+          ].map((path) => resolve(context.cwd, path));
   return (
     [...candidates].reverse().find((path) => {
       try {
@@ -463,6 +470,7 @@ const existingOpenCodeConfigPath = (context: ClientPathContext): string => {
       }
     }) ??
     resolve(
+      context.cwd,
       overrideDirectory !== undefined
         ? join(overrideDirectory, "opencode.json")
         : context.env.OPENCODE_CONFIG ||
@@ -574,8 +582,8 @@ export const SUPPORTED_CLIENT_DEFINITIONS = [
   {
     name: "devin",
     displayName: "Devin",
-    configPath: ({ home, platform, env }: ClientPathContext) =>
-      join(devinDirectory({ home, platform, env }), "mcp_config.json"),
+    configPath: (context: ClientPathContext) =>
+      join(devinDirectory(context), "mcp_config.json"),
     markerPath: devinDirectory,
     format: "json",
   },
@@ -729,8 +737,8 @@ export const SUPPORTED_CLIENT_DEFINITIONS = [
     displayName: "DeepSeek Harness",
     // The home Cordis patch applies to every profile; the skill directory is
     // shared agent storage Harness discovers.
-    skillPath: ({ home, env }: ClientPathContext) =>
-      join(dshDirectory(home, env.DSH_AGENTS_HOME, ".agents"), "skills"),
+    skillPath: ({ home, env, cwd }: ClientPathContext) =>
+      join(dshDirectory(home, env.DSH_AGENTS_HOME, ".agents", cwd), "skills"),
     configPath: dshPatchDirectory,
     markerPath: dshHomeDirectory,
     format: "dsh",
@@ -783,6 +791,21 @@ export const clientEvidencePaths = (
       ]
     ).filter((path): path is string => path !== undefined && path.length > 0),
   ),
+];
+
+/** Every physical configuration file uninstall may edit for this client. */
+export const clientUninstallConfigurationPaths = (
+  client: Pick<SetupClient, "configPath" | "configPaths" | "msixPackage">,
+): readonly string[] => [
+  ...new Set([
+    ...(client.configPaths ?? [client.configPath]),
+    ...(client.msixPackage === undefined
+      ? []
+      : [
+          client.msixPackage.privateConfigPath,
+          client.msixPackage.appDataConfigPath,
+        ]),
+  ]),
 ];
 
 /**
@@ -850,8 +873,9 @@ export const supportedClients = (
   home: string,
   platform: NodeJS.Platform = process.platform,
   env: ClientPathContext["env"] = process.env,
+  cwd: string = process.cwd(),
 ): readonly SetupClient[] => {
-  const context = { home, platform, env };
+  const context = { home, platform, env, cwd };
   const definitions: readonly ClientDefinition[] = SUPPORTED_CLIENT_DEFINITIONS;
   return definitions.map((definition) => {
     try {
@@ -922,6 +946,7 @@ export const clientSkillDirectories = (
   clientIds: readonly string[] | undefined,
   environment: Readonly<NodeJS.ProcessEnv> = {},
   platform: NodeJS.Platform = process.platform,
+  cwd: string = process.cwd(),
 ): {
   readonly directories: readonly {
     readonly client: string;
@@ -971,6 +996,7 @@ export const clientSkillDirectories = (
               home,
               platform,
               env: environment,
+              cwd,
             });
       if (!resolved.ok) {
         unresolved.push({

@@ -77,7 +77,7 @@ cliTest.skipIf(process.platform === "win32")(
     );
     expect(registered.document.model).toBe("selected-model");
     expect(registered.servers.other).toMatchObject({ command: "other-server" });
-    expect(registered.servers.rea).toBeDefined();
+    expect(registered.servers.xtna).toBeDefined();
     const installed = await readFile(manifest, "utf8");
     expect(installed).toContain("name: reverse-engineer-anything");
     expect(await readFile(`${config}.rea.backup`, "utf8")).toBe(original);

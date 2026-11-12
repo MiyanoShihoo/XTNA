@@ -146,17 +146,18 @@ cliTest(
       clients: { pi: { status: "configured" } },
     });
     const configured = await readFile(config, "utf8");
+    expect(JSON.parse(configured).mcpServers).not.toHaveProperty("rea");
     const registration = z
       .object({
         mcpServers: z.object({
-          rea: z.object({
+          xtna: z.object({
             command: z.string(),
             args: z.array(z.string()),
             env: z.record(z.string(), z.string()).optional(),
           }),
         }),
       })
-      .parse(JSON.parse(configured)).mcpServers.rea;
+      .parse(JSON.parse(configured)).mcpServers.xtna;
     const transport = new StdioClientTransport({
       command: registration.command,
       args: registration.args,
@@ -280,7 +281,7 @@ cliTest(
     expect(JSON.parse(configured)).toMatchObject({
       mcpServers: {
         other: { command: "other-server" },
-        rea: {
+        xtna: {
           type: "stdio",
           command: process.execPath,
           args: [cliPath, "mcp"],
@@ -357,7 +358,7 @@ cliTest(
     const text = await readFile(config, "utf8");
     expect(() => JSON.parse(text)).not.toThrow();
     expect(JSON.parse(text)).toMatchObject({
-      mcpServers: { rea: { type: "stdio" } },
+      mcpServers: { xtna: { type: "stdio" } },
     });
     const doctor = await run(["doctor", "--client", "pi", "--json"]);
     expect(doctor.exitCode).toBe(0);
@@ -371,7 +372,7 @@ cliTest(
     });
     await run(["uninstall", "--json"]);
     expect(
-      JSON.parse(await readFile(config, "utf8")).mcpServers.rea,
+      JSON.parse(await readFile(config, "utf8")).mcpServers.xtna,
     ).toBeUndefined();
 
     const blocked = await createTestTempDirectory("rea-pi-cli-malformed-");

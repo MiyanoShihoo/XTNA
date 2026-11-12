@@ -23,8 +23,33 @@ prepareCliProcessEnvironment(
 // invocations never set the variable and keep their usual behaviour.
 if (["setup", "uninstall", "update"].includes(args[0] ?? "")) {
   const { assertTestIsolation } = await import("../dist/cli/testIsolation.js");
+  const explicitOutputFormat = args.some(
+    (argument) =>
+      [
+        "--format",
+        "--json",
+        "--jsonl",
+        "--ndjson",
+        "--yaml",
+        "--toml",
+        "--markdown",
+      ].includes(argument) || argument.startsWith("--format="),
+  );
+  const mayPromptForHopper =
+    args[0] === "setup" &&
+    process.stdin.isTTY === true &&
+    process.stdout.isTTY === true &&
+    process.stderr.isTTY === true &&
+    !args.some((argument) => ["-y", "--yes", "--dry-run"].includes(argument)) &&
+    !explicitOutputFormat;
   try {
-    assertTestIsolation(args[0], process.env, process.platform);
+    assertTestIsolation(
+      args[0],
+      process.env,
+      process.platform,
+      args.slice(1),
+      mayPromptForHopper,
+    );
   } catch (cause) {
     process.stderr.write(
       `${cause instanceof Error ? cause.message : String(cause)}\n`,

@@ -1,5 +1,4 @@
 import { access, mkdir, readFile } from "node:fs/promises";
-import { userInfo } from "node:os";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { parse } from "jsonc-parser";
 
@@ -9,12 +8,13 @@ import { createTestTempDirectory } from "../../fixtures/temporaryDirectory.js";
 import { cliTest } from "../../support/cli/cliFixture.js";
 
 cliTest(
-  "setup dry run resolves empty home values without writing to the cwd",
+  "setup dry run uses a temporary USERPROFILE without writing to the cwd",
   async ({ cli }) => {
     const directory = await createTestTempDirectory("rea-empty-home-dry-run-");
+    const home = join(directory, "profile");
     const workingDirectory = join(directory, "cwd");
+    await mkdir(home);
     await mkdir(workingDirectory);
-    const hostHome = userInfo().homedir;
     const result = await cli.run({
       arguments: [
         "setup",
@@ -27,7 +27,7 @@ cliTest(
       cwd: workingDirectory,
       environment: {
         HOME: "",
-        USERPROFILE: "",
+        USERPROFILE: home,
         HOMEDRIVE: "",
         HOMEPATH: "",
         XDG_CONFIG_HOME: "",
@@ -47,7 +47,7 @@ cliTest(
       expect(typeof target).toBe("string");
       if (typeof target !== "string") continue;
       expect(isAbsolute(target)).toBe(true);
-      const relativeTarget = relative(hostHome, target);
+      const relativeTarget = relative(home, target);
       expect(
         relativeTarget === "" ||
           (!relativeTarget.startsWith(`..${sep}`) && relativeTarget !== ".."),
@@ -119,6 +119,7 @@ cliTest.skipIf(process.platform === "win32")(
       await readFile(join(home, ".cursor", "mcp.json"), "utf8"),
     );
     expect(remainingConfig).not.toHaveProperty("mcpServers.rea");
+    expect(remainingConfig).not.toHaveProperty("mcpServers.xtna");
     await expect(
       access(
         join(

@@ -104,6 +104,7 @@ export class ClientConfigurationCleanupRollbackFailure extends RegularFileCleanu
 const configurationWriteRefusal = (
   parsed: ClientConfigurationDocument,
   client: SetupClient,
+  sources: readonly ClientConfigurationSource[],
 ):
   | {
       readonly status: "failed";
@@ -111,9 +112,14 @@ const configurationWriteRefusal = (
       readonly detail: string;
     }
   | undefined => {
+  const effective =
+    effectiveClientConfiguration(sources, {
+      client,
+      document: parsed,
+    }) ?? parsed;
   const ownershipOf = (key: string) =>
-    Object.hasOwn(parsed.servers, key)
-      ? clientRegistrationOwnership(parsed.servers[key], client)
+    Object.hasOwn(effective.servers, key)
+      ? clientRegistrationOwnership(effective.servers[key], client)
       : "absent";
   const currentOwnership = ownershipOf(PRODUCT_IDENTITY.mcpServerKey);
   const legacyOwnership = ownershipOf(LEGACY_MCP_SERVER_KEY);
@@ -310,7 +316,7 @@ const configureClientDocument = async (
   );
   // A state the contract blocks must be reported even when no write is apparently needed: row 10
   // and row 11 both look `unchanged` from the current member alone.
-  const refusal = configurationWriteRefusal(parsed, client);
+  const refusal = configurationWriteRefusal(parsed, client, files.value);
   if (refusal !== undefined) return refusal;
   // §3 row 6: a registration that only exists under the historical key is not "current", even
   // when the client would load it with the desired launcher. Reporting `unchanged` there leaves
@@ -335,6 +341,7 @@ const configureClientDocument = async (
     format,
     original,
     parsed,
+    configurationSources: files.value,
     desired,
     fallbackServers: fallback.value,
   });
@@ -349,6 +356,7 @@ interface ClientConfigurationUpdate {
   readonly format: NonNullable<SetupClient["format"]>;
   readonly original: string | undefined;
   readonly parsed: ClientConfigurationDocument;
+  readonly configurationSources: readonly ClientConfigurationSource[];
   readonly desired: unknown;
   readonly fallbackServers: Readonly<Record<string, unknown>>;
 }
@@ -360,6 +368,7 @@ const persistClientConfiguration = async ({
   format,
   original,
   parsed,
+  configurationSources,
   desired,
   fallbackServers,
 }: ClientConfigurationUpdate): Promise<ClientConfigurationResult> => {
@@ -390,7 +399,11 @@ const persistClientConfiguration = async ({
   );
   // §3 rows 6–12 are decided before the write, and before the question of whether one is needed:
   // rows 10 and 11 are BLOCK even when the current member already matches.
-  const refusal = configurationWriteRefusal(parsed, client);
+  const refusal = configurationWriteRefusal(
+    parsed,
+    client,
+    configurationSources,
+  );
   if (refusal !== undefined) return refusal;
   const legacyOwned =
     Object.hasOwn(parsed.servers, LEGACY_MCP_SERVER_KEY) &&

@@ -54,6 +54,7 @@ import {
   appDataRedirection,
   clientOwnershipEvidencePaths,
   clientSharedRegistrationPaths,
+  clientUninstallConfigurationPaths,
   manualRegistrationRemediation,
   registrationWriteBlocker,
   supportedClients,
@@ -389,7 +390,7 @@ const sharedConfigPaths = (
   const claimsByPath = new Map<string, ClientConfigClaim[]>();
   for (const client of clients)
     for (const claim of [
-      ...uninstallConfigPaths(client).map((configPath) => ({
+      ...clientUninstallConfigurationPaths(client).map((configPath) => ({
         client,
         configPath,
         fallback: false,
@@ -549,6 +550,14 @@ export const systemUninstallHost = (
           removal.value.legacyPath === undefined
         )
           return undefined;
+        const layeredBlocker = await openCodeLowerLayerBlocker(
+          client,
+          removal.value,
+          fileSystem,
+          resources,
+        );
+        if (layeredBlocker !== undefined)
+          return item(client.name, "failed", layeredBlocker);
         preflightOwnedClients.add(client);
         // A removal the running package would revert, or redirect into its
         // private storage, would leave the registration in place.
@@ -615,23 +624,6 @@ export const systemUninstallHost = (
     },
   };
 };
-
-/**
- * Every user file that can hold REA's registration for one client. An MSIX
- * package can read either its private copy or the AppData file, and earlier
- * setups wrote the AppData file, so both lose REA's entry.
- */
-const uninstallConfigPaths = (client: SetupClient): readonly string[] => [
-  ...new Set([
-    ...(client.configPaths ?? [client.configPath]),
-    ...(client.msixPackage === undefined
-      ? []
-      : [
-          client.msixPackage.privateConfigPath,
-          client.msixPackage.appDataConfigPath,
-        ]),
-  ]),
-];
 
 /** Whether removal would change this configuration. */
 const registrationPresent = (parsed: ClientConfigurationDocument): boolean => {
@@ -777,6 +769,54 @@ type RegistrationRemovalRefusal = {
   readonly detail: string;
   /** The owned rows that motivated removal; refusing the edit keeps them. */
   readonly owned: RegistrationRemoval;
+};
+
+/**
+ * Removing an owned OpenCode entry from a higher-precedence file can reveal a
+ * registration with the same product identity from an earlier file. Check all
+ * lower layers during uninstall's read-only preflight, before any file changes.
+ */
+const openCodeLowerLayerBlocker = async (
+  client: UninstallClient,
+  removal: RegistrationRemoval,
+  fileSystem: UninstallFileSystem,
+  resources: ArtifactResourceScope,
+): Promise<string | undefined> => {
+  if (
+    client.format !== "opencode" ||
+    (removal.nativeKeys.length === 0 && removal.legacyPath === undefined)
+  )
+    return undefined;
+  const layers = client.configPaths ?? [client.configPath];
+  const currentIndex = layers.indexOf(client.configPath);
+  if (currentIndex <= 0) return undefined;
+
+  for (const path of layers.slice(0, currentIndex)) {
+    const lowerClient: UninstallClient = {
+      ...client,
+      configPath: path,
+      configPaths: [path],
+    };
+    const lower = await readClientConfiguration(
+      lowerClient,
+      fileSystem,
+      resources,
+    );
+    if (lower.kind === "item") {
+      if (lower.item.status !== "skipped")
+        return `An earlier OpenCode configuration layer at ${path} could not be verified. ${lower.item.detail}`;
+      continue;
+    }
+
+    for (const name of [PRODUCT_IDENTITY.mcpServerKey, LEGACY_MCP_SERVER_KEY])
+      for (const servers of [lower.parsed.servers, lower.parsed.legacyServers])
+        if (Object.hasOwn(servers, name)) {
+          const ownership = clientRegistrationOwnership(servers[name], client);
+          if (ownership === "owned") continue;
+          return `An earlier OpenCode configuration layer at ${path} contains a ${ownership} registration for "${name}". Removing the owned registration from ${client.configPath} would expose it, so no change was made. Remove or replace that entry manually, then rerun uninstall.`;
+        }
+  }
+  return undefined;
 };
 
 /** Exported for the uninstall removal contract tests; the delete path calls it unchanged. */
